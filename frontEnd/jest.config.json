@@ -1,0 +1,9 @@
+{
+  "clearMocks": true,
+  "errorOnDeprecated": true,
+  "moduleFileExtensions": ["js", "ts", "tsx"],
+  "resetMocks": true,
+  "restoreMocks": true,
+  "transformIgnorePatterns": ["<rootDir>/node_modules/"],
+  "verbose": true
+}
