@@ -16,9 +16,10 @@
 1. Generate SSL cert (don't self sign) using `mkcert`
 2. `brew install mkcert` 
 3. `mkcert --install` [GH](https://github.com/FiloSottile/mkcert)
-4. `npm i`
-5. `npm run start`
-6. Add Auth0 keys to `.env.development.local` file
+4. `mkcert localhost`
+5. `npm i`
+6. `npm run start`
+7. Add Auth0 keys to `.env.development.local` file
 
 ### Make it our own
 
