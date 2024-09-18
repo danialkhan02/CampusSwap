@@ -1,0 +1,28 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# pem files
+/frontEnd/localhost-key.pem
+/frontEnd/localhost.pem
+
+# dependencies
+/frontEnd/node_modules
+npm-debug.log*
+
+# testing
+frontEnd/coverage
+
+# production
+frontEnd/build
+
+# env
+frontEnd/.env.local
+frontEnd/.env.development.local
+frontEnd/.env.test.local
+frontEnd/.env.production.local
+
+# ide
+.idea/
+.vscode/
+
+# misc
+.DS_Store
