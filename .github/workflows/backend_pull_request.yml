@@ -24,6 +24,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version-file: 'pyproject.toml'
+          working-directory: ./backEnd
           cache: 'poetry'
 
       - name: Configure git for private modules
