@@ -1,0 +1,45 @@
+name: Pull Request Flow
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened, ready_for_review ]
+    branches:
+      - main
+    paths:
+      - 'backEnd/**'
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code into the Python project directory
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry==1.8.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: 'backEnd/pyproject.toml'
+          cache: 'poetry'
+
+      - name: Configure git for private modules
+        run: git config --global url."https://${{ secrets.PYTHON_MODULES_TOKEN }}@github.com".insteadOf ssh://git@github.com
+
+      - name: Get dependencies
+        working-directory: ./backEnd
+        run: |
+          poetry config virtualenvs.create false
+          poetry install --with dev
+
+#      - name: Run Tests
+#        run: poetry run coverage run -m pytest && poetry run coverage report -m > coverage.out
+#
+#      - name: Publish Code Coverage
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: Code Coverage Report
+#          path: coverage.out
