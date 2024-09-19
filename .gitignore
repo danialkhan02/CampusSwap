@@ -26,3 +26,19 @@ frontEnd/.env.production.local
 
 # misc
 .DS_Store
+backEnd/sandbox.py
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+backEnd/backend/*.py[cod]
+backEnd/backend/*$py.class
+
+# Linters
+backEnd/backend/.ruff_cache/
+
+# Distribution / packaging
+backEnd/backend/.Python
+backEnd/backend/build/
+
+# Environments
+backEnd/.env
