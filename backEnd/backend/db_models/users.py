@@ -9,3 +9,5 @@ class UsersOrm(BaseDbModel):
     first_name: Mapped[str] = mapped_column(String)
     last_name: Mapped[str] = mapped_column(String)
     stytch_id: Mapped[str] = mapped_column(String)
+
+    categories = relationship("CategoriesOrm", back_populates="lister")
