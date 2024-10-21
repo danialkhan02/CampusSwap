@@ -67,3 +67,23 @@ We use [alembic](https://alembic.sqlalchemy.org/) for migrations. We create & ru
 1. Autogenerate the migration: `poetry run alembic revision --autogenerate -m "<insert message>"`
 2. Generate empty migration: `poetry run alembic revision -m "<insert message>"`
 3. Apply migrations: `poetry run alembic upgrade head`
+
+### Viewing the Database
+
+To inspect and manage the database, we recommend using TablePlus:
+
+1. Download and install TablePlus from https://tableplus.com/
+
+2. Open TablePlus and create a new connection with the following details:
+   - Name: Backend Database (or any name you prefer)
+   - Host: localhost
+   - Port: 5432
+   - Database: backend
+   - User: backend
+   - Password: secret
+
+3. Save the connection and connect to view your database structure and data.
+
+4. You can now explore tables, run queries, and manage your data through the TablePlus interface.
+
+Note: Ensure your PostgreSQL server is running before attempting to connect.
