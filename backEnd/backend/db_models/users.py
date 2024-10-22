@@ -11,3 +11,4 @@ class UsersOrm(BaseDbModel):
     stytch_id: Mapped[str] = mapped_column(String)
 
     categories = relationship("CategoriesOrm", back_populates="lister")
+    notifications = relationship("NotificationsOrm", back_populates="user")
