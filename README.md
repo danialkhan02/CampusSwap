@@ -3,7 +3,6 @@ For this project we went with a monolithic repository structure with separate mi
 These microservices talk with each other using CRUD APIs. 
 
 ### For project management, we are using JIRA.
-[![Click here to access the JIRA page](https://ece-444-2024.atlassian.net/jira/software/projects/SCRUM/boards/1/timeline)]
 
 #### FrontEnd Languages and Frameworks: React, TypeScript & MUI Component Library<br/>
 #### BackEnd Languages and Frameworks: Python 
