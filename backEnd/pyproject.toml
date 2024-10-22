@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "backend"
-version = "1.1.0"
+version = "1.2.0"
 
 
 description = "API Gateway"
@@ -13,6 +13,8 @@ black = "*"
 ruff = "*"
 
 pre-commit = "^3.7.1"
+pytest = "^8.3.3"
+pytest-cov = "^5.0.0"
 [virtualenvs]
 in-project = true
 path = ".venv"

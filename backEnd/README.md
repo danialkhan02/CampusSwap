@@ -62,6 +62,16 @@ API Gateway
 2. Run migrations: `poetry run alembic upgrade head`
 3. Start the server: `poetry run start`
 
+### Running Tests
+1. Ensure you have all dependencies installed: `poetry install --sync`
+2. Run the tests using pytest: `poetry run pytest`
+3. To run tests with coverage report: `poetry run pytest --cov=backend --cov-report=term-missing`
+4. For a more detailed HTML coverage report:
+   a. Run: `poetry run pytest --cov=backend --cov-report=html`
+   b. Open the generated `htmlcov/index.html` file in your browser to view the report
+
+Note: Make sure your virtual environment is activated before running these commands.
+
 ## Creating Migrations
 We use [alembic](https://alembic.sqlalchemy.org/) for migrations. We create & run migrations locally and then raise a pull request. We always keep our migrations [**backwards compatible**](https://planetscale.com/blog/backward-compatible-databases-changes)
 1. Autogenerate the migration: `poetry run alembic revision --autogenerate -m "<insert message>"`

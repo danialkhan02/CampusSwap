@@ -20,6 +20,7 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 from backend.db_models.base import BaseDbModel
 from backend.db_models.users import UsersOrm
+from backend.db_models.categories import CategoriesOrm
 
 target_metadata = BaseDbModel.metadata
 
