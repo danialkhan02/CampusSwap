@@ -8,7 +8,6 @@ import { save } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { identifyUser } from 'instrumentation/analytics';
 import { OAuthAuthenticateResponse } from '@stytch/vanilla-js';
-import { user } from 'utils/apiUrls';
 
 
 type TProps = {
