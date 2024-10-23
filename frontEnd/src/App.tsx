@@ -4,11 +4,14 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import Router from 'Router';
 import AppAlerts from 'components/Common/AppAlerts';
 import ErrorBoundary from 'components/Common/ErrorBoundary';
-import Auth0ProviderWithHistory from 'pages/Authentication/components/Auth0-provider-with-history';
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import Theme from 'theme';
 import { CacheKeys } from 'utils/constants';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+
+const queryClient = new QueryClient();
 
 
 export default function App() {
@@ -25,7 +28,7 @@ export default function App() {
   return (
     <React.StrictMode>
       <BrowserRouter>
-        <Auth0ProviderWithHistory>
+        <QueryClientProvider client={queryClient}>
           <ThemeProvider theme={Theme}>
             <CssBaseline enableColorScheme />
             <AppAlerts>
@@ -34,7 +37,7 @@ export default function App() {
               </ErrorBoundary>
             </AppAlerts>
           </ThemeProvider>
-        </Auth0ProviderWithHistory>
+        </QueryClientProvider>
       </BrowserRouter>
     </React.StrictMode>
   );

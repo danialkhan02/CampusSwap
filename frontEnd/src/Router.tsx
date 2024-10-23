@@ -22,7 +22,7 @@ export default function Router() {
       <Routes>
         <Route path='/auth/*' element={<AuthRouter />} />
         <Route path='/connections/*' element={<ConnectionRouter />} />
-        <Route path='/' element={<Navigate to={spaUrls.homepage} replace />} />
+        <Route path='/' element={<Navigate to={spaUrls.auth.login} replace />} />
         <Route
           path={spaUrls.homepage}
           element={<PrivateRoute outlet={<HomePage />} />}
