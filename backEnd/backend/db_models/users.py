@@ -1,6 +1,9 @@
-from sqlalchemy import String, Uuid, ForeignKey
+from sqlalchemy import String
 from backend.db_models.base import BaseDbModel
 from sqlalchemy.orm import mapped_column, relationship, Mapped
+from typing import List
+
+from backend.db_models.categories import CategoriesOrm
 
 
 class UsersOrm(BaseDbModel):
@@ -10,4 +13,7 @@ class UsersOrm(BaseDbModel):
     last_name: Mapped[str] = mapped_column(String)
     stytch_id: Mapped[str] = mapped_column(String)
 
-    categories = relationship("CategoriesOrm", back_populates="lister")
+    # One-to-Many Relationship
+    categories: Mapped[List["CategoriesOrm"]] = relationship(
+        "CategoriesOrm", back_populates="lister", lazy="select"
+    )
