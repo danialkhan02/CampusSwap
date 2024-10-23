@@ -1,54 +1,73 @@
-import { useAuth0 } from '@auth0/auth0-react';
-import Spinner from 'components/Common/Spinner';
-import Toast from 'components/Common/Toast';
-import { identifyUser } from 'instrumentation/analytics';
-import React from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { save } from 'utils/cacheUtils';
-import { CacheKeys } from 'utils/constants';
-import { ErrorCodes } from 'utils/errorUtils';
+import React, { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useStytch } from '@stytch/react';
 import { Logger } from 'utils/logger';
-import { auth, homepage } from 'utils/spaUrls';
+import { ErrorCodes } from 'utils/errorUtils';
+import authentication from 'pages/Authentication/constants';
+import { housekeepingOnAuth } from 'pages/Authentication/utils';
+import { retrieve } from 'utils/cacheUtils';
+import { CacheKeys } from 'utils/constants';
+import SignUp from 'pages/Authentication/components/SignUp';
+import LoginRedirect from 'pages/Authentication/components/LoginRedirect';
+import { auth } from 'utils/spaUrls';
 
-
-const audience = process.env.REACT_APP_AUTH0_AUDIENCE || '';
 
 export default function LandingPad() {
-  const auth0Client = useAuth0();
+  const stytch = useStytch();
   const navigate = useNavigate();
+  const hasAuthenticatedRef = useRef(false); // Track if authentication has been attempted
 
-  React.useEffect(() => {
-    (async () => {
+  // Extract URL parameters
+  const params = new URLSearchParams(window.location.search);
+  const tokenType = params.get(authentication.StytchTokenType);
+  const sessionToken = params.get(authentication.StytchToken);
+
+  // Retrieve cached response (if exists)
+  const stytchResponse = retrieve(CacheKeys.response, { parseJson: true });
+
+  useEffect(() => {
+    const authenticateStytchUser = async () => {
+      if (!sessionToken || stytchResponse || tokenType !== authentication.Oauth) return;
+
+      if (hasAuthenticatedRef.current) {
+        return;
+      }
+
+      hasAuthenticatedRef.current = true; // Prevent multiple authentication attempts
+
       try {
-        const t = await auth0Client.getAccessTokenSilently({ authorizationParams: { audience } });
-        save(CacheKeys.token, t);
+        // Authenticate the user with Stytch using the OAuth session token
+        const response = await stytch.oauth.authenticate(sessionToken, {
+          session_duration_minutes: authentication.SessionDurationMinutes,
+        });
+        housekeepingOnAuth(response);
       }
       catch (error) {
+        // Log error and navigate to logout page in case of failure
         if (error instanceof Error) {
-          Logger.error(ErrorCodes.auth.auth0GetToken, error.message);
+          Logger.error(ErrorCodes.auth.stytchGetToken, error.message);
         }
-        navigate(auth.login);
+        else {
+          Logger.error(ErrorCodes.auth.stytchClientMisc, error);
+        }
+        navigate(auth.logout, { replace: true });
       }
-    })();
-  }, [auth0Client, navigate]);
+    };
 
-  if (!auth0Client || auth0Client.isLoading) {
-    return <Spinner />;
+    authenticateStytchUser();
+
+    // Dependency array ensures the effect is run only when the necessary parameters change
+  }, [sessionToken, tokenType, stytchResponse, navigate, stytch]);
+
+  // Extract metadata from stytchResponse (if available)
+  const trustedMetadata = stytchResponse?.user?.trusted_metadata;
+  const userCodeiId = trustedMetadata?.codei_id as string;
+
+  // Conditional rendering: If no userCodeiId is available, show SignUp form
+  if (!userCodeiId && trustedMetadata) {
+    return <SignUp stytchResponse={stytchResponse} />;
   }
-  else if (auth0Client.error) {
-    Logger.warn(ErrorCodes.auth.auth0ClientMisc, `${auth0Client.error.name} - ${auth0Client.error.message}`);
-    return <Toast type='error' message={auth0Client.error.name} />;
-  }
-  else if (auth0Client.user) {
-    identifyUser({ userId: auth0Client.user.sub as string });
-    localStorage.setItem(CacheKeys.profileSrc, auth0Client.user.picture as string);
-    localStorage.setItem(CacheKeys.userId, auth0Client.user.sub as string);
-    localStorage.setItem(CacheKeys.orgId, auth0Client.user.org_id as string);
-    return <Navigate to={homepage} />;
-  }
-  else if (!auth0Client.user) {
-    Logger.warn(ErrorCodes.auth.auth0MalformedToken, 'No user found');
-    return <Navigate to={auth.logout} />;
-  }
-  else { return <Navigate to={homepage} />; }
+
+  // Otherwise, redirect to login
+  return <LoginRedirect stytchResponse={stytchResponse} />;
 }

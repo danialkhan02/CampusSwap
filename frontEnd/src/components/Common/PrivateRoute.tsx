@@ -1,41 +1,44 @@
-import { useAuth0 } from '@auth0/auth0-react';
 import Spinner from 'components/Common/Spinner';
-import Toast from 'components/Common/Toast';
 import React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { save } from 'utils/cacheUtils';
-import { CacheKeys } from 'utils/constants';
 import { ErrorCodes } from 'utils/errorUtils';
 import { Logger } from 'utils/logger';
 import { auth } from 'utils/spaUrls';
+import { useStytchSession, useStytchUser } from '@stytch/react';
+import Header from 'components/Layouts/Header';
 
-
-const audience = process.env.REACT_APP_AUTH0_AUDIENCE || '';
 
 export default function PrivateRoute({ outlet } : {outlet: JSX.Element}) {
-  const auth0Client = useAuth0();
+  const { user } = useStytchUser();
+  const { session } = useStytchSession();
   const navigate = useNavigate();
 
   React.useEffect(() => {
     (async () => {
       try {
-        const t = await auth0Client.getAccessTokenSilently({ authorizationParams: { audience } });
-        save(CacheKeys.token, t);
+        if (!session?.session_id) {
+          navigate(auth.login);
+        }
       }
       catch (error) {
         if (error instanceof Error) {
-          Logger.error(ErrorCodes.auth.auth0GetToken, error.message);
+          Logger.error(ErrorCodes.auth.stytchGetToken, error.message);
         }
         navigate(auth.login);
       }
     })();
-  }, [auth0Client, navigate]);
+  }, [session, navigate]);
 
-  if (!auth0Client || auth0Client.isLoading) { return <Spinner />; }
-  else if (auth0Client.isAuthenticated) { return outlet; }
-  else if (auth0Client.error) {
-    Logger.warn(ErrorCodes.auth.auth0ClientMisc, `${auth0Client.error.name} - ${auth0Client.error.message}`);
-    return <Toast type='error' message={auth0Client.error.name} />;
+  if (!session) { return <Spinner />; }
+  else if (session && user) {
+    return (
+      <>
+        <Header />
+        {outlet}
+      </>
+    );
   }
-  else { return <Navigate to={auth.login} />; }
+  else {
+    return <Navigate to={auth.login} />;
+  }
 }

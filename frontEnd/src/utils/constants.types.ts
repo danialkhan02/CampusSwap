@@ -5,5 +5,9 @@ export type CacheKeysModel = {
   sessionId: string;
   token: string;
   userId: string;
+  response: string;
+  email: string;
+  sessionToken: string;
+  userResponse: string;
 };
 
