@@ -7,7 +7,11 @@ export const CacheKeys: CacheKeysModel = {
   orgId: 'org-id',
   profileSrc: 'profile-src',
   sessionId: 'session-id',
+  response: 'response',
   token: 'token',
   userId: 'user-id',
+  email: 'email',
+  sessionToken: 'session-token',
+  userResponse: 'user-response',
 };
 

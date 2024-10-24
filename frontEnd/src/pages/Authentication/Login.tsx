@@ -1,41 +1,72 @@
-import { useAuth0 } from '@auth0/auth0-react';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import Hidden from '@mui/material/Hidden';
-import LandingBg from 'assets/LandingBg';
-import PageHeader from 'components/Common/PageHeader';
-import Spinner from 'components/Common/Spinner';
-import GoogleButton from 'react-google-button';
-import { Navigate } from 'react-router-dom';
-import { homepage } from 'utils/spaUrls';
+import { useStytch, useStytchSession } from '@stytch/react';
+import { auth, homepage } from 'utils/spaUrls';
+import {
+  Button, Card, CardContent, Grid, Stack, Typography,
+} from '@mui/material';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Microsoft } from '@mui/icons-material';
 
 
 export default function Login() {
-  const { isLoading, isAuthenticated, loginWithRedirect } = useAuth0();
-  const buttonLabel = 'Get Started';
+  const stytchClient = useStytch();
+  const { session } = useStytchSession();
+  const navigate = useNavigate();
+  const REDIRECT_URL = `${window.location.origin}${auth.landingPad}`;
 
-  if (isLoading) {
-    return <Spinner />;
-  }
-  else if (isAuthenticated) {
-    return <Navigate to={homepage} />;
-  }
+  React.useEffect(() => {
+    if (session) {
+      navigate(homepage);
+    }
+    else {
+      localStorage.clear();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startMicrosoftOAuth = () => stytchClient.oauth.microsoft.start({
+    login_redirect_url: REDIRECT_URL,
+    signup_redirect_url: REDIRECT_URL,
+    custom_scopes: ['User.Read'],
+  });
+
   return (
-    <Box>
-      <PageHeader title='React Gold' subtitle='Built with ts(x), MUI, React-Router, Auth0 & React Query' />
-      <Box mt='3%' mb='10px' />
-      <Grid container spacing={2}>
-        <Hidden smDown>
-          <Grid item sm={5} lg={8}><LandingBg /></Grid>
-        </Hidden>
-        <Grid item xs={10} sm={5} lg={3} sx={{ mt: '10%' }}>
-          <GoogleButton
-            label={buttonLabel}
-            onClick={() => loginWithRedirect()}
-            type='dark'
-          />
-        </Grid>
+    <Grid container sx={{ height: '100vh', p: 2 }}>
+      <Grid item xs={12} lg={5} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Card
+          elevation={0}
+          sx={{
+            width: '100%', maxWidth: 600, p: 4, backgroundColor: '#ffffff',
+          }}
+        >
+          <CardContent sx={{ display: 'flex', flexDirection: 'column' }}>
+            <Grid container alignItems='center' spacing={1} sx={{ mb: 4 }}>
+              <Grid item xs={12}>
+                <Stack direction='row' alignItems='center' spacing={2}>
+                  <Typography variant='h1' color='primary'>Swap Squad</Typography>
+                </Stack>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant='h5'>Login or Sign Up</Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant='subtitle2' color='text.secondary'>Welcome! Please choose one of the login options</Typography>
+              </Grid>
+            </Grid>
+            <Button
+              color='secondary'
+              size='large'
+              variant='outlined'
+              startIcon={<Microsoft />}
+              onClick={startMicrosoftOAuth}
+              fullWidth
+              sx={{ mb: 2 }}
+            >
+              Continue with Microsoft
+            </Button>
+          </CardContent>
+        </Card>
       </Grid>
-    </Box>
+    </Grid>
   );
 }

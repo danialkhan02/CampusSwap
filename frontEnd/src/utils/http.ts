@@ -19,6 +19,7 @@ const fetchWrapper = async (url: string, { method, ...rest }: IFetchParams) => {
   headers.set('Authorization', `Bearer ${localStorage.getItem(CacheKeys.token)}`);
   headers.set('X-Request-ID', requestId);
   headers.set('X-Session-ID', sessionId);
+  headers.set('X-Session-Token', localStorage.getItem(CacheKeys.sessionToken) || '');
 
   try {
     const response = await fetch(url, {
