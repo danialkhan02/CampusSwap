@@ -35,3 +35,5 @@ class UsersOrm(BaseDbModel):
         foreign_keys="SellerFeedbackOrm.buyer_id",
         lazy="select"
     )
+
+    seller_profile = relationship("SellerProfileOrm", back_populates="user", uselist=False)
