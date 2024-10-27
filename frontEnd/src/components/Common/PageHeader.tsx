@@ -8,6 +8,7 @@ import { blueGrey } from '@mui/material/colors';
 import BreadcrumbsNavigation, { TBreadcrumb } from 'components/Common/BreadcrumbsNavigation';
 import { Link } from 'react-router-dom';
 import { AllPageTitles } from 'utils/NavTree';
+import { grey } from 'styles/theme/colors';
 
 
 type Props = {
@@ -49,7 +50,7 @@ export default function PageHeader({
       ) : null}
 
       <Grid item xs={12}>
-        <Divider sx={{ backgroundColor: blueGrey[300], height: '3px' }} />
+        <Divider sx={{ backgroundColor: grey[300], height: '3px' }} />
       </Grid>
       {breadcrumbs ? (
         <Grid item xs={12} md={6} lg={4}>
