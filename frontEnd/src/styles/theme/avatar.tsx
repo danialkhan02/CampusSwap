@@ -51,6 +51,7 @@ const MuiAvatar: Components<Theme>['MuiAvatar'] = {
   /** **************************************
    * VARIANTS
    *************************************** */
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   variants: [...[...avatarColors.defaultColor!, ...avatarColors.colors!]],
 
   /** **************************************

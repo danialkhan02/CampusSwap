@@ -1,8 +1,8 @@
 import type { ButtonProps } from '@mui/material/Button';
-import type {
-  Theme, CSSObject, Components, ComponentsVariants,
-} from '@mui/material/styles';
 import { buttonClasses } from '@mui/material/Button';
+import type {
+  Components, ComponentsVariants, CSSObject, Theme,
+} from '@mui/material/styles';
 import { alpha } from '@mui/material';
 
 // ----------------------------------------------------------------------
@@ -19,15 +19,13 @@ const COLORS = ['primary', 'secondary', 'info', 'success', 'warning', 'error'] a
 type ColorType = (typeof COLORS)[number];
 
 function styleColors(ownerState: ButtonProps, styles: (val: ColorType) => CSSObject) {
-  const outputStyle = COLORS.reduce((acc, color) => {
+  return COLORS.reduce((acc, color) => {
     if (!ownerState.disabled && ownerState.color === color) {
       // eslint-disable-next-line no-param-reassign
       acc = styles(color);
     }
     return acc;
   }, {});
-
-  return outputStyle;
 }
 
 // ----------------------------------------------------------------------
@@ -77,6 +75,7 @@ const MuiButton: Components<Theme>['MuiButton'] = {
     /**
      * @variant soft
      */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     ...[...softVariant.base!, ...softVariant.colors!],
   ],
 

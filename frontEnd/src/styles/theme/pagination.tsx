@@ -62,6 +62,7 @@ const MuiPagination: Components<Theme>['MuiPagination'] = {
     /**
      * @variant soft
      */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     ...[...softVariant.standardColor!, ...softVariant.colors!],
   ],
 

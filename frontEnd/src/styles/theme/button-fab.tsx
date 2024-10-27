@@ -27,6 +27,7 @@ const SOFT_VARIANT = ['soft', 'softExtended'];
 const filledVariant: Record<string, ComponentsVariants<Theme>['MuiFab']> = {
   colors: COLORS.map((color) => ({
     props: ({ ownerState }) => !ownerState.disabled
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       && FILLED_VARIANT.includes(ownerState.variant!)
       && ownerState.color === color,
     style: ({ theme }) => ({
@@ -36,7 +37,9 @@ const filledVariant: Record<string, ComponentsVariants<Theme>['MuiFab']> = {
   })),
   base: [
     {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       props: ({ ownerState }) => FILLED_VARIANT.includes(ownerState.variant!)
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           && DEFAULT_COLORS.includes(ownerState.color!),
       style: ({ theme }) => ({
         boxShadow: theme.customShadows.z8,
@@ -62,6 +65,7 @@ const filledVariant: Record<string, ComponentsVariants<Theme>['MuiFab']> = {
 const outlinedVariant: Record<string, ComponentsVariants<Theme>['MuiFab']> = {
   colors: COLORS.map((color) => ({
     props: ({ ownerState }) => !ownerState.disabled
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       && OUTLINED_VARIANT.includes(ownerState.variant!)
       && ownerState.color === color,
     style: ({ theme }) => ({
@@ -72,6 +76,7 @@ const outlinedVariant: Record<string, ComponentsVariants<Theme>['MuiFab']> = {
   })),
   base: [
     {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       props: ({ ownerState }) => OUTLINED_VARIANT.includes(ownerState.variant!),
       style: ({ theme }) => ({
         boxShadow: 'none',
@@ -96,6 +101,7 @@ const outlinedVariant: Record<string, ComponentsVariants<Theme>['MuiFab']> = {
 const softVariant: Record<string, ComponentsVariants<Theme>['MuiFab']> = {
   colors: COLORS.map((color) => ({
     props: ({ ownerState }) => !ownerState.disabled
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       && SOFT_VARIANT.includes(ownerState.variant!)
       && ownerState.color === color,
     style: ({ theme }) => ({
@@ -110,7 +116,9 @@ const softVariant: Record<string, ComponentsVariants<Theme>['MuiFab']> = {
   })),
   base: [
     {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       props: ({ ownerState }) => SOFT_VARIANT.includes(ownerState.variant!)
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           && DEFAULT_COLORS.includes(ownerState.color!),
       style: ({ theme }) => ({
         /**
@@ -135,6 +143,7 @@ const softVariant: Record<string, ComponentsVariants<Theme>['MuiFab']> = {
 
 const sizes: ComponentsVariants<Theme>['MuiFab'] = [
   {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     props: ({ ownerState }) => EXTENDED_VARIANT.includes(ownerState.variant!),
     style: ({ theme }) => ({
       height: 48,
@@ -168,14 +177,17 @@ const MuiFab: Components<Theme>['MuiFab'] = {
     /**
      * @variant filled
      */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     ...[...filledVariant.base!, ...filledVariant.colors!],
     /**
      * @variant outlined
      */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     ...[...outlinedVariant.base!, ...outlinedVariant.colors!],
     /**
      * @variant soft
      */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     ...[...softVariant.base!, ...softVariant.colors!],
     /**
      * @sizes

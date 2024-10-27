@@ -89,6 +89,7 @@ const MuiChip: Components<Theme>['MuiChip'] = {
     /**
      * @variant soft
      */
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     ...[...softVariant.inheritColor!, ...softVariant.colors!],
   ],
 
@@ -115,6 +116,7 @@ const MuiChip: Components<Theme>['MuiChip'] = {
               color: theme.palette.action.disabled,
               borderColor: theme.palette.action.disabledBackground,
             }),
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             ...(['filled', 'soft'].includes(ownerState.variant!) && {
               color: theme.palette.action.disabled,
               backgroundColor: theme.palette.action.disabledBackground,
