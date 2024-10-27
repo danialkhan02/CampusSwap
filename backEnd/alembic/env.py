@@ -21,6 +21,8 @@ if config.config_file_name is not None:
 from backend.db_models.base import BaseDbModel
 from backend.db_models.users import UsersOrm
 from backend.db_models.categories import CategoriesOrm
+from backend.db_models.notifications import NotificationsOrm
+from backend.db_models.seller_feedbacks import SellerFeedbackOrm
 
 target_metadata = BaseDbModel.metadata
 
