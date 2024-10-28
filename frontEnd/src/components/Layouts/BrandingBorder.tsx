@@ -3,16 +3,9 @@ import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Toolbar from '@mui/material/Toolbar';
 import { useTheme } from '@mui/material/styles';
-import FooterBg from 'assets/FooterBg';
-import logo from 'assets/logo.png';
+import logo from 'assets/logo3.png';
 import React from 'react';
 
-
-function Footer() {
-  return (
-    <Box component='footer' mt='5%'><FooterBg /></Box>
-  );
-}
 
 export default function BrandingBorder({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
@@ -37,7 +30,6 @@ export default function BrandingBorder({ children }: { children: React.ReactNode
       >
         {children}
       </Box>
-      <Footer />
     </>
   );
 }
