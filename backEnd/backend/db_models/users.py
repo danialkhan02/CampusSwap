@@ -6,7 +6,7 @@ from typing import List
 from backend.db_models.categories import CategoriesOrm
 from backend.db_models.notifications import NotificationsOrm
 from backend.db_models.seller_feedbacks import SellerFeedbackOrm
-
+from backend.db_models.seller_profiles import SellerProfileOrm
 class UsersOrm(BaseDbModel):
     __tablename__ = "users"
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
@@ -14,10 +14,11 @@ class UsersOrm(BaseDbModel):
     last_name: Mapped[str] = mapped_column(String)
     stytch_id: Mapped[str] = mapped_column(String)
 
-    # One-to-Many Relationship
+    # One-to-Many Relationships
     categories: Mapped[List["CategoriesOrm"]] = relationship(
         "CategoriesOrm", back_populates="lister", lazy="select"
     )
+    
     notifications: Mapped[List["NotificationsOrm"]] = relationship(
         "NotificationsOrm", back_populates="user", lazy="select"
     )
@@ -34,4 +35,12 @@ class UsersOrm(BaseDbModel):
         back_populates="buyer", 
         foreign_keys="SellerFeedbackOrm.buyer_id",
         lazy="select"
+    )
+
+    # One-to-One Relationship by setting uselist to False
+    # This means that each user can have only one seller profile
+    seller_profile: Mapped["SellerProfileOrm"] = relationship(
+        "SellerProfileOrm", 
+        back_populates="user", 
+        uselist=False
     )
