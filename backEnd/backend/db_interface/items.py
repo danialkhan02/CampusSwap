@@ -23,7 +23,8 @@ def create_item(item: Item, db: Session = None):
             image=item.image,
             lister_id=item.lister_id,
             price=item.price,
-            location=item.location
+            location=item.location,
+            category=item.category
         )
         session.add(new_item)
         session.commit()

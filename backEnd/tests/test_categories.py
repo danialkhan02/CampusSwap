@@ -7,6 +7,7 @@ from backend.db_models.base import BaseDbModel
 from backend.db_models.items import ItemsOrm
 from backend.db_interface.items import create_item, get_item, get_item_by_lister, update_item, delete_item, list_items
 from backend.models.item import Item
+from backend.enums import ItemCategory
 
 # Setup test database
 @pytest.fixture(scope="function")
@@ -39,7 +40,8 @@ def test_create_item(test_db):
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
-        location="Test Location"
+        location="Test Location",
+        category=ItemCategory.TEXTBOOKS
     )
     result = create_item(item, db)
     assert "item_id" in result
@@ -53,6 +55,7 @@ def test_create_item(test_db):
     assert db_item.lister_id == item.lister_id
     assert db_item.price == item.price
     assert db_item.location == item.location
+    assert db_item.category == item.category
 
 def test_create_item_invalid_input(test_db):
     db, _ = test_db
@@ -68,7 +71,8 @@ def test_get_item(test_db):
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
-        location="Test Location"
+        location="Test Location",
+        category=ItemCategory.TEXTBOOKS
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -82,7 +86,7 @@ def test_get_item(test_db):
     assert retrieved_item.lister_id == item.lister_id
     assert retrieved_item.price == item.price
     assert retrieved_item.location == item.location
-
+    assert retrieved_item.category == item.category
 def test_get_item_invalid_id(test_db):
     db, _ = test_db
     with pytest.raises(ValueError, match="Invalid item ID format"):
@@ -100,7 +104,8 @@ def test_get_item_by_lister(test_db):
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
-        location="Test Location"
+        location="Test Location",
+        category=ItemCategory.TEXTBOOKS
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -123,7 +128,8 @@ def test_update_item(test_db):
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
-        location="Test Location"
+        location="Test Location",
+        category=ItemCategory.TEXTBOOKS
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -134,7 +140,8 @@ def test_update_item(test_db):
         image="updated_image.jpg",
         lister_id=user_id,
         price=15.99,
-        location="Updated Location"
+        location="Updated Location",
+        category=ItemCategory.TEXTBOOKS
     )
     updated_result = update_item(item_id, updated_item, db)
     assert updated_result is not None
@@ -153,7 +160,8 @@ def test_update_item_not_found(test_db):
         image="updated_image.jpg",
         lister_id=user_id,
         price=15.99,
-        location="Updated Location"
+        location="Updated Location",
+        category=ItemCategory.TEXTBOOKS
     )
     result = update_item(non_existent_id, updated_item, db)
     assert result is None
@@ -167,7 +175,8 @@ def test_delete_item(test_db):
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
-        location="Test Location"
+        location="Test Location",
+        category=ItemCategory.TEXTBOOKS
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -189,9 +198,9 @@ def test_list_items(test_db):
     db, user_id = test_db
     
     items = [
-        Item(title="Item 1", description="Description 1", image="image1.jpg", lister_id=user_id, price=10.99, location="Location 1"),
-        Item(title="Item 2", description="Description 2", image="image2.jpg", lister_id=user_id, price=20.99, location="Location 2"),
-        Item(title="Item 3", description="Description 3", image="image3.jpg", lister_id=user_id, price=30.99, location="Location 3"),
+        Item(title="Item 1", description="Description 1", image="image1.jpg", lister_id=user_id, price=10.99, location="Location 1", category=ItemCategory.CLOTHING),
+        Item(title="Item 2", description="Description 2", image="image2.jpg", lister_id=user_id, price=20.99, location="Location 2", category=ItemCategory.ELECTRONICS),
+        Item(title="Item 3", description="Description 3", image="image3.jpg", lister_id=user_id, price=30.99, location="Location 3", category=ItemCategory.TEXTBOOKS),
     ]
     
     for item in items:
@@ -207,4 +216,5 @@ def test_list_items(test_db):
         assert item.image == items[i].image
         assert item.price == items[i].price
         assert item.location == items[i].location
+        assert item.category == items[i].category
         assert item.lister_id == user_id
