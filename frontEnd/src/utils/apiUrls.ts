@@ -10,6 +10,7 @@ const user = {
 };
 
 const product = {
+  list: `${baseUrl}/api/v1/product/list`,
   details: (productId: string) => `${baseUrl}/api/v1/product/${productId}`,
 };
 

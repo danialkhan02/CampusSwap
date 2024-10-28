@@ -36,3 +36,18 @@ export function useGetProductDetails(
     },
   );
 }
+
+export const productListQueryKey = () => ['product', 'list'];
+
+export function useGetProductList(
+  options?: UseQueryOptions<TApiResponse<IProduct[]>, Error>,
+) {
+  return useQuery<TApiResponse<IProduct[]>, Error>(
+    {
+      queryKey: productListQueryKey(),
+      queryFn: () => http.get(product.list),
+      retry: false,
+      ...options,
+    },
+  );
+}
