@@ -25,6 +25,7 @@ export default function App() {
     }
   }, [prefersDarkMode]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const theme: any = createTheme();
   return (
     <React.StrictMode>
