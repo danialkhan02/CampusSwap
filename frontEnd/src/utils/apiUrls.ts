@@ -9,6 +9,10 @@ const user = {
   create: `${baseUrl}/api/v1/users`,
 };
 
+const product = {
+  details: (productId: string) => `${baseUrl}/api/v1/product/${productId}`,
+};
+
 export {
-  user, sample,
+  user, sample, product,
 };

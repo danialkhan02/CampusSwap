@@ -4,7 +4,7 @@ import { useMutation, UseMutationOptions, useQuery } from '@tanstack/react-query
 import { TApiResponse } from 'utils/apiResponse.type';
 
 
-export interface User {
+export interface IUser {
     id?: string;
     first_name: string,
     last_name: string,
@@ -23,9 +23,9 @@ export interface ICreateUserResponse {
 }
 
 export function useCreateUser(
-  options?: UseMutationOptions<TApiResponse<User>, Error, User>,
+  options?: UseMutationOptions<TApiResponse<IUser>, Error, IUser>,
 ) {
-  return useMutation<TApiResponse<User>, Error, User>(
+  return useMutation<TApiResponse<IUser>, Error, IUser>(
     {
       mutationFn: (newUser) => http.post(user.create, newUser),
       ...options,
@@ -36,7 +36,7 @@ export function useCreateUser(
 export const userQueryKey = () => ['user'];
 
 export function useGetUser() {
-  return useQuery<TApiResponse<User>, Error>(
+  return useQuery<TApiResponse<IUser>, Error>(
     {
       queryKey: userQueryKey(),
       queryFn: () => http.get(user.details),

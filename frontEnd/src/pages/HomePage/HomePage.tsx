@@ -14,61 +14,138 @@ import productImage6 from 'assets/product-6.webp';
 import Stack from '@mui/material/Stack';
 import { useState } from 'react';
 import Fuse from 'fuse.js';
+import { IProduct } from 'pages/HomePage/queries';
+import { OauthAuthenticationType } from 'pages/Authentication/queries';
 
 
 export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const productsData = [
+  const productsData: IProduct[] = [
     {
-      id: 1,
+      id: '1',
       name: 'Urban Explorer Sneakers',
       price: 35.71,
-      originalPrice: 42.30,
       image: `${productImage1}`,
-      isNew: false,
-      isOnSale: true,
+      seller: {
+        id: '1',
+        first_name: 'Payas',
+        last_name: 'Hasteer',
+        email: 'payas.hasteer@mail.utoronto.ca',
+        provider: OauthAuthenticationType.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
+        stytch_id: 'stytch-1',
+        oauth_id: 'oauth-1',
+      },
+      interested_buyers: [],
+      location: {
+        latitude: 1,
+        longitude: 1,
+        address: '450 Front St W.',
+      },
     },
     {
-      id: 2,
+      id: '2',
       name: 'Classic Leather Loafers',
       price: 35.54,
       image: `${productImage2}`,
-      isNew: true,
-      isOnSale: false,
+      seller: {
+        id: '1',
+        first_name: 'Payas',
+        last_name: 'Hasteer',
+        email: 'payas.hasteer@mail.utoronto.ca',
+        provider: OauthAuthenticationType.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
+        stytch_id: 'stytch-1',
+        oauth_id: 'oauth-1',
+      },
+      interested_buyers: [],
+      location: {
+        latitude: 1,
+        longitude: 1,
+        address: '450 Front St W.',
+      },
     },
     {
-      id: 3,
+      id: '3',
       name: 'Urban Explorer Sneakers',
       price: 35.71,
-      originalPrice: 42.30,
       image: `${productImage3}`,
-      isNew: false,
-      isOnSale: true,
+      seller: {
+        id: '1',
+        first_name: 'Payas',
+        last_name: 'Hasteer',
+        email: 'payas.hasteer@mail.utoronto.ca',
+        provider: OauthAuthenticationType.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
+        stytch_id: 'stytch-1',
+        oauth_id: 'oauth-1',
+      },
+      interested_buyers: [],
+      location: {
+        latitude: 1,
+        longitude: 1,
+        address: '450 Front St W.',
+      },
     },
     {
-      id: 4,
+      id: '4',
       name: 'Classic Leather Loafers',
       price: 35.54,
       image: `${productImage4}`,
-      isNew: true,
-      isOnSale: false,
+      seller: {
+        id: '1',
+        first_name: 'Payas',
+        last_name: 'Hasteer',
+        email: 'payas.hasteer@mail.utoronto.ca',
+        provider: OauthAuthenticationType.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
+        stytch_id: 'stytch-1',
+        oauth_id: 'oauth-1',
+      },
+      interested_buyers: [],
+      location: {
+        latitude: 1,
+        longitude: 1,
+        address: '450 Front St W.',
+      },
     },
     {
-      id: 5,
+      id: '5',
       name: 'Urban Explorer Sneakers',
       price: 35.71,
-      originalPrice: 42.30,
       image: `${productImage5}`,
-      isNew: false,
-      isOnSale: true,
+      seller: {
+        id: '1',
+        first_name: 'Payas',
+        last_name: 'Hasteer',
+        email: 'payas.hasteer@mail.utoronto.ca',
+        provider: OauthAuthenticationType.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
+        stytch_id: 'stytch-1',
+        oauth_id: 'oauth-1',
+      },
+      interested_buyers: [],
+      location: {
+        latitude: 1,
+        longitude: 1,
+        address: '450 Front St W.',
+      },
     },
     {
-      id: 6,
+      id: '6',
       name: 'Classic Leather Loafers',
       price: 35.54,
       image: `${productImage6}`,
-      isNew: true,
-      isOnSale: false,
+      seller: {
+        id: '1',
+        first_name: 'Payas',
+        last_name: 'Hasteer',
+        email: 'payas.hasteer@mail.utoronto.ca',
+        provider: OauthAuthenticationType.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
+        stytch_id: 'stytch-1',
+        oauth_id: 'oauth-1',
+      },
+      interested_buyers: [],
+      location: {
+        latitude: 1,
+        longitude: 1,
+        address: '450 Front St W.',
+      },
     },
   ];
 
