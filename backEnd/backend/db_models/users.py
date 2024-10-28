@@ -3,10 +3,11 @@ from backend.db_models.base import BaseDbModel
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 from typing import List
 
-from backend.db_models.categories import CategoriesOrm
+from backend.db_models.items import ItemsOrm
 from backend.db_models.notifications import NotificationsOrm
 from backend.db_models.seller_feedbacks import SellerFeedbackOrm
 from backend.db_models.seller_profiles import SellerProfileOrm
+
 class UsersOrm(BaseDbModel):
     __tablename__ = "users"
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
@@ -15,8 +16,8 @@ class UsersOrm(BaseDbModel):
     stytch_id: Mapped[str] = mapped_column(String)
 
     # One-to-Many Relationships
-    categories: Mapped[List["CategoriesOrm"]] = relationship(
-        "CategoriesOrm", back_populates="lister", lazy="select"
+    items: Mapped[List["ItemsOrm"]] = relationship(
+        "ItemsOrm", back_populates="lister", lazy="select"
     )
     
     notifications: Mapped[List["NotificationsOrm"]] = relationship(

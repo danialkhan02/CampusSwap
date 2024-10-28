@@ -4,9 +4,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from backend.db_models.users import UsersOrm
 from backend.db_models.base import BaseDbModel
-from backend.db_models.categories import CategoriesOrm
-from backend.db_interface.categories import create_category, get_category, get_category_by_lister, update_category, delete_category, list_categories
-from backend.models.category import Category
+from backend.db_models.items import ItemsOrm
+from backend.db_interface.items import create_item, get_item, get_item_by_lister, update_item, delete_item, list_items
+from backend.models.item import Item
 
 # Setup test database
 @pytest.fixture(scope="function")
@@ -30,181 +30,181 @@ def test_db():
     yield db, test_user.id
     db.close()
 
-# Test create_category
-def test_create_category(test_db):
+# Test create_item
+def test_create_item(test_db):
     db, user_id = test_db
-    category = Category(
-        title="Test Category",
+    item = Item(
+        title="Test Item",
         description="Test Description",
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
         location="Test Location"
     )
-    result = create_category(category, db)
-    assert "category_id" in result
-    assert isinstance(uuid_pkg.UUID(result["category_id"]), uuid_pkg.UUID)
+    result = create_item(item, db)
+    assert "item_id" in result
+    assert isinstance(uuid_pkg.UUID(result["item_id"]), uuid_pkg.UUID)
 
-    db_category = db.query(CategoriesOrm).filter(CategoriesOrm.id == uuid_pkg.UUID(result["category_id"])).first()
-    assert db_category is not None
-    assert db_category.title == category.title
-    assert db_category.description == category.description
-    assert db_category.image == category.image
-    assert db_category.lister_id == category.lister_id
-    assert db_category.price == category.price
-    assert db_category.location == category.location
+    db_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(result["item_id"])).first()
+    assert db_item is not None
+    assert db_item.title == item.title
+    assert db_item.description == item.description
+    assert db_item.image == item.image
+    assert db_item.lister_id == item.lister_id
+    assert db_item.price == item.price
+    assert db_item.location == item.location
 
-def test_create_category_invalid_input(test_db):
+def test_create_item_invalid_input(test_db):
     db, _ = test_db
-    with pytest.raises(ValueError, match="Category data is required"):
-        create_category(None, db)
+    with pytest.raises(ValueError, match="Item data is required"):
+        create_item(None, db)
 
-# Test get_category
-def test_get_category(test_db):
+# Test get_item
+def test_get_item(test_db):
     db, user_id = test_db
-    category = Category(
-        title="Test Category",
+    item = Item(
+        title="Test Item",
         description="Test Description",
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
         location="Test Location"
     )
-    result = create_category(category, db)
-    category_id = result["category_id"]
+    result = create_item(item, db)
+    item_id = result["item_id"]
 
-    retrieved_category = get_category(category_id, db)
-    assert retrieved_category is not None
-    assert str(retrieved_category.id) == category_id
-    assert retrieved_category.title == category.title
-    assert retrieved_category.description == category.description
-    assert retrieved_category.image == category.image
-    assert retrieved_category.lister_id == category.lister_id
-    assert retrieved_category.price == category.price
-    assert retrieved_category.location == category.location
+    retrieved_item = get_item(item_id, db)
+    assert retrieved_item is not None
+    assert str(retrieved_item.id) == item_id
+    assert retrieved_item.title == item.title
+    assert retrieved_item.description == item.description
+    assert retrieved_item.image == item.image
+    assert retrieved_item.lister_id == item.lister_id
+    assert retrieved_item.price == item.price
+    assert retrieved_item.location == item.location
 
-def test_get_category_invalid_id(test_db):
+def test_get_item_invalid_id(test_db):
     db, _ = test_db
-    with pytest.raises(ValueError, match="Invalid category ID format"):
-        get_category("invalid-uuid", db)
+    with pytest.raises(ValueError, match="Invalid item ID format"):
+        get_item("invalid-uuid", db)
 
-# Test get_category_by_lister
-def test_get_category_by_lister(test_db):
+# Test get_item_by_lister
+def test_get_item_by_lister(test_db):
     db, user_id = test_db
-    categories = get_category_by_lister(str(user_id), db)
-    assert len(categories) == 0
+    items = get_item_by_lister(str(user_id), db)
+    assert len(items) == 0
 
-    category = Category(
-        title="Test Category",
+    item = Item(
+        title="Test Item",
         description="Test Description",
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
         location="Test Location"
     )
-    result = create_category(category, db)
-    category_id = result["category_id"]
+    result = create_item(item, db)
+    item_id = result["item_id"]
 
-    categories = get_category_by_lister(str(user_id), db)
-    assert len(categories) == 1
-    assert str(categories[0].id) == category_id
+    items = get_item_by_lister(str(user_id), db)
+    assert len(items) == 1
+    assert str(items[0].id) == item_id
 
-def test_get_category_by_lister_invalid_id(test_db):
+def test_get_item_by_lister_invalid_id(test_db):
     db, _ = test_db
     with pytest.raises(ValueError, match="Invalid user ID format"):
-        get_category_by_lister("invalid-uuid", db)
+        get_item_by_lister("invalid-uuid", db)
 
-# Test update_category
-def test_update_category(test_db):
+# Test update_item
+def test_update_item(test_db):
     db, user_id = test_db
-    category = Category(
-        title="Test Category",
+    item = Item(
+        title="Test Item",
         description="Test Description",
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
         location="Test Location"
     )
-    result = create_category(category, db)
-    category_id = result["category_id"]
+    result = create_item(item, db)
+    item_id = result["item_id"]
 
-    updated_category = Category(
-        title="Updated Category",
+    updated_item = Item(
+        title="Updated Item",
         description="Updated Description",
         image="updated_image.jpg",
         lister_id=user_id,
         price=15.99,
         location="Updated Location"
     )
-    updated_result = update_category(category_id, updated_category, db)
+    updated_result = update_item(item_id, updated_item, db)
     assert updated_result is not None
-    assert updated_result.title == updated_category.title
-    assert updated_result.description == updated_category.description
-    assert updated_result.image == updated_category.image
-    assert updated_result.price == updated_category.price
-    assert updated_result.location == updated_category.location
+    assert updated_result.title == updated_item.title
+    assert updated_result.description == updated_item.description
+    assert updated_result.image == updated_item.image
+    assert updated_result.price == updated_item.price
+    assert updated_result.location == updated_item.location
 
-def test_update_category_not_found(test_db):
+def test_update_item_not_found(test_db):
     db, user_id = test_db
     non_existent_id = str(uuid_pkg.uuid4())
-    updated_category = Category(
-        title="Updated Category",
+    updated_item = Item(
+        title="Updated Item",
         description="Updated Description",
         image="updated_image.jpg",
         lister_id=user_id,
         price=15.99,
         location="Updated Location"
     )
-    result = update_category(non_existent_id, updated_category, db)
+    result = update_item(non_existent_id, updated_item, db)
     assert result is None
 
-# Test delete_category
-def test_delete_category(test_db):
+# Test delete_item
+def test_delete_item(test_db):
     db, user_id = test_db
-    category = Category(
-        title="Test Category",
+    item = Item(
+        title="Test Item",
         description="Test Description",
         image="test_image.jpg",
         lister_id=user_id,
         price=10.99,
         location="Test Location"
     )
-    result = create_category(category, db)
-    category_id = result["category_id"]
+    result = create_item(item, db)
+    item_id = result["item_id"]
 
-    delete_result = delete_category(category_id, db)
+    delete_result = delete_item(item_id, db)
     assert delete_result is True
 
-    deleted_category = get_category(category_id, db)
-    assert deleted_category is None
+    deleted_item = get_item(item_id, db)
+    assert deleted_item is None
 
-def test_delete_category_not_found(test_db):
+def test_delete_item_not_found(test_db):
     db, _ = test_db
     non_existent_id = str(uuid_pkg.uuid4())
-    result = delete_category(non_existent_id, db)
+    result = delete_item(non_existent_id, db)
     assert result is False
 
-# Test list_categories
-def test_list_categories(test_db):
+# Test list_items
+def test_list_items(test_db):
     db, user_id = test_db
     
-    categories = [
-        Category(title="Category 1", description="Description 1", image="image1.jpg", lister_id=user_id, price=10.99, location="Location 1"),
-        Category(title="Category 2", description="Description 2", image="image2.jpg", lister_id=user_id, price=20.99, location="Location 2"),
-        Category(title="Category 3", description="Description 3", image="image3.jpg", lister_id=user_id, price=30.99, location="Location 3"),
+    items = [
+        Item(title="Item 1", description="Description 1", image="image1.jpg", lister_id=user_id, price=10.99, location="Location 1"),
+        Item(title="Item 2", description="Description 2", image="image2.jpg", lister_id=user_id, price=20.99, location="Location 2"),
+        Item(title="Item 3", description="Description 3", image="image3.jpg", lister_id=user_id, price=30.99, location="Location 3"),
     ]
     
-    for category in categories:
-        result = create_category(category, db)
-        assert "category_id" in result, f"Failed to create category: {category.title}"
+    for item in items:
+        result = create_item(item, db)
+        assert "item_id" in result, f"Failed to create item: {item.title}"
 
-    listed_categories = list_categories(db)
-    assert len(listed_categories) == 3, f"Expected 3 categories, but got {len(listed_categories)}"
+    listed_items = list_items(db)
+    assert len(listed_items) == 3, f"Expected 3 items, but got {len(listed_items)}"
     
-    for i, category in enumerate(listed_categories):
-        assert category.title == categories[i].title
-        assert category.description == categories[i].description
-        assert category.image == categories[i].image
-        assert category.price == categories[i].price
-        assert category.location == categories[i].location
-        assert category.lister_id == user_id
+    for i, item in enumerate(listed_items):
+        assert item.title == items[i].title
+        assert item.description == items[i].description
+        assert item.image == items[i].image
+        assert item.price == items[i].price
+        assert item.location == items[i].location
+        assert item.lister_id == user_id

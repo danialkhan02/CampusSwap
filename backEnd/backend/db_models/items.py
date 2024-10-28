@@ -3,8 +3,8 @@ from backend.db_models.base import BaseDbModel
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 
 
-class CategoriesOrm(BaseDbModel):
-    __tablename__ = "categories"
+class ItemsOrm(BaseDbModel):
+    __tablename__ = "items"
     
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String)
@@ -14,4 +14,4 @@ class CategoriesOrm(BaseDbModel):
     location: Mapped[str] = mapped_column(String)
 
     # Relationship to the user table
-    lister = relationship("UsersOrm", back_populates="categories")
+    lister = relationship("UsersOrm", back_populates="items")
