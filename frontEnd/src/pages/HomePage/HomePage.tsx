@@ -12,9 +12,12 @@ import productImage4 from 'assets/product-4.webp';
 import productImage5 from 'assets/product-5.webp';
 import productImage6 from 'assets/product-6.webp';
 import Stack from '@mui/material/Stack';
+import { useState } from 'react';
+import Fuse from 'fuse.js';
 
 
 export default function HomePage() {
+  const [searchTerm, setSearchTerm] = useState('');
   const productsData = [
     {
       id: 1,
@@ -68,6 +71,17 @@ export default function HomePage() {
       isOnSale: false,
     },
   ];
+
+  const fuse = new Fuse(productsData, {
+    keys: ['name'],
+    threshold: 0.8,
+    distance: 100,
+  });
+
+  const filteredProducts = searchTerm
+    ? fuse.search(searchTerm).map((result) => result.item)
+    : productsData;
+
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
@@ -78,6 +92,8 @@ export default function HomePage() {
           fullWidth
           variant='outlined'
           placeholder='Search...'
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position='start'>
@@ -96,8 +112,8 @@ export default function HomePage() {
 
       {/* Product Grid */}
       <Grid container item xs={12} spacing={3}>
-        {productsData.map((product) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={product.id}>
+        {filteredProducts.map((product) => (
+          <Grid item xs={12} sm={6} md={4} lg={3} key={product.id} data-testid='product-card'>
             <ProductCard product={product} />
           </Grid>
         ))}
