@@ -1,14 +1,14 @@
 import CssBaseline from '@mui/material/CssBaseline';
-import ThemeProvider from '@mui/material/styles/ThemeProvider';
+import { Experimental_CssVarsProvider as CssVarsProvider } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Router from 'Router';
 import AppAlerts from 'components/Common/AppAlerts';
 import ErrorBoundary from 'components/Common/ErrorBoundary';
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import Theme from 'theme';
 import { CacheKeys } from 'utils/constants';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import createTheme from 'create-theme';
 
 
 const queryClient = new QueryClient();
@@ -25,18 +25,20 @@ export default function App() {
     }
   }, [prefersDarkMode]);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const theme: any = createTheme();
   return (
     <React.StrictMode>
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider theme={Theme}>
+          <CssVarsProvider defaultColorScheme='light' defaultMode='light' theme={theme}>
             <CssBaseline enableColorScheme />
             <AppAlerts>
               <ErrorBoundary>
                 <Router />
               </ErrorBoundary>
             </AppAlerts>
-          </ThemeProvider>
+          </CssVarsProvider>
         </QueryClientProvider>
       </BrowserRouter>
     </React.StrictMode>
