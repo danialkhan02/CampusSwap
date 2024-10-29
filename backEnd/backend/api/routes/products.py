@@ -15,64 +15,9 @@ from backend.models.item import Item, Location
 from backend.models.user import User
 from backend.models.provider import Provider
 from typing import List
+import base64
 
 router = APIRouter()
-
-@router.get("/{product_id}", summary="Get a product by ID", response_model=ApiResponse)
-async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
-    """
-    Get a product by its unique identifier.
-    """
-    try:
-        item = get_item(product_id, db)
-        if not item:
-            response.status_code = status.HTTP_404_NOT_FOUND
-            return ApiResponse(error=ErrMessage(message="Product not found"))
-        
-        seller = User(
-            id=str(item.lister.id),
-            first_name=item.lister.first_name,
-            last_name=item.lister.last_name,
-            email=item.lister.email,
-            stytch_id=item.lister.stytch_id,
-            provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
-                )
-                
-        interested_buyers = []
-        for buyer in item.interested_buyers:
-            interested_buyers.append(User(
-                id=str(buyer.id),
-                first_name=buyer.first_name,
-                last_name=buyer.last_name,
-                email=buyer.email,
-                stytch_id=buyer.stytch_id,
-                provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
-            ).dict())
-
-        location = None
-        if item.latitude and item.longitude:
-            location = {
-                "latitude": item.latitude,
-                "longitude": item.longitude,
-                "address": item.address
-        }
-        
-        returned_item = {
-            "id": str(item.id),
-            "name": item.name,
-            "price": item.price,
-            "image": item.image,
-            "seller": seller.dict(),
-            "interested_buyers": interested_buyers,
-            "location": location
-        }
-        return ApiResponse(data=returned_item)
-    except ValueError as e:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return ApiResponse(error=ErrMessage(message=str(e)))
-    except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ApiResponse(error=ErrMessage(message=str(e)))
 
 @router.get("/list", summary="List all products", response_model=ApiResponse)
 async def get_product_list(response: Response, db: Session = Depends(get_db)):
@@ -129,7 +74,63 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
     except Exception as e:
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
-    
+
+@router.get("/{product_id}", summary="Get a product by ID", response_model=ApiResponse)
+async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    """
+    Get a product by its unique identifier.
+    """
+    try:
+        item = get_item(product_id, db)
+        if not item:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return ApiResponse(error=ErrMessage(message="Product not found"))
+        
+        seller = User(
+            id=str(item.lister.id),
+            first_name=item.lister.first_name,
+            last_name=item.lister.last_name,
+            email=item.lister.email,
+            stytch_id=item.lister.stytch_id,
+            provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
+                )
+                
+        interested_buyers = []
+        for buyer in item.interested_buyers:
+            interested_buyers.append(User(
+                id=str(buyer.id),
+                first_name=buyer.first_name,
+                last_name=buyer.last_name,
+                email=buyer.email,
+                stytch_id=buyer.stytch_id,
+                provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
+            ).dict())
+
+        location = None
+        if item.latitude and item.longitude:
+            location = {
+                "latitude": item.latitude,
+                "longitude": item.longitude,
+                "address": item.address
+        }
+        
+        returned_item = {
+            "id": str(item.id),
+            "name": item.name,
+            "price": item.price,
+            "image": item.image,
+            "seller": seller.dict(),
+            "interested_buyers": interested_buyers,
+            "location": location
+        }
+        return ApiResponse(data=returned_item)
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))    
+
 @router.post("/create", summary="Create a new product", response_model=ApiResponse)
 async def create_product(item: Item, response: Response, db: Session = Depends(get_db)):
     """
@@ -138,8 +139,28 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
     - **price**: Price of the product
     - **location**: Optional location information
     - **category**: Product category
+    - **images**: List of base64-encoded images for the product
     """
     try:
+        # Ensure that item.images is provided and is a list
+        if not item.images or not isinstance(item.images, list):
+            raise ValueError("Images must be provided as a list.")
+
+        # Decode base64 images and prepare for storage
+        decoded_images = []
+        for img in item.images:
+            if img.startswith("data:image/"):
+                # Split the string to get the base64 part
+                header, base64_data = img.split(",", 1)
+                # Decode the base64 string
+                image_data = base64.b64decode(base64_data)
+                decoded_images.append(image_data)
+            else:
+                raise ValueError("Invalid image format. Must be a base64-encoded string.")
+
+        # Update the item with the decoded images
+        item.images = decoded_images
+
         result = create_item(item, db)
         return ApiResponse(data=result)
     except ValueError as e:
@@ -148,7 +169,7 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
     except Exception as e:
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
-
+    
 @router.get("/lister/{lister_id}", summary="Get a product by lister ID", response_model=ApiResponse)
 async def get_products_by_lister(lister_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     """
