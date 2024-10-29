@@ -8,4 +8,8 @@ export const connections = {
   list: '/connections/list',
 };
 
+export const product = {
+  details: '/product/:productId',
+};
+
 export const homepage = '/welcome';
