@@ -176,13 +176,64 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
         return ApiResponse(error=ErrMessage(message=str(e)))
     
 @router.get("/lister/{lister_id}", summary="Get a product by lister ID", response_model=ApiResponse)
-async def get_products_by_lister(lister_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+async def get_products_by_lister(lister_id: str, response: Response, db: Session = Depends(get_db)):
     """
     Get all products by a specific lister.
     """
     try:
-        items = get_item_by_lister(lister_id, db)
-        return ApiResponse(data=items)
+        with DefaultSession() as session:
+            items = get_item_by_lister(lister_id, session)
+            
+            # Transform items into the required response format
+            product_list = []
+            for item in items:
+                seller = User(
+                    id=str(item.lister.id),
+                    first_name=item.lister.first_name,
+                    last_name=item.lister.last_name,
+                    email=item.lister.email,
+                    stytch_id=item.lister.stytch_id,
+                    provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
+                )
+                
+                interested_buyers = []
+                for buyer in item.interested_buyers:
+                    interested_buyers.append(User(
+                        id=str(buyer.id),
+                        first_name=buyer.first_name,
+                        last_name=buyer.last_name,
+                        email=buyer.email,
+                        stytch_id=buyer.stytch_id,
+                        provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
+                    ).dict())
+
+                location = None
+                if item.latitude and item.longitude:
+                    location = {
+                        "latitude": item.latitude,
+                        "longitude": item.longitude,
+                        "address": item.address
+                    }
+
+                images = []
+                item_images = db.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == item.id).all()
+                for image in item_images:
+                    images.append(image.image_data)
+
+                product_list.append({
+                    "id": str(item.id),
+                    "name": item.name,
+                    "price": item.price,
+                    "images": images,
+                    "seller": seller.dict(),
+                    "interested_buyers": interested_buyers,
+                    "location": location,
+                    "category": item.category.value,
+                    "description": item.description,
+                })
+
+            return ApiResponse(data=product_list)
+            
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
