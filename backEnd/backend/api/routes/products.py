@@ -247,7 +247,23 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
         if result is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product not found"))
-        return ApiResponse(data=result)
+        
+        dict_return = {
+           "id": str(result.id),
+           "name": result.name,
+           "title": result.title,
+           "description": result.description,
+           "price": result.price,
+           "location": {
+               "latitude": result.latitude,
+               "longitude": result.longitude,
+               "address": result.address
+           },
+           "category": result.category.value,
+           "images": [image.image_data for image in result.item_images]
+        }
+        
+        return ApiResponse(data=dict_return)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
