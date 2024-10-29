@@ -5,7 +5,6 @@ from sqlalchemy.orm import sessionmaker
 from backend.db_models.users import UsersOrm
 from backend.db_models.base import BaseDbModel
 from backend.db_models.items import ItemsOrm
-from backend.db_models.item_images import ItemImagesOrm
 from backend.db_interface.items import (
     create_item,
     get_item,
@@ -19,12 +18,6 @@ from backend.models.item import Item, Location, ItemImage
 from backend.db_models.items import interested_buyers
 from backend.enums import ItemCategory
 
-def create_test_image(order: int = 0) -> ItemImage:
-    return ItemImage(
-        image_data=b"fake image data",
-        content_type="image/jpeg",
-        display_order=order
-    )
 
 @pytest.fixture(scope="function")
 def test_db():
@@ -63,7 +56,7 @@ def test_create_item_with_location_and_images(test_db):
         longitude=-79.3832,
         address="123 Test St"
     )
-    images = [create_test_image(0), create_test_image(1)]
+    images = ["test_image_0", "test_image_1"]
     item = Item(
         name="Test Product",
         title="Test Item",
@@ -94,7 +87,7 @@ def test_create_item_with_location_and_images(test_db):
 
 def test_create_item_without_location(test_db):
     db, user_id, _ = test_db
-    images = [create_test_image()]
+    images = ["test_image_0"]
     item = Item(
         name="Test Product",
         title="Test Item",
@@ -123,7 +116,7 @@ def test_get_item(test_db):
         longitude=-79.3832,
         address="123 Test St"
     )
-    images = [create_test_image()]
+    images = ["test_image_0"]
     item = Item(
         name="Test Product",
         title="Test Item",
@@ -162,7 +155,7 @@ def test_update_item(test_db):
         longitude=-79.3832,
         address="123 Test St"
     )
-    initial_images = [create_test_image()]
+    initial_images = ["test_image_0"]
     item = Item(
         name="Test Product",
         title="Test Item",
@@ -181,7 +174,7 @@ def test_update_item(test_db):
         longitude=-79.4000,
         address="456 Updated St"
     )
-    updated_images = [create_test_image(0), create_test_image(1)]
+    updated_images = ["test_image_0", "test_image_1"]
     updated_item = Item(
         name="Updated Product",
         title="Updated Item",
@@ -216,7 +209,7 @@ def test_update_item(test_db):
 
 def test_delete_item_with_images(test_db):
     db, user_id, _ = test_db
-    images = [create_test_image()]
+    images = ["test_image_0"]
     item = Item(
         name="Test Product",
         title="Test Item",
@@ -255,7 +248,7 @@ def test_add_interested_buyer(test_db):
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        images=[create_test_image()],  # Updated
+        images=["test_image_0"],  # Updated
         lister_id=lister_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS
@@ -277,7 +270,7 @@ def test_add_interested_buyer_duplicate(test_db):
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        images=[create_test_image()],  # Updated
+        images=["test_image_0"],  # Updated
         lister_id=lister_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS
@@ -378,7 +371,7 @@ def test_list_items(test_db):
             name="Product 1",
             title="Item 1",
             description="Description 1",
-            images=[create_test_image()],
+            images=["test_image_0"],
             lister_id=user_id,
             price=10.99,
             location=location,
@@ -388,7 +381,7 @@ def test_list_items(test_db):
             name="Product 2",
             title="Item 2",
             description="Description 2",
-            images=[create_test_image()],
+            images=["test_image_0"],
             lister_id=user_id,
             price=20.99,
             location=location,

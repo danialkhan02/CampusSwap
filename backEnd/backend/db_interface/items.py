@@ -31,21 +31,13 @@ def create_item(item: Item, db: Session = None):
             title=item.title,
             description=item.description,
             lister_id=item.lister_id,
+            images=item.images,
             price=item.price,
             category=item.category,
             **location_data
         )
         session.add(new_item)
 
-        # Handle images
-        for image in item.images:
-            new_image = ItemImagesOrm(
-                item_id=new_item_id,
-                image_data=image.image_data,
-                content_type=image.content_type,
-                display_order=image.display_order
-            )
-            session.add(new_image)
 
         session.commit()
         logger.info(f"Item created successfully: {new_item_id}")
@@ -138,23 +130,10 @@ def update_item(item_id: str, item: Item, db: Session = None):
             "description": item.description,
             "price": item.price,
             "category": item.category,
+            "images": item.images,
             **location_data
         }.items():
             setattr(db_item, key, value)
-
-        # Handle images update
-        # First, remove all existing images
-        session.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == uuid_obj).delete()
-        
-        # Then add new images
-        for image in item.images:
-            new_image = ItemImagesOrm(
-                item_id=uuid_obj,
-                image_data=image.image_data,
-                content_type=image.content_type,
-                display_order=image.display_order
-            )
-            session.add(new_image)
 
         session.commit()
         logger.info(f"Item updated successfully: {item_id}")
