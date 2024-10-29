@@ -1,0 +1,156 @@
+from fastapi import APIRouter, Response, status, Depends
+from sqlalchemy.orm import Session
+from backend.db_interface.items import (
+    create_item,
+    get_item,
+    get_item_by_lister,
+    update_item,
+    delete_item,
+    list_items,
+    add_interested_buyer
+)
+from backend.api_responses import ApiResponse, ErrMessage
+from backend.db_models.connection import Session as DefaultSession, get_db
+from backend.models.item import Item, Location
+from backend.models.user import User
+from typing import List
+
+router = APIRouter()
+
+@router.get("/list")
+async def get_product_list(response: Response) -> ApiResponse:
+    try:
+        with DefaultSession() as session:
+            items = list_items(session)
+            
+            # Transform items into the required response format
+            product_list = []
+            for item in items:
+                seller = User(
+                    id=str(item.lister.id),
+                    first_name=item.lister.first_name,
+                    last_name=item.lister.last_name,
+                    email=item.lister.email,
+                    stytch_id=item.lister.stytch_id
+                )
+                
+                interested_buyers = []
+                for buyer in item.interested_buyers:
+                    interested_buyers.append(User(
+                        id=str(buyer.id),
+                        first_name=buyer.first_name,
+                        last_name=buyer.last_name,
+                        email=buyer.email,
+                        stytch_id=buyer.stytch_id
+                    ).dict())
+
+                location = None
+                if item.latitude and item.longitude:
+                    location = {
+                        "latitude": item.latitude,
+                        "longitude": item.longitude,
+                        "address": item.address
+                    }
+
+                product_list.append({
+                    "id": str(item.id),
+                    "name": item.name,
+                    "price": item.price,
+                    "image": item.image,
+                    "seller": seller.dict(),
+                    "interested_buyers": interested_buyers,
+                    "location": location
+                })
+
+            return ApiResponse(data=product_list)
+            
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    
+@router.post("/create")
+async def create_product(item: Item, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    try:
+        result = create_item(item, db)
+        return ApiResponse(data=result)
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+
+@router.get("/{product_id}")
+async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    try:
+        item = get_item(product_id, db)
+        if not item:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return ApiResponse(error=ErrMessage(message="Product not found"))
+        return ApiResponse(data=item)
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+
+@router.get("/lister/{lister_id}")
+async def get_products_by_lister(lister_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    try:
+        items = get_item_by_lister(lister_id, db)
+        return ApiResponse(data=items)
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+
+@router.put("/{product_id}")
+async def update_product(product_id: str, item: Item, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    try:
+        result = update_item(product_id, item, db)
+        if result is None:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return ApiResponse(error=ErrMessage(message="Product not found"))
+        return ApiResponse(data=result)
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+
+@router.delete("/{product_id}")
+async def delete_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    try:
+        result = delete_item(product_id, db)
+        if not result:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return ApiResponse(error=ErrMessage(message="Product not found"))
+        return ApiResponse(data={"success": True})
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+
+@router.post("/{product_id}/interested/{buyer_id}")
+async def add_buyer_interest(product_id: str, buyer_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    try:
+        result = add_interested_buyer(product_id, buyer_id, db)
+        if result is None:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return ApiResponse(error=ErrMessage(message="Product or buyer not found"))
+        if not result:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return ApiResponse(error=ErrMessage(message="Buyer already interested in this product"))
+        return ApiResponse(data={"success": True})
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
