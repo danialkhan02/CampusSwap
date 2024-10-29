@@ -66,7 +66,9 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                     "images": item.images,
                     "seller": seller.dict(),
                     "interested_buyers": interested_buyers,
-                    "location": location
+                    "location": location,
+                    "category": item.category.value,
+                    "description": item.description,
                 })
 
             return ApiResponse(data=product_list)
@@ -121,7 +123,9 @@ async def get_product(product_id: str, response: Response, db: Session = Depends
             "images": item.images,
             "seller": seller.dict(),
             "interested_buyers": interested_buyers,
-            "location": location
+            "location": location,
+            "category": item.category.value,
+            "description": item.description,
         }
         return ApiResponse(data=returned_item)
     except ValueError as e:
