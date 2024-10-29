@@ -7,16 +7,19 @@ from backend.db_interface.items import (
     update_item,
     delete_item,
     list_items,
-    add_interested_buyer
+    add_interested_buyer,
 )
+from backend.db_models.items import interested_buyers
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
 from backend.models.item import Item, Location
 from backend.db_models.item_images import ItemImagesOrm
 from backend.models.user import User
 from backend.models.provider import Provider
+from backend.db_models.users import UsersOrm
 from typing import List
 import uuid as uuid_pkg
+
 router = APIRouter()
 
 @router.get("/list", summary="List all products", response_model=ApiResponse)
@@ -40,17 +43,26 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                     provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
                 )
                 
-                interested_buyers = []
-                for buyer in item.interested_buyers:
-                    interested_buyers.append(User(
-                        id=str(buyer.id),
-                        first_name=buyer.first_name,
-                        last_name=buyer.last_name,
-                        email=buyer.email,
-                        stytch_id=buyer.stytch_id,
+                # Get the interested buyers for the item
+                interested_buyers_list = db.query(interested_buyers).filter(
+                    interested_buyers.c.item_id == item.id,
+                    interested_buyers.c.deleted_at.is_(None)
+                ).all()
+
+                interested_buyers_result = []
+                for buyer in interested_buyers_list:
+                    # Get the user from the users table
+                    user = db.query(UsersOrm).filter(UsersOrm.id == buyer.user_id).first()
+                    interested_buyers_result.append(User(
+                        id=str(user.id),
+                        first_name=user.first_name,
+                        last_name=user.last_name,
+                        email=user.email,
+                        stytch_id=user.stytch_id,
                         provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
                     ).dict())
 
+                print(interested_buyers_result)
                 location = None
                 if item.latitude and item.longitude:
                     location = {
@@ -71,7 +83,7 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                     "price": item.price,
                     "images": images,
                     "seller": seller.dict(),
-                    "interested_buyers": interested_buyers,
+                    "interested_buyers": interested_buyers_result,
                     "location": location,
                     "category": item.category.value,
                     "description": item.description,
@@ -300,9 +312,6 @@ async def add_buyer_interest(product_id: str, buyer_id: str, response: Response,
         if result is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product or buyer not found"))
-        if not result:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return ApiResponse(error=ErrMessage(message="Buyer already interested in this product"))
         return ApiResponse(data={"success": True})
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST

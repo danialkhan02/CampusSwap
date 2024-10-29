@@ -179,7 +179,12 @@ def delete_item(item_id: str, db: Session = None):
 def list_items(db: Session = None):
     session = db or DefaultSession()
     try:
-        items = session.query(ItemsOrm).filter(ItemsOrm.deleted_at.is_(None)).all()
+        items = (
+            session.query(ItemsOrm)
+            .filter(ItemsOrm.deleted_at.is_(None))
+            .all()
+        )
+
         logger.info(f"Retrieved {len(items)} items")
         return items
     except SQLAlchemyError as e:
@@ -211,11 +216,34 @@ def add_interested_buyer(item_id: str, user_id: str, db: Session = None):
         if not item or not user:
             logger.warning("Item or user not found")
             return False
+        
+        # Query to find the interested buyer
+        interested_buyer = session.query(interested_buyers).filter(
+            interested_buyers.c.item_id == item_uuid,
+            interested_buyers.c.user_id == user_uuid
+        ).first()
 
-        if user in item.interested_buyers:
-            logger.info(f"User {user_id} is already interested in item {item_id}")
-            return False
+        if interested_buyer:
+            if interested_buyer.deleted_at is not None:
+                # Unpopulate the deleted_at field
+                session.query(interested_buyers).filter(
+                    interested_buyers.c.item_id == item_uuid,
+                    interested_buyers.c.user_id == user_uuid
+                ).update({"deleted_at": None})
+                session.commit()
+                logger.info(f"User {user_id} reactivated as interested buyer for item {item_id}")
+                return True  # Indicate that the user was reactivated
+            else:
+                # Populate the deleted_at field if the user is already interested
+                session.query(interested_buyers).filter(
+                    interested_buyers.c.item_id == item_uuid,
+                    interested_buyers.c.user_id == user_uuid
+                ).update({"deleted_at": func.now()})
+                session.commit()
+                logger.info(f"User {user_id} marked as not interested in item {item_id}")
+                return True  # User was marked as not interested
 
+        # If the user is not found, add them as a new interested buyer
         item.interested_buyers.append(user)
         session.commit()
         logger.info(f"Added user {user_id} as interested buyer for item {item_id}")

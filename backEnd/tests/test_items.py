@@ -12,7 +12,7 @@ from backend.db_interface.items import (
     update_item,
     delete_item,
     list_items,
-    add_interested_buyer
+    add_interested_buyer,
 )
 from backend.models.item import Item, Location
 from backend.db_models.item_images import ItemImagesOrm
