@@ -18,6 +18,62 @@ from typing import List
 
 router = APIRouter()
 
+@router.get("/{product_id}", summary="Get a product by ID", response_model=ApiResponse)
+async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    """
+    Get a product by its unique identifier.
+    """
+    try:
+        item = get_item(product_id, db)
+        if not item:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return ApiResponse(error=ErrMessage(message="Product not found"))
+        
+        seller = User(
+            id=str(item.lister.id),
+            first_name=item.lister.first_name,
+            last_name=item.lister.last_name,
+            email=item.lister.email,
+            stytch_id=item.lister.stytch_id,
+            provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
+                )
+                
+        interested_buyers = []
+        for buyer in item.interested_buyers:
+            interested_buyers.append(User(
+                id=str(buyer.id),
+                first_name=buyer.first_name,
+                last_name=buyer.last_name,
+                email=buyer.email,
+                stytch_id=buyer.stytch_id,
+                provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
+            ).dict())
+
+        location = None
+        if item.latitude and item.longitude:
+            location = {
+                "latitude": item.latitude,
+                "longitude": item.longitude,
+                "address": item.address
+        }
+        
+        returned_item = {
+            "id": str(item.id),
+            "name": item.name,
+            "price": item.price,
+            "image": item.image,
+            "seller": seller.dict(),
+            "interested_buyers": interested_buyers,
+            "location": location
+        }
+        return ApiResponse(data=returned_item)
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+
 @router.get("/list", summary="List all products", response_model=ApiResponse)
 async def get_product_list(response: Response, db: Session = Depends(get_db)):
     """
@@ -86,24 +142,6 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
     try:
         result = create_item(item, db)
         return ApiResponse(data=result)
-    except ValueError as e:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return ApiResponse(error=ErrMessage(message=str(e)))
-    except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ApiResponse(error=ErrMessage(message=str(e)))
-
-@router.get("/{product_id}", summary="Get a product by ID", response_model=ApiResponse)
-async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
-    """
-    Get a product by its unique identifier.
-    """
-    try:
-        item = get_item(product_id, db)
-        if not item:
-            response.status_code = status.HTTP_404_NOT_FOUND
-            return ApiResponse(error=ErrMessage(message="Product not found"))
-        return ApiResponse(data=item)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
