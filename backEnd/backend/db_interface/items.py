@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from backend.db_models.connection import Session as DefaultSession
 from backend.db_models.items import ItemsOrm
+from backend.db_models.item_images import ItemImagesOrm
 from backend.db_models.users import UsersOrm
 from backend.models.item import Item
 
@@ -31,13 +32,19 @@ def create_item(item: Item, db: Session = None):
             title=item.title,
             description=item.description,
             lister_id=item.lister_id,
-            images=item.images,
             price=item.price,
             category=item.category,
             **location_data
         )
         session.add(new_item)
 
+        # Handle images
+        for image in item.images:
+            new_image = ItemImagesOrm(
+                item_id=new_item_id,
+                image_data=image  # Store the image string directly
+            )
+            session.add(new_image)
 
         session.commit()
         logger.info(f"Item created successfully: {new_item_id}")
@@ -97,55 +104,33 @@ def get_item_by_lister(user_id: str, db: Session = None):
         if not db:
             session.close()
 
-def update_item(item_id: str, item: Item, db: Session = None):
-    if not item_id:
-        logger.error("Invalid input: item_id is missing")
-        raise ValueError("Item ID is required")
+def update_item(item_id: str, updated_item: Item, db: Session):
+    existing_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(item_id)).first()
+    if not existing_item:
+        raise ValueError("Item not found")
 
-    try:
-        uuid_obj = uuid_pkg.UUID(item_id)
-    except ValueError:
-        logger.error(f"Invalid UUID: {item_id}")
-        raise ValueError(f"Invalid item ID format: {item_id}")
+    existing_item.name = updated_item.name
+    existing_item.title = updated_item.title
+    existing_item.description = updated_item.description
+    existing_item.price = updated_item.price
+    existing_item.latitude = updated_item.location.latitude
+    existing_item.longitude = updated_item.location.longitude
+    existing_item.address = updated_item.location.address
+    existing_item.category = updated_item.category
 
-    session = db or DefaultSession()
-    try:
-        db_item = session.query(ItemsOrm).filter(ItemsOrm.id == uuid_obj).first()
-        if not db_item:
-            logger.warning(f"Item not found: {item_id}")
-            return None
+    # Clear existing images
+    existing_item.item_images.clear()
 
-        # Update basic item information
-        location_data = {}
-        if item.location:
-            location_data = {
-                "latitude": item.location.latitude,
-                "longitude": item.location.longitude,
-                "address": item.location.address
-            }
+    # Add updated images
+    for image in updated_item.images:
+        new_image = ItemImagesOrm(
+            item_id=existing_item.id,
+            image_data=image
+        )
+        existing_item.item_images.append(new_image)
 
-        for key, value in {
-            "name": item.name,
-            "title": item.title,
-            "description": item.description,
-            "price": item.price,
-            "category": item.category,
-            "images": item.images,
-            **location_data
-        }.items():
-            setattr(db_item, key, value)
-
-        session.commit()
-        logger.info(f"Item updated successfully: {item_id}")
-        return {"item_id": item_id}
-    except SQLAlchemyError as e:
-        session.rollback()
-        logger.error(f"Database error while updating item {item_id}: {str(e)}")
-        raise
-    finally:
-        if not db:
-            session.close()
-
+    db.commit()
+    return existing_item
 def delete_item(item_id: str, db: Session = None):
     if not item_id:
         logger.error("Invalid input: item_id is missing")

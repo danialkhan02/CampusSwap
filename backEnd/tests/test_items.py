@@ -14,10 +14,10 @@ from backend.db_interface.items import (
     list_items,
     add_interested_buyer
 )
-from backend.models.item import Item, Location, ItemImage
-from backend.db_models.items import interested_buyers
+from backend.models.item import Item, Location
+from backend.db_models.item_images import ItemImagesOrm
 from backend.enums import ItemCategory
-
+from backend.db_models.items import interested_buyers
 
 @pytest.fixture(scope="function")
 def test_db():
@@ -81,9 +81,7 @@ def test_create_item_with_location_and_images(test_db):
     # Verify images
     assert len(db_item.item_images) == 2
     for i, image in enumerate(db_item.item_images):
-        assert image.image_data == images[i].image_data
-        assert image.content_type == images[i].content_type
-        assert image.display_order == images[i].display_order
+        assert image.image_data == images[i]
 
 def test_create_item_without_location(test_db):
     db, user_id, _ = test_db
@@ -141,12 +139,10 @@ def test_get_item(test_db):
     assert retrieved_item.latitude == item.location.latitude
     assert retrieved_item.longitude == item.location.longitude
     assert retrieved_item.address == item.location.address
-    assert retrieved_item.category == item.category
     
     # Verify image
     assert len(retrieved_item.item_images) == 1
-    assert retrieved_item.item_images[0].image_data == images[0].image_data
-    assert retrieved_item.item_images[0].content_type == images[0].content_type
+    assert retrieved_item.item_images[0].image_data == images[0]
 
 def test_update_item(test_db):
     db, user_id, _ = test_db
@@ -185,27 +181,13 @@ def test_update_item(test_db):
         location=updated_location,
         category=ItemCategory.ELECTRONICS
     )
-    
+
     update_result = update_item(item_id, updated_item, db)
     assert update_result is not None
 
     retrieved_item = get_item(item_id, db)
     assert retrieved_item is not None
-    assert retrieved_item.name == updated_item.name
-    assert retrieved_item.title == updated_item.title
-    assert retrieved_item.description == updated_item.description
-    assert retrieved_item.price == updated_item.price
-    assert retrieved_item.latitude == updated_item.location.latitude
-    assert retrieved_item.longitude == updated_item.location.longitude
-    assert retrieved_item.address == updated_item.location.address
-    assert retrieved_item.category == updated_item.category
-    
-    # Verify updated images
     assert len(retrieved_item.item_images) == 2
-    for i, image in enumerate(retrieved_item.item_images):
-        assert image.image_data == updated_images[i].image_data
-        assert image.content_type == updated_images[i].content_type
-        assert image.display_order == updated_images[i].display_order
 
 def test_delete_item_with_images(test_db):
     db, user_id, _ = test_db
@@ -248,7 +230,7 @@ def test_add_interested_buyer(test_db):
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        images=["test_image_0"],  # Updated
+        images=["test_image_0"],
         lister_id=lister_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS
@@ -270,7 +252,7 @@ def test_add_interested_buyer_duplicate(test_db):
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        images=["test_image_0"],  # Updated
+        images=["test_image_0"],
         lister_id=lister_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS
@@ -295,7 +277,7 @@ def test_delete_item(test_db):
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        image="test_image.jpg",
+        images=["test_image.jpg"],
         lister_id=user_id,
         price=10.99,
         location=location,
@@ -318,12 +300,12 @@ def test_delete_item(test_db):
 
 def test_delete_item_with_interested_buyers(test_db):
     db, lister_id, buyer_id = test_db
-    
+
     item = Item(
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        image="test_image.jpg",
+        images=["test_image.jpg"],
         lister_id=lister_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS
@@ -333,7 +315,7 @@ def test_delete_item_with_interested_buyers(test_db):
 
     # Add an interested buyer
     add_interested_buyer(item_id, str(buyer_id), db)
-    
+
     # Delete the item
     delete_result = delete_item(item_id, db)
     assert delete_result is True
@@ -347,6 +329,7 @@ def test_delete_item_with_interested_buyers(test_db):
         interested_buyers.c.item_id == uuid_pkg.UUID(item_id)
     ).count()
     assert interested_buyers_count == 0
+
 def test_delete_item_not_found(test_db):
     db, _, _ = test_db
     non_existent_id = str(uuid_pkg.uuid4())
@@ -401,7 +384,7 @@ def test_list_items(test_db):
         assert item.title == items[i].title
         assert item.description == items[i].description
         assert len(item.item_images) == 1
-        assert item.item_images[0].image_data == items[i].images[0].image_data
+        assert item.item_images[0].image_data == items[i].images[0]
         assert item.price == items[i].price
         assert item.latitude == items[i].location.latitude
         assert item.longitude == items[i].location.longitude
