@@ -214,12 +214,13 @@ def test_delete_item_with_images(test_db):
     delete_result = delete_item(item_id, db)
     assert delete_result is True
 
-    # Verify the item and its images were deleted
+    # Verify the item and its images were soft deleted
     deleted_item = get_item(item_id, db)
-    assert deleted_item is None
-    
+    assert deleted_item.deleted_at is not None
+
     image_count = db.query(ItemImagesOrm).filter(
-        ItemImagesOrm.item_id == uuid_pkg.UUID(item_id)
+        ItemImagesOrm.item_id == uuid_pkg.UUID(item_id),
+        ItemImagesOrm.deleted_at.is_(None)
     ).count()
     assert image_count == 0
 
@@ -266,6 +267,35 @@ def test_add_interested_buyer_duplicate(test_db):
     assert first_add is True
     assert second_add is False
 
+def test_get_item_after_deletion(test_db):
+    db, user_id, _ = test_db
+    location = Location(
+        latitude=43.6532,
+        longitude=-79.3832,
+        address="123 Test St"
+    )
+    images = ["test_image_0"]
+    item = Item(
+        name="Test Product",
+        title="Test Item",
+        description="Test Description",
+        images=images,
+        lister_id=user_id,
+        price=10.99,
+        location=location,
+        category=ItemCategory.TEXTBOOKS
+    )
+    result = create_item(item, db)
+    item_id = result["item_id"]
+
+    # Delete the item
+    delete_result = delete_item(item_id, db)
+    assert delete_result is True
+
+    # Attempt to retrieve the deleted item
+    deleted_item = get_item(item_id, db)
+    assert deleted_item.deleted_at is not None  # Ensure the item is marked as deleted
+
 def test_delete_item(test_db):
     db, user_id, _ = test_db
     location = Location(
@@ -294,9 +324,9 @@ def test_delete_item(test_db):
     delete_result = delete_item(item_id, db)
     assert delete_result is True
 
-    # Verify the item was deleted
+    # Verify the item was soft deleted
     deleted_item = get_item(item_id, db)
-    assert deleted_item is None
+    assert deleted_item.deleted_at is not None  # Ensure the item is marked as deleted
 
 def test_delete_item_with_interested_buyers(test_db):
     db, lister_id, buyer_id = test_db
@@ -320,13 +350,14 @@ def test_delete_item_with_interested_buyers(test_db):
     delete_result = delete_item(item_id, db)
     assert delete_result is True
 
-    # Verify the item was deleted
+    # Verify the item was soft deleted
     deleted_item = get_item(item_id, db)
-    assert deleted_item is None
+    assert deleted_item.deleted_at is not None  # Ensure the item is marked as deleted
 
     # Verify the interested_buyers relationship was cleaned up
     interested_buyers_count = db.query(interested_buyers).filter(
-        interested_buyers.c.item_id == uuid_pkg.UUID(item_id)
+        interested_buyers.c.item_id == uuid_pkg.UUID(item_id),
+        interested_buyers.c.deleted_at.is_(None)
     ).count()
     assert interested_buyers_count == 0
 

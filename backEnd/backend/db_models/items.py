@@ -11,7 +11,8 @@ interested_buyers = Table(
     BaseDbModel.metadata,
     Column('item_id', Uuid, ForeignKey('items.id'), primary_key=True),
     Column('user_id', Uuid, ForeignKey('users.id'), primary_key=True),
-    Column('created_at', DateTime(timezone=True), default=func.now())
+    Column('created_at', DateTime(timezone=True), default=func.now()),
+    Column('deleted_at', DateTime(timezone=True), nullable=True)
 )
 
 class ItemsOrm(BaseDbModel):

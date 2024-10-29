@@ -8,7 +8,7 @@ from backend.db_models.item_images import ItemImagesOrm
 from backend.db_models.users import UsersOrm
 from backend.models.item import Item
 from sqlalchemy.sql import func
-
+from backend.db_models.items import interested_buyers
 logger = logging.getLogger(__name__)
 
 def create_item(item: Item, db: Session = None):
@@ -138,7 +138,6 @@ def update_item(item_id: str, updated_item: Item, db: Session):
     return existing_item
 
 def delete_item(item_id: str, db: Session = None):
-    print("delete_item")
     if not item_id:
         logger.error("Invalid input: item_id is missing")
         raise ValueError("Item ID is required")
@@ -154,8 +153,17 @@ def delete_item(item_id: str, db: Session = None):
         item = session.query(ItemsOrm).filter(ItemsOrm.id == uuid_obj and 
                                               ItemsOrm.deleted_at.is_(None)).first()
         if item:
-            # Set the deleted_at timestamp
+            # Set the deleted_at timestamp for the item
             item.deleted_at = func.now()
+            # Soft delete related images
+            for image in item.item_images:
+                image.deleted_at = func.now()
+
+            # Soft delete interested buyers
+            session.query(interested_buyers).filter(
+                interested_buyers.c.item_id == uuid_obj
+            ).update({"deleted_at": func.now()})
+
             session.commit()
             logger.info(f"Item soft deleted successfully: {item_id}")
             return True
