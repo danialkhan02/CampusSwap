@@ -63,7 +63,7 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                     "id": str(item.id),
                     "name": item.name,
                     "price": item.price,
-                    "image": item.image,
+                    "images": item.images,
                     "seller": seller.dict(),
                     "interested_buyers": interested_buyers,
                     "location": location
@@ -118,7 +118,7 @@ async def get_product(product_id: str, response: Response, db: Session = Depends
             "id": str(item.id),
             "name": item.name,
             "price": item.price,
-            "image": item.image,
+            "images": item.images,
             "seller": seller.dict(),
             "interested_buyers": interested_buyers,
             "location": location
