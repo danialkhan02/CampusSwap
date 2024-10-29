@@ -9,15 +9,18 @@ from backend.constants import BACKEND_ID_STYTCH_KEY
 
 
 async def stytch_authentication(request: Request, call_next):
+    # Allow access to documentation endpoints without authentication
+    if request.url.path in ["/docs", "/redoc", "/openapi.json", "/api/v1/users", "/api/v1/products/list"]:
+        return await call_next(request)
+
     try:
         resp = StytchClient.sessions.authenticate(
             session_token=request.headers.get("x-session-token"),
         )
         if resp.status_code == 200:
-            # Add user bypasses metadata #
+            # Add user bypasses metadata
             if BACKEND_ID_STYTCH_KEY not in resp.user.trusted_metadata:
                 return await call_next(request)
-
             else:
                 request.state.user_id = resp.user.trusted_metadata[BACKEND_ID_STYTCH_KEY]
                 return await call_next(request)
