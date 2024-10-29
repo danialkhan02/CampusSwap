@@ -10,7 +10,7 @@ from backend.constants import BACKEND_ID_STYTCH_KEY
 
 async def stytch_authentication(request: Request, call_next):
     # Allow access to documentation endpoints without authentication
-    if request.url.path in ["/docs", "/redoc", "/openapi.json"]:
+    if request.url.path in ["/docs", "/redoc", "/openapi.json", "/api/v1/users", "/api/v1/products/list"]:
         return await call_next(request)
 
     try:

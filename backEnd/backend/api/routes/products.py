@@ -13,6 +13,7 @@ from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
 from backend.models.item import Item, Location
 from backend.models.user import User
+from backend.models.provider import Provider
 from typing import List
 
 router = APIRouter()
@@ -34,7 +35,8 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                     first_name=item.lister.first_name,
                     last_name=item.lister.last_name,
                     email=item.lister.email,
-                    stytch_id=item.lister.stytch_id
+                    stytch_id=item.lister.stytch_id,
+                    provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
                 )
                 
                 interested_buyers = []
@@ -44,7 +46,8 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                         first_name=buyer.first_name,
                         last_name=buyer.last_name,
                         email=buyer.email,
-                        stytch_id=buyer.stytch_id
+                        stytch_id=buyer.stytch_id,
+                        provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
                     ).dict())
 
                 location = None
