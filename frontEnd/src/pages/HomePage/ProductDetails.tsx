@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Spinner from 'components/Common/Spinner';
 import Grid from '@mui/material/Grid';
 import ProductHeader from 'pages/HomePage/components/ProductHeader';

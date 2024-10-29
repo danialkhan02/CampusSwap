@@ -2,7 +2,6 @@ import Box from '@mui/material/Box';
 import { useTheme } from '@mui/material/styles';
 import React from 'react';
 import { useStytchSession, useStytchUser } from '@stytch/react';
-import SideNav from 'components/Layouts/SideNav';
 
 
 interface ISideNavCtx {
