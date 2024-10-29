@@ -40,6 +40,7 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                 "price": 10.99,
                 "images": ["image_data_1", "image_data_2"],
                 "status": "STATUS_NEW",
+                "condition": "CONDITION_NEW",
                 "seller": {
                     "id": "seller_id",
                     "first_name": "Seller First Name",
@@ -170,6 +171,8 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
     - **lister_id**: The ID of the user who is listing the product (string).
     - **location**: Optional location information (Location object).
     - **category**: The category of the product (string).
+    - **condition**: The condition of the product (string).
+    - **status**: The status of the product (string).
     - **images**: A list of base64-encoded images representing the product.
 
     Responses:
@@ -228,6 +231,7 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
                "address": result.address
            },
            "category": result.category.value,
+           "condition": result.condition.value,
            "status": result.status.value,
            "images": [image.image_data for image in result.item_images]
         }

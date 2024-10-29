@@ -16,7 +16,7 @@ from backend.db_interface.items import (
 )
 from backend.models.item import Item, Location
 from backend.db_models.item_images import ItemImagesOrm
-from backend.enums import ItemCategory, ItemStatus
+from backend.enums import ItemCategory, ItemStatus, ItemCondition
 from backend.db_models.items import interested_buyers
 
 @pytest.fixture(scope="function")
@@ -65,7 +65,8 @@ def test_create_item_with_location_and_images(test_db):
         price=10.99,
         location=location,
         category=ItemCategory.TEXTBOOKS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     assert "item_id" in result
@@ -78,6 +79,7 @@ def test_create_item_with_location_and_images(test_db):
     assert db_item.address == item.location.address
     assert db_item.status == item.status
     assert db_item.category == item.category
+    assert db_item.condition == item.condition
 
     # Verify images
     assert len(db_item.item_images) == 2
@@ -94,7 +96,8 @@ def test_create_item_without_location(test_db):
         lister_id=user_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     assert "item_id" in result
@@ -124,7 +127,8 @@ def test_get_item(test_db):
         price=10.99,
         location=location,
         category=ItemCategory.TEXTBOOKS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -160,7 +164,8 @@ def test_update_item(test_db):
         price=10.99,
         location=location,
         category=ItemCategory.TEXTBOOKS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -179,7 +184,8 @@ def test_update_item(test_db):
         price=15.99,
         location=updated_location,
         category=ItemCategory.ELECTRONICS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
 
     update_result = update_item(item_id, updated_item, db)
@@ -199,7 +205,8 @@ def test_delete_item_with_images(test_db):
         lister_id=user_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -234,7 +241,8 @@ def test_add_interested_buyer(test_db):
         lister_id=lister_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -262,7 +270,8 @@ def test_get_item_after_deletion(test_db):
         price=10.99,
         location=location,
         category=ItemCategory.TEXTBOOKS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -290,7 +299,8 @@ def test_delete_item(test_db):
         price=10.99,
         location=location,
         category=ItemCategory.TEXTBOOKS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -317,7 +327,8 @@ def test_delete_item_with_interested_buyers(test_db):
         lister_id=lister_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS,
-        status=ItemStatus.STATUS_NEW
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -368,7 +379,8 @@ def test_list_items(test_db):
             price=10.99,
             location=location,
             category=ItemCategory.CLOTHING,
-            status=ItemStatus.STATUS_NEW
+            status=ItemStatus.STATUS_NEW,
+            condition=ItemCondition.CONDITION_NEW
         ),
         Item(
             name="Product 2",
@@ -378,7 +390,8 @@ def test_list_items(test_db):
             price=20.99,
             location=location,
             category=ItemCategory.ELECTRONICS,
-            status=ItemStatus.STATUS_NEW
+            status=ItemStatus.STATUS_NEW,
+            condition=ItemCondition.CONDITION_NEW
         )
     ]
     
@@ -400,3 +413,4 @@ def test_list_items(test_db):
         assert item.address == items[i].location.address
         assert item.category == items[i].category
         assert item.status == items[i].status
+        assert item.condition == items[i].condition

@@ -37,6 +37,7 @@ def create_item(item: Item, db: Session = None):
             price=item.price,
             category=item.category,
             status=item.status,
+            condition=item.condition,
             **location_data
         )
         session.add(new_item)
@@ -124,6 +125,7 @@ def update_item(item_id: str, updated_item: Item, db: Session):
     existing_item.address = updated_item.location.address
     existing_item.category = updated_item.category
     existing_item.status = updated_item.status
+    existing_item.condition = updated_item.condition
 
     # Clear existing images
     existing_item.item_images.clear()
@@ -312,6 +314,7 @@ def get_product_details(item, db: Session) -> dict:
         "interested_buyers": interested_buyers_result,
         "location": location,
         "category": item.category.value,
+        "condition": item.condition.value,
         "status": item.status.value,
         "description": item.description,
     }
