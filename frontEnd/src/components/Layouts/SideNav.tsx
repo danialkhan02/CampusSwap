@@ -15,7 +15,7 @@ import logoSm from 'assets/logoSm.png';
 import { SideNavCtx } from 'components/Layouts/Borders';
 import React from 'react';
 import { NavTree } from 'utils/NavTree';
-import logo from 'assets/logo.png';
+import logo from 'assets/logo3.png';
 
 
 export default function SideNav() {
