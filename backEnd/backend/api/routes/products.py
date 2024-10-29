@@ -8,6 +8,7 @@ from backend.db_interface.items import (
     delete_item,
     list_items,
     add_interested_buyer,
+    get_product_details
 )
 from backend.db_models.items import interested_buyers
 from backend.api_responses import ApiResponse, ErrMessage
@@ -34,59 +35,8 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
             # Transform items into the required response format
             product_list = []
             for item in items:
-                seller = User(
-                    id=str(item.lister.id),
-                    first_name=item.lister.first_name,
-                    last_name=item.lister.last_name,
-                    email=item.lister.email,
-                    stytch_id=item.lister.stytch_id,
-                    provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
-                )
-                
-                # Get the interested buyers for the item
-                interested_buyers_list = db.query(interested_buyers).filter(
-                    interested_buyers.c.item_id == item.id,
-                    interested_buyers.c.deleted_at.is_(None)
-                ).all()
-
-                interested_buyers_result = []
-                for buyer in interested_buyers_list:
-                    # Get the user from the users table
-                    user = db.query(UsersOrm).filter(UsersOrm.id == buyer.user_id).first()
-                    interested_buyers_result.append(User(
-                        id=str(user.id),
-                        first_name=user.first_name,
-                        last_name=user.last_name,
-                        email=user.email,
-                        stytch_id=user.stytch_id,
-                        provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
-                    ).dict())
-
-                location = None
-                if item.latitude and item.longitude:
-                    location = {
-                        "latitude": item.latitude,
-                        "longitude": item.longitude,
-                        "address": item.address
-                    }
-
-                images = []
-                #query the item_images table for the item_id
-                item_images = db.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == item.id).all()
-                for image in item_images:
-                    images.append(image.image_data)
-
-                product_list.append({
-                    "id": str(item.id),
-                    "name": item.name,
-                    "price": item.price,
-                    "images": images,
-                    "seller": seller.dict(),
-                    "interested_buyers": interested_buyers_result,
-                    "location": location,
-                    "category": item.category.value,
-                    "description": item.description,
-                })
+                product_details = get_product_details(item, session)
+                product_list.append(product_details)
 
             return ApiResponse(data=product_list)
             
@@ -105,63 +55,9 @@ async def get_product(product_id: str, response: Response, db: Session = Depends
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product not found"))
         
-        seller = User(
-            id=str(item.lister.id),
-            first_name=item.lister.first_name,
-            last_name=item.lister.last_name,
-            email=item.lister.email,
-            stytch_id=item.lister.stytch_id,
-            provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
-                )
-        
-        # Get the interested buyers for the item
-        interested_buyers_list = db.query(interested_buyers).filter(
-            interested_buyers.c.item_id == item.id,
-            interested_buyers.c.deleted_at.is_(None)
-        ).all()
+        product_details = get_product_details(item, db)
 
-        interested_buyers_result = []
-        for buyer in interested_buyers_list:
-            # Get the user from the users table
-            user = db.query(UsersOrm).filter(UsersOrm.id == buyer.user_id).first()
-            interested_buyers_result.append(User(
-                id=str(user.id),
-                first_name=user.first_name,
-                last_name=user.last_name,
-                email=user.email,
-                stytch_id=user.stytch_id,
-                provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
-            ).dict())
-
-        location = None
-        if item.latitude and item.longitude:
-            location = {
-                "latitude": item.latitude,
-                "longitude": item.longitude,
-                "address": item.address
-        }
-        
-        # Add images to the response
-        images = []
-        #query the item_images table for the item_id
-        item_images = db.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == item.id).all()
-        print(item_images)
-        for image in item_images:
-            print(image.image_data)
-            images.append(image.image_data)
-
-        returned_item = {
-            "id": str(item.id),
-            "name": item.name,
-            "price": item.price,
-            "images": images,
-            "seller": seller.dict(),
-            "interested_buyers": interested_buyers_result,
-            "location": location,
-            "category": item.category.value,
-            "description": item.description,
-        }
-        return ApiResponse(data=returned_item)
+        return ApiResponse(data=product_details)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
@@ -205,58 +101,8 @@ async def get_products_by_lister(lister_id: str, response: Response, db: Session
             # Transform items into the required response format
             product_list = []
             for item in items:
-                seller = User(
-                    id=str(item.lister.id),
-                    first_name=item.lister.first_name,
-                    last_name=item.lister.last_name,
-                    email=item.lister.email,
-                    stytch_id=item.lister.stytch_id,
-                    provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
-                )
-                
-                # Get the interested buyers for the item
-                interested_buyers_list = db.query(interested_buyers).filter(
-                    interested_buyers.c.item_id == item.id,
-                    interested_buyers.c.deleted_at.is_(None)
-                ).all()
-
-                interested_buyers_result = []
-                for buyer in interested_buyers_list:
-                    # Get the user from the users table
-                    user = db.query(UsersOrm).filter(UsersOrm.id == buyer.user_id).first()
-                    interested_buyers_result.append(User(
-                        id=str(user.id),
-                        first_name=user.first_name,
-                        last_name=user.last_name,
-                        email=user.email,
-                        stytch_id=user.stytch_id,
-                        provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
-                    ).dict())
-
-                location = None
-                if item.latitude and item.longitude:
-                    location = {
-                        "latitude": item.latitude,
-                        "longitude": item.longitude,
-                        "address": item.address
-                    }
-
-                images = []
-                item_images = db.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == item.id).all()
-                for image in item_images:
-                    images.append(image.image_data)
-
-                product_list.append({
-                    "id": str(item.id),
-                    "name": item.name,
-                    "price": item.price,
-                    "images": images,
-                    "seller": seller.dict(),
-                    "interested_buyers": interested_buyers_result,
-                    "location": location,
-                    "category": item.category.value,
-                    "description": item.description,
-                })
+                product_details = get_product_details(item, session)
+                product_list.append(product_details)
 
             return ApiResponse(data=product_list)
             
@@ -297,8 +143,28 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
 
-@router.delete("/{product_id}", summary="Delete a product by ID", response_model=ApiResponse)
+@router.delete("/{product_id}", summary="Soft delete a product by ID", response_model=ApiResponse)
 async def delete_product(product_id: str, user_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    """
+    Soft delete a product identified by its ID.
+
+    This endpoint allows the lister of a product to perform a soft delete operation, 
+    marking the product as deleted without removing it from the database.
+    All interested buyers are also soft deleted from the database.
+    All images are also soft deleted from the database.
+    Only the user who listed the product is authorized to delete it.
+
+    Parameters:
+    - **product_id**: The ID of the product to be deleted.
+    - **user_id**: The ID of the user attempting to delete the product.
+
+    Responses:
+    - **200 OK**: If the product is successfully marked as deleted, returns a success message.
+    - **403 Forbidden**: If the user is not the lister of the product, indicating they do not have permission to delete it.
+    - **404 Not Found**: If the product does not exist or has already been marked as deleted.
+    - **400 Bad Request**: If the input parameters are invalid.
+    - **500 Internal Server Error**: If an unexpected error occurs during processing.
+    """
     try:
         # Only delete if the user is the lister
         item = get_item(product_id, db)
@@ -322,12 +188,32 @@ async def delete_product(product_id: str, user_id: str, response: Response, db: 
 
 @router.post("/{product_id}/interested/{buyer_id}", summary="Add a buyer interest to a product", response_model=ApiResponse)
 async def add_buyer_interest(product_id: str, buyer_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    """
+    Add or toggle the interest of a buyer for a specific product.
+
+    This endpoint allows a buyer to express interest in a product. 
+    If the buyer does not currently exist in the interested buyers list for the product, 
+    they will be added with their interest set to true. 
+    If the buyer already exists, their interest status will be toggled:
+    - If previously interested, their status will be set to false (not interested).
+    - If previously not interested, their status will be set to true (interested).
+
+    Parameters:
+    - **product_id**: The ID of the product for which the buyer's interest is being recorded.
+    - **buyer_id**: The ID of the buyer expressing interest in the product.
+
+    Responses:
+    - **200 OK**: If the operation is successful, returns the updated interest status of the buyer.
+    - **404 Not Found**: If the product does not exist or the buyer ID is invalid.
+    - **400 Bad Request**: If the input parameters are invalid.
+    - **500 Internal Server Error**: If an unexpected error occurs during processing.
+    """
     try:
         result = add_interested_buyer(product_id, buyer_id, db)
         if result is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product or buyer not found"))
-        return ApiResponse(data={"success": True})
+        return ApiResponse(data={"interested": result})
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))

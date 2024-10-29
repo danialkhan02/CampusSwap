@@ -9,6 +9,8 @@ from backend.db_models.users import UsersOrm
 from backend.models.item import Item
 from sqlalchemy.sql import func
 from backend.db_models.items import interested_buyers
+from backend.models.user import User
+from backend.models.provider import Provider
 logger = logging.getLogger(__name__)
 
 def create_item(item: Item, db: Session = None):
@@ -241,7 +243,7 @@ def add_interested_buyer(item_id: str, user_id: str, db: Session = None):
                 ).update({"deleted_at": func.now()})
                 session.commit()
                 logger.info(f"User {user_id} marked as not interested in item {item_id}")
-                return True  # User was marked as not interested
+                return False  # User was marked as not interested
 
         # If the user is not found, add them as a new interested buyer
         item.interested_buyers.append(user)
@@ -255,3 +257,58 @@ def add_interested_buyer(item_id: str, user_id: str, db: Session = None):
     finally:
         if not db:
             session.close()
+
+def get_product_details(item, db: Session) -> dict:
+    seller = User(
+        id=str(item.lister.id),
+        first_name=item.lister.first_name,
+        last_name=item.lister.last_name,
+        email=item.lister.email,
+        stytch_id=item.lister.stytch_id,
+        provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
+    )
+
+    # Get the interested buyers for the item
+    interested_buyers_list = db.query(interested_buyers).filter(
+        interested_buyers.c.item_id == item.id,
+        interested_buyers.c.deleted_at.is_(None)
+    ).all()
+
+    interested_buyers_result = []
+    for buyer in interested_buyers_list:
+        # Get the user from the users table
+        user = db.query(UsersOrm).filter(UsersOrm.id == buyer.user_id).first()
+        interested_buyers_result.append(User(
+            id=str(user.id),
+            first_name=user.first_name,
+            last_name=user.last_name,
+            email=user.email,
+            stytch_id=user.stytch_id,
+            provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
+        ).dict())
+
+    location = None
+    if item.latitude and item.longitude:
+        location = {
+            "latitude": item.latitude,
+            "longitude": item.longitude,
+            "address": item.address
+        }
+
+    images = []
+    # Query the item_images table for the item_id
+    item_images = db.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == item.id).all()
+    for image in item_images:
+        images.append(image.image_data)
+
+    return {
+        "id": str(item.id),
+        "name": item.name,
+        "price": item.price,
+        "images": images,
+        "seller": seller.dict(),
+        "interested_buyers": interested_buyers_result,
+        "location": location,
+        "category": item.category.value,
+        "description": item.description,
+    }
