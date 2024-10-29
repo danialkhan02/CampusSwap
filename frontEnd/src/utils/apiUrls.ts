@@ -10,16 +10,17 @@ const user = {
 };
 
 const product = {
-  list: `${baseUrl}/api/v1/product/list`,
-  create: `${baseUrl}/api/v1/product/create`,
-  details: (id: string) => `${baseUrl}/api/v1/product/${id}`,
-  byLister: (id: string) => `${baseUrl}/api/v1/product/lister/${id}`,
-  update: (id: string) => `${baseUrl}/api/v1/product/${id}`,
-  delete: (id: string) => `${baseUrl}/api/v1/product/${id}`,
-  addInterest: (productId: string, buyerId: string) => 
-    `${baseUrl}/api/v1/product/${productId}/interested/${buyerId}`,
+  list: `${baseUrl}/api/v1/products/list`,
+  create: `${baseUrl}/api/v1/products/create`,
+  details: (id: string) => `${baseUrl}/api/v1/products/${id}`,
+  byLister: (id: string) => `${baseUrl}/api/v1/products/lister/${id}`,
+  update: (id: string) => `${baseUrl}/api/v1/products/${id}`,
+  delete: (id: string) => `${baseUrl}/api/v1/products/${id}`,
+  addInterest: (productId: string, buyerId: string) => `${baseUrl}/api/v1/products/${productId}/interested/${buyerId}`,
 };
 
 export {
-  user, sample, product,
+  user,
+  sample,
+  product,
 };
