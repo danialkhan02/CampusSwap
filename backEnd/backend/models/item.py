@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 import uuid as uuid_pkg
 from typing import Optional, List
-from backend.enums import ItemCategory
+from backend.enums import ItemCategory, ItemStatus, ItemCondition
 from backend.models.user import User
 
 class Location(BaseModel):
@@ -17,6 +17,8 @@ class Item(BaseModel):
     price: float
     location: Optional[Location] = None
     category: ItemCategory = ItemCategory.OTHER
+    status: ItemStatus = ItemStatus.STATUS_NEW
+    condition: ItemCondition = ItemCondition.CONDITION_NEW
 
 class ItemInDB(Item):
     id: uuid_pkg.UUID

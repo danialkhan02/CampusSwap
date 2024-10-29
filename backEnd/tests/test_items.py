@@ -13,10 +13,11 @@ from backend.db_interface.items import (
     delete_item,
     list_items,
     add_interested_buyer,
+    get_interested_items
 )
 from backend.models.item import Item, Location
 from backend.db_models.item_images import ItemImagesOrm
-from backend.enums import ItemCategory
+from backend.enums import ItemCategory, ItemStatus, ItemCondition
 from backend.db_models.items import interested_buyers
 
 @pytest.fixture(scope="function")
@@ -64,7 +65,9 @@ def test_create_item_with_location_and_images(test_db):
         lister_id=user_id,
         price=10.99,
         location=location,
-        category=ItemCategory.TEXTBOOKS
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     assert "item_id" in result
@@ -75,7 +78,10 @@ def test_create_item_with_location_and_images(test_db):
     assert db_item.latitude == item.location.latitude
     assert db_item.longitude == item.location.longitude
     assert db_item.address == item.location.address
-    
+    assert db_item.status == item.status
+    assert db_item.category == item.category
+    assert db_item.condition == item.condition
+
     # Verify images
     assert len(db_item.item_images) == 2
     for i, image in enumerate(db_item.item_images):
@@ -90,7 +96,9 @@ def test_create_item_without_location(test_db):
         images=images,
         lister_id=user_id,
         price=10.99,
-        category=ItemCategory.TEXTBOOKS
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     assert "item_id" in result
@@ -119,7 +127,9 @@ def test_get_item(test_db):
         lister_id=user_id,
         price=10.99,
         location=location,
-        category=ItemCategory.TEXTBOOKS
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -154,7 +164,9 @@ def test_update_item(test_db):
         lister_id=user_id,
         price=10.99,
         location=location,
-        category=ItemCategory.TEXTBOOKS
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -172,7 +184,9 @@ def test_update_item(test_db):
         lister_id=user_id,
         price=15.99,
         location=updated_location,
-        category=ItemCategory.ELECTRONICS
+        category=ItemCategory.ELECTRONICS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
 
     update_result = update_item(item_id, updated_item, db)
@@ -191,7 +205,9 @@ def test_delete_item_with_images(test_db):
         images=images,
         lister_id=user_id,
         price=10.99,
-        category=ItemCategory.TEXTBOOKS
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -225,7 +241,9 @@ def test_add_interested_buyer(test_db):
         images=["test_image_0"],
         lister_id=lister_id,
         price=10.99,
-        category=ItemCategory.TEXTBOOKS
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -252,7 +270,9 @@ def test_get_item_after_deletion(test_db):
         lister_id=user_id,
         price=10.99,
         location=location,
-        category=ItemCategory.TEXTBOOKS
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -279,7 +299,9 @@ def test_delete_item(test_db):
         lister_id=user_id,
         price=10.99,
         location=location,
-        category=ItemCategory.TEXTBOOKS
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -305,7 +327,9 @@ def test_delete_item_with_interested_buyers(test_db):
         images=["test_image.jpg"],
         lister_id=lister_id,
         price=10.99,
-        category=ItemCategory.TEXTBOOKS
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
     )
     result = create_item(item, db)
     item_id = result["item_id"]
@@ -355,7 +379,9 @@ def test_list_items(test_db):
             lister_id=user_id,
             price=10.99,
             location=location,
-            category=ItemCategory.CLOTHING
+            category=ItemCategory.CLOTHING,
+            status=ItemStatus.STATUS_NEW,
+            condition=ItemCondition.CONDITION_NEW
         ),
         Item(
             name="Product 2",
@@ -364,7 +390,9 @@ def test_list_items(test_db):
             lister_id=user_id,
             price=20.99,
             location=location,
-            category=ItemCategory.ELECTRONICS
+            category=ItemCategory.ELECTRONICS,
+            status=ItemStatus.STATUS_NEW,
+            condition=ItemCondition.CONDITION_NEW
         )
     ]
     
@@ -385,3 +413,40 @@ def test_list_items(test_db):
         assert item.longitude == items[i].location.longitude
         assert item.address == items[i].location.address
         assert item.category == items[i].category
+        assert item.status == items[i].status
+        assert item.condition == items[i].condition
+
+def test_get_interested_products(test_db):
+    db, lister_id, buyer_id = test_db
+
+    # Create a test item
+    item = Item(
+        name="Test Product",
+        description="Test Description",
+        images=["test_image.jpg"],
+        lister_id=lister_id,
+        price=10.99,
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
+    )
+    result = create_item(item, db)
+    item_id = result["item_id"]
+
+    # Add the buyer as an interested buyer
+    add_interested_buyer(item_id, str(buyer_id), db)
+
+    # Retrieve interested products for the buyer
+    interested_products = get_interested_items(str(buyer_id), db)
+
+    # Verify that the interested products list is not empty
+    assert len(interested_products) > 0
+
+    # Verify that the interested product matches the created item
+    assert interested_products[0].id == uuid_pkg.UUID(item_id)
+    assert interested_products[0].name == item.name
+    assert interested_products[0].description == item.description
+    assert interested_products[0].price == item.price
+
+    # Clean up by deleting the item
+    delete_item(item_id, db)
