@@ -10,6 +10,7 @@ import {
   Navigate, Route, Routes, useLocation,
 } from 'react-router-dom';
 import * as spaUrls from 'utils/spaUrls';
+import ProductDetails from 'pages/HomePage/ProductDetails';
 
 
 export default function Router() {
@@ -26,6 +27,10 @@ export default function Router() {
         <Route
           path={spaUrls.homepage}
           element={<PrivateRoute outlet={<HomePage />} />}
+        />
+        <Route
+          path={spaUrls.product.details}
+          element={<PrivateRoute outlet={<ProductDetails />} />}
         />
         <Route path='/404' element={<PageNotFound />} />
         <Route path='*' element={<Navigate to='/404' replace />} />

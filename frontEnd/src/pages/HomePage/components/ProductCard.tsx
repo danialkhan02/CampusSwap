@@ -1,45 +1,49 @@
 import React from 'react';
 import {
-  Box, Card, CardMedia, CardContent, Typography, Chip,
+  Box, Card, CardMedia, CardContent, Typography,
 } from '@mui/material';
+import { IProduct } from 'pages/HomePage/queries';
+import Link from '@mui/material/Link';
 
 
-export default function ProductCard({ product }: { product: any }) {
+export default function ProductCard({ product }: { product: IProduct }) {
   return (
-    <Card style={{ position: 'relative', borderRadius: '8px' }}>
-      {product.isNew && <Chip label='NEW' color='primary' style={{ position: 'absolute', top: 20, left: 20 }} />}
-      {product.isOnSale && <Chip label='SALE' color='secondary' style={{ position: 'absolute', top: 20, right: 20 }} />}
-
-      <Box
-        style={{
-          padding: '8px',
-          borderRadius: '8px',
-        }}
+    <Link href={`/product/${product.id}`} style={{ textDecoration: 'none' }}>
+      <Card sx={{
+        position: 'relative',
+        borderRadius: '8px',
+        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+        '&:hover': {
+          transform: 'scale(1.05)',
+          boxShadow: 6,
+        },
+      }}
       >
-        <CardMedia
-          component='img'
-          image={product.image}
-          alt={product.name}
-          style={{ borderRadius: '4px' }}
-        />
-      </Box>
-      <CardContent>
-        <Typography variant='subtitle1' gutterBottom>
-          {product.name}
-        </Typography>
-        <Box display='flex' alignItems='center' justifyContent='space-between'>
-          <Typography variant='h6' color={product.isOnSale ? 'secondary' : 'textPrimary'}>
-            $
-            {product.price}
-          </Typography>
-          {product.isOnSale && (
-            <Typography variant='body2' color='textSecondary' style={{ textDecoration: 'line-through' }}>
-              $
-              {product.originalPrice}
-            </Typography>
-          )}
+        <Box
+          style={{
+            padding: '8px',
+            borderRadius: '8px',
+          }}
+        >
+          <CardMedia
+            component='img'
+            image={product.image}
+            alt={product.name}
+            style={{ borderRadius: '4px' }}
+          />
         </Box>
-      </CardContent>
-    </Card>
+        <CardContent>
+          <Typography variant='subtitle1' gutterBottom>
+            {product.name}
+          </Typography>
+          <Box display='flex' alignItems='center' justifyContent='space-between'>
+            <Typography variant='h6' color='textPrimary'>
+              $
+              {product.price}
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
