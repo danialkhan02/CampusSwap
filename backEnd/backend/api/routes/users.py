@@ -12,7 +12,6 @@ import uuid as uuid_pkg
 from datetime import datetime
 
 router = APIRouter(
-    prefix="/users",
     tags=["users"],
     responses={404: {"description": "Not found"}}
 )
