@@ -17,8 +17,11 @@ from typing import List
 
 router = APIRouter()
 
-@router.get("/list")
-async def get_product_list(response: Response) -> ApiResponse:
+@router.get("/list", summary="List all products", response_model=ApiResponse)
+async def get_product_list(response: Response, db: Session = Depends(get_db)):
+    """
+    Get a list of all available products in the marketplace.
+    """
     try:
         with DefaultSession() as session:
             items = list_items(session)
@@ -68,8 +71,15 @@ async def get_product_list(response: Response) -> ApiResponse:
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
     
-@router.post("/create")
-async def create_product(item: Item, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+@router.post("/create", summary="Create a new product", response_model=ApiResponse)
+async def create_product(item: Item, response: Response, db: Session = Depends(get_db)):
+    """
+    Create a new product listing with the following details:
+    - **name**: Name of the product
+    - **price**: Price of the product
+    - **location**: Optional location information
+    - **category**: Product category
+    """
     try:
         result = create_item(item, db)
         return ApiResponse(data=result)
@@ -80,8 +90,11 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
 
-@router.get("/{product_id}")
+@router.get("/{product_id}", summary="Get a product by ID", response_model=ApiResponse)
 async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    """
+    Get a product by its unique identifier.
+    """
     try:
         item = get_item(product_id, db)
         if not item:
@@ -95,8 +108,11 @@ async def get_product(product_id: str, response: Response, db: Session = Depends
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
 
-@router.get("/lister/{lister_id}")
+@router.get("/lister/{lister_id}", summary="Get a product by lister ID", response_model=ApiResponse)
 async def get_products_by_lister(lister_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    """
+    Get all products by a specific lister.
+    """
     try:
         items = get_item_by_lister(lister_id, db)
         return ApiResponse(data=items)
@@ -122,7 +138,7 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
 
-@router.delete("/{product_id}")
+@router.delete("/{product_id}", summary="Delete a product by ID", response_model=ApiResponse)
 async def delete_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     try:
         result = delete_item(product_id, db)
@@ -137,7 +153,7 @@ async def delete_product(product_id: str, response: Response, db: Session = Depe
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
 
-@router.post("/{product_id}/interested/{buyer_id}")
+@router.post("/{product_id}/interested/{buyer_id}", summary="Add a buyer interest to a product", response_model=ApiResponse)
 async def add_buyer_interest(product_id: str, buyer_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     try:
         result = add_interested_buyer(product_id, buyer_id, db)

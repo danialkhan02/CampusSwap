@@ -11,8 +11,11 @@ from backend.constants import BACKEND_ID_STYTCH_KEY
 import uuid as uuid_pkg
 from datetime import datetime
 
-router = APIRouter()
-
+router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    responses={404: {"description": "Not found"}}
+)
 
 @router.post("")
 async def add_user(posted_user: User, response: Response) -> ApiResponse:

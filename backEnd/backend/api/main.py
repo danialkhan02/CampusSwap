@@ -1,29 +1,15 @@
-from fastapi import FastAPI, Response, HTTPException, status
+from fastapi import APIRouter, Response, HTTPException, status
 from starlette.responses import JSONResponse
 
 from backend.api.routes import users, products
 from fastapi.requests import Request
 from backend.api_responses import ApiResponse, ErrMessage
-from backend.middleware.api_auth import stytch_authentication
 
-api_app = FastAPI()
-
-@api_app.middleware("http")
-async def api_middleware_helper(request: Request, call_next):
-    try:
-        return await stytch_authentication(request, call_next)
-    except Exception as e:
-        error_message = ErrMessage(message=str(e))
-        if isinstance(e, HTTPException):
-            response_status = e.status_code
-        else:
-            response_status = status.HTTP_500_INTERNAL_SERVER_ERROR
-        api_response = ApiResponse(error=error_message)
-        return JSONResponse(
-            status_code=response_status,
-            content=api_response.dict()
-        )
+api_router = APIRouter(
+    prefix="/api/v1",
+    tags=["api"]
+)
 
 # Add all routes
-api_app.include_router(users, prefix="/users", tags=["users"]) 
-api_app.include_router(products, prefix="/products", tags=["products"])
+api_router.include_router(products, prefix="/products", tags=["products"])
+api_router.include_router(users, prefix="/users", tags=["users"])
