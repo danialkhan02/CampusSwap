@@ -11,7 +11,6 @@ class Location(BaseModel):
 
 class Item(BaseModel):
     name: str
-    title: str
     description: Optional[str] = None
     images: List[str] = []
     lister_id: uuid_pkg.UUID

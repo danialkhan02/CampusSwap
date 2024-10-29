@@ -19,7 +19,6 @@ class ItemsOrm(BaseDbModel):
     __tablename__ = "items"
     
     name: Mapped[str] = mapped_column(String, nullable=False)
-    title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String)
     lister_id: Mapped[Uuid] = mapped_column(Uuid, ForeignKey("users.id"), nullable=False)
     price: Mapped[float] = mapped_column(Float, nullable=False)

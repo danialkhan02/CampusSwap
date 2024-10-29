@@ -59,7 +59,6 @@ def test_create_item_with_location_and_images(test_db):
     images = ["test_image_0", "test_image_1"]
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=images,
         lister_id=user_id,
@@ -73,7 +72,6 @@ def test_create_item_with_location_and_images(test_db):
     db_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(result["item_id"])).first()
     assert db_item is not None
     assert db_item.name == item.name
-    assert db_item.title == item.title
     assert db_item.latitude == item.location.latitude
     assert db_item.longitude == item.location.longitude
     assert db_item.address == item.location.address
@@ -88,7 +86,6 @@ def test_create_item_without_location(test_db):
     images = ["test_image_0"]
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=images,
         lister_id=user_id,
@@ -117,7 +114,6 @@ def test_get_item(test_db):
     images = ["test_image_0"]
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=images,
         lister_id=user_id,
@@ -132,7 +128,6 @@ def test_get_item(test_db):
     assert retrieved_item is not None
     assert str(retrieved_item.id) == item_id
     assert retrieved_item.name == item.name
-    assert retrieved_item.title == item.title
     assert retrieved_item.description == item.description
     assert retrieved_item.lister_id == item.lister_id
     assert retrieved_item.price == item.price
@@ -154,7 +149,6 @@ def test_update_item(test_db):
     initial_images = ["test_image_0"]
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=initial_images,
         lister_id=user_id,
@@ -173,7 +167,6 @@ def test_update_item(test_db):
     updated_images = ["test_image_0", "test_image_1"]
     updated_item = Item(
         name="Updated Product",
-        title="Updated Item",
         description="Updated Description",
         images=updated_images,
         lister_id=user_id,
@@ -194,7 +187,6 @@ def test_delete_item_with_images(test_db):
     images = ["test_image_0"]
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=images,
         lister_id=user_id,
@@ -229,7 +221,6 @@ def test_add_interested_buyer(test_db):
     
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=["test_image_0"],
         lister_id=lister_id,
@@ -251,7 +242,6 @@ def test_add_interested_buyer_duplicate(test_db):
     
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=["test_image_0"],
         lister_id=lister_id,
@@ -277,7 +267,6 @@ def test_get_item_after_deletion(test_db):
     images = ["test_image_0"]
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=images,
         lister_id=user_id,
@@ -305,7 +294,6 @@ def test_delete_item(test_db):
     )
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=["test_image.jpg"],
         lister_id=user_id,
@@ -333,7 +321,6 @@ def test_delete_item_with_interested_buyers(test_db):
 
     item = Item(
         name="Test Product",
-        title="Test Item",
         description="Test Description",
         images=["test_image.jpg"],
         lister_id=lister_id,
@@ -383,7 +370,6 @@ def test_list_items(test_db):
     items = [
         Item(
             name="Product 1",
-            title="Item 1",
             description="Description 1",
             images=["test_image_0"],
             lister_id=user_id,
@@ -393,7 +379,6 @@ def test_list_items(test_db):
         ),
         Item(
             name="Product 2",
-            title="Item 2",
             description="Description 2",
             images=["test_image_0"],
             lister_id=user_id,
@@ -412,7 +397,6 @@ def test_list_items(test_db):
     
     for i, item in enumerate(listed_items):
         assert item.name == items[i].name
-        assert item.title == items[i].title
         assert item.description == items[i].description
         assert len(item.item_images) == 1
         assert item.item_images[0].image_data == items[i].images[0]

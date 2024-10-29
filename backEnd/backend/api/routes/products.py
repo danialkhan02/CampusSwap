@@ -251,7 +251,6 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
         dict_return = {
            "id": str(result.id),
            "name": result.name,
-           "title": result.title,
            "description": result.description,
            "price": result.price,
            "location": {

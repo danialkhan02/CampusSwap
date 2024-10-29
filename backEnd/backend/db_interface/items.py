@@ -30,7 +30,6 @@ def create_item(item: Item, db: Session = None):
         new_item = ItemsOrm(
             id=new_item_id,
             name=item.name,
-            title=item.title,
             description=item.description,
             lister_id=item.lister_id,
             price=item.price,
@@ -115,7 +114,6 @@ def update_item(item_id: str, updated_item: Item, db: Session):
         raise ValueError("Item not found")
 
     existing_item.name = updated_item.name
-    existing_item.title = updated_item.title
     existing_item.description = updated_item.description
     existing_item.price = updated_item.price
     existing_item.latitude = updated_item.location.latitude
