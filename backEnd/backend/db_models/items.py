@@ -3,7 +3,7 @@ from backend.db_models.base import BaseDbModel
 from backend.db_models.item_images import ItemImagesOrm
 from sqlalchemy.sql import func
 from sqlalchemy.orm import mapped_column, relationship, Mapped
-from backend.enums import ItemCategory
+from backend.enums import ItemCategory, ItemStatus
 from typing import List
 
 interested_buyers = Table(
@@ -29,6 +29,11 @@ class ItemsOrm(BaseDbModel):
         Enum(ItemCategory, name="itemcategory", create_type=True, native_enum=True),
         nullable=False,
         server_default=ItemCategory.OTHER.value
+    )
+    status: Mapped[ItemStatus] = mapped_column(
+        Enum(ItemStatus, name="itemstatus", create_type=True, native_enum=True),
+        nullable=False,
+        server_default=ItemStatus.STATUS_NEW.value
     )
 
     # Relationships

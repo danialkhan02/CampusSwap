@@ -39,6 +39,7 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                 "name": "Product Name",
                 "price": 10.99,
                 "images": ["image_data_1", "image_data_2"],
+                "status": "STATUS_NEW",
                 "seller": {
                     "id": "seller_id",
                     "first_name": "Seller First Name",
@@ -227,6 +228,7 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
                "address": result.address
            },
            "category": result.category.value,
+           "status": result.status.value,
            "images": [image.image_data for image in result.item_images]
         }
         
