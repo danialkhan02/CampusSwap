@@ -62,7 +62,6 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                         provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
                     ).dict())
 
-                print(interested_buyers_result)
                 location = None
                 if item.latitude and item.longitude:
                     location = {
@@ -114,15 +113,23 @@ async def get_product(product_id: str, response: Response, db: Session = Depends
             stytch_id=item.lister.stytch_id,
             provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
                 )
-                
-        interested_buyers = []
-        for buyer in item.interested_buyers:
-            interested_buyers.append(User(
-                id=str(buyer.id),
-                first_name=buyer.first_name,
-                last_name=buyer.last_name,
-                email=buyer.email,
-                stytch_id=buyer.stytch_id,
+        
+        # Get the interested buyers for the item
+        interested_buyers_list = db.query(interested_buyers).filter(
+            interested_buyers.c.item_id == item.id,
+            interested_buyers.c.deleted_at.is_(None)
+        ).all()
+
+        interested_buyers_result = []
+        for buyer in interested_buyers_list:
+            # Get the user from the users table
+            user = db.query(UsersOrm).filter(UsersOrm.id == buyer.user_id).first()
+            interested_buyers_result.append(User(
+                id=str(user.id),
+                first_name=user.first_name,
+                last_name=user.last_name,
+                email=user.email,
+                stytch_id=user.stytch_id,
                 provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
             ).dict())
 
@@ -149,7 +156,7 @@ async def get_product(product_id: str, response: Response, db: Session = Depends
             "price": item.price,
             "images": images,
             "seller": seller.dict(),
-            "interested_buyers": interested_buyers,
+            "interested_buyers": interested_buyers_result,
             "location": location,
             "category": item.category.value,
             "description": item.description,
@@ -207,14 +214,22 @@ async def get_products_by_lister(lister_id: str, response: Response, db: Session
                     provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
                 )
                 
-                interested_buyers = []
-                for buyer in item.interested_buyers:
-                    interested_buyers.append(User(
-                        id=str(buyer.id),
-                        first_name=buyer.first_name,
-                        last_name=buyer.last_name,
-                        email=buyer.email,
-                        stytch_id=buyer.stytch_id,
+                # Get the interested buyers for the item
+                interested_buyers_list = db.query(interested_buyers).filter(
+                    interested_buyers.c.item_id == item.id,
+                    interested_buyers.c.deleted_at.is_(None)
+                ).all()
+
+                interested_buyers_result = []
+                for buyer in interested_buyers_list:
+                    # Get the user from the users table
+                    user = db.query(UsersOrm).filter(UsersOrm.id == buyer.user_id).first()
+                    interested_buyers_result.append(User(
+                        id=str(user.id),
+                        first_name=user.first_name,
+                        last_name=user.last_name,
+                        email=user.email,
+                        stytch_id=user.stytch_id,
                         provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
                     ).dict())
 
@@ -237,7 +252,7 @@ async def get_products_by_lister(lister_id: str, response: Response, db: Session
                     "price": item.price,
                     "images": images,
                     "seller": seller.dict(),
-                    "interested_buyers": interested_buyers,
+                    "interested_buyers": interested_buyers_result,
                     "location": location,
                     "category": item.category.value,
                     "description": item.description,
