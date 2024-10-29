@@ -10,16 +10,9 @@ from backend.db_interface.items import (
     add_interested_buyer,
     get_product_details
 )
-from backend.db_models.items import interested_buyers
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
-from backend.models.item import Item, Location
-from backend.db_models.item_images import ItemImagesOrm
-from backend.models.user import User
-from backend.models.provider import Provider
-from backend.db_models.users import UsersOrm
-from typing import List
-import uuid as uuid_pkg
+from backend.models.item import Item
 
 router = APIRouter()
 
