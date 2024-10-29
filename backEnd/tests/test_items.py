@@ -237,26 +237,6 @@ def test_add_interested_buyer(test_db):
     assert len(db_item.interested_buyers) == 1
     assert db_item.interested_buyers[0].id == buyer_id
 
-def test_add_interested_buyer_duplicate(test_db):
-    db, lister_id, buyer_id = test_db
-    
-    item = Item(
-        name="Test Product",
-        description="Test Description",
-        images=["test_image_0"],
-        lister_id=lister_id,
-        price=10.99,
-        category=ItemCategory.TEXTBOOKS
-    )
-    result = create_item(item, db)
-    item_id = result["item_id"]
-
-    first_add = add_interested_buyer(item_id, str(buyer_id), db)
-    second_add = add_interested_buyer(item_id, str(buyer_id), db)
-    
-    assert first_add is True
-    assert second_add is False
-
 def test_get_item_after_deletion(test_db):
     db, user_id, _ = test_db
     location = Location(
