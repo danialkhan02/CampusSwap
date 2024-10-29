@@ -16,8 +16,7 @@ from backend.db_models.item_images import ItemImagesOrm
 from backend.models.user import User
 from backend.models.provider import Provider
 from typing import List
-import base64
-
+import uuid as uuid_pkg
 router = APIRouter()
 
 @router.get("/list", summary="List all products", response_model=ApiResponse)
@@ -257,8 +256,16 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
         return ApiResponse(error=ErrMessage(message=str(e)))
 
 @router.delete("/{product_id}", summary="Delete a product by ID", response_model=ApiResponse)
-async def delete_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+async def delete_product(product_id: str, user_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     try:
+        # Only delete if the user is the lister
+        item = get_item(product_id, db)
+        print(item.lister.id)
+        print(user_id)
+        if str(item.lister.id) != str(user_id):
+            response.status_code = status.HTTP_403_FORBIDDEN
+            return ApiResponse(error=ErrMessage(message="You are not the lister of this product"))
+        
         result = delete_item(product_id, db)
         if not result:
             response.status_code = status.HTTP_404_NOT_FOUND

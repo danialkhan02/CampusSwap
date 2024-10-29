@@ -7,6 +7,7 @@ from backend.db_models.items import ItemsOrm
 from backend.db_models.item_images import ItemImagesOrm
 from backend.db_models.users import UsersOrm
 from backend.models.item import Item
+from sqlalchemy.sql import func
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,8 @@ def get_item(item_id: str, db: Session = None):
 
     session = db or DefaultSession()
     try:
-        item = session.query(ItemsOrm).filter(ItemsOrm.id == uuid_obj).first()
+        item = session.query(ItemsOrm).filter(ItemsOrm.id == uuid_obj and 
+                                              ItemsOrm.deleted_at.is_(None)).first()
         if not item:
             logger.warning(f"Item not found: {item_id}")
         return item
@@ -94,7 +96,8 @@ def get_item_by_lister(user_id: str, db: Session = None):
 
     session = db or DefaultSession()
     try:
-        items = session.query(ItemsOrm).filter(ItemsOrm.lister_id == uuid_obj).all()
+        items = session.query(ItemsOrm).filter(ItemsOrm.lister_id == uuid_obj and 
+                                              ItemsOrm.deleted_at.is_(None)).all()
         logger.info(f"Retrieved {len(items)} items for user {user_id}")
         return items
     except SQLAlchemyError as e:
@@ -105,7 +108,9 @@ def get_item_by_lister(user_id: str, db: Session = None):
             session.close()
 
 def update_item(item_id: str, updated_item: Item, db: Session):
-    existing_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(item_id)).first()
+    existing_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(item_id) and 
+                                              ItemsOrm.lister_id == updated_item.lister_id and 
+                                              ItemsOrm.deleted_at.is_(None)).first()
     if not existing_item:
         raise ValueError("Item not found")
 
@@ -131,7 +136,9 @@ def update_item(item_id: str, updated_item: Item, db: Session):
 
     db.commit()
     return existing_item
+
 def delete_item(item_id: str, db: Session = None):
+    print("delete_item")
     if not item_id:
         logger.error("Invalid input: item_id is missing")
         raise ValueError("Item ID is required")
@@ -144,12 +151,13 @@ def delete_item(item_id: str, db: Session = None):
 
     session = db or DefaultSession()
     try:
-        item = session.query(ItemsOrm).filter(ItemsOrm.id == uuid_obj).first()
+        item = session.query(ItemsOrm).filter(ItemsOrm.id == uuid_obj and 
+                                              ItemsOrm.deleted_at.is_(None)).first()
         if item:
-            # Images will be automatically deleted due to CASCADE
-            session.delete(item)
+            # Set the deleted_at timestamp
+            item.deleted_at = func.now()
             session.commit()
-            logger.info(f"Item deleted successfully: {item_id}")
+            logger.info(f"Item soft deleted successfully: {item_id}")
             return True
         else:
             logger.warning(f"Item not found for deletion: {item_id}")
@@ -165,7 +173,7 @@ def delete_item(item_id: str, db: Session = None):
 def list_items(db: Session = None):
     session = db or DefaultSession()
     try:
-        items = session.query(ItemsOrm).all()
+        items = session.query(ItemsOrm).filter(ItemsOrm.deleted_at.is_(None)).all()
         logger.info(f"Retrieved {len(items)} items")
         return items
     except SQLAlchemyError as e:
@@ -189,8 +197,10 @@ def add_interested_buyer(item_id: str, user_id: str, db: Session = None):
 
     session = db or DefaultSession()
     try:
-        item = session.query(ItemsOrm).filter(ItemsOrm.id == item_uuid).first()
-        user = session.query(UsersOrm).filter(UsersOrm.id == user_uuid).first()
+        item = session.query(ItemsOrm).filter(ItemsOrm.id == item_uuid and 
+                                              ItemsOrm.deleted_at.is_(None)).first()
+        user = session.query(UsersOrm).filter(UsersOrm.id == user_uuid and 
+                                              UsersOrm.deleted_at.is_(None)).first()
 
         if not item or not user:
             logger.warning("Item or user not found")
