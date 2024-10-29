@@ -97,3 +97,43 @@ To inspect and manage the database, we recommend using TablePlus:
 4. You can now explore tables, run queries, and manage your data through the TablePlus interface.
 
 Note: Ensure your PostgreSQL server is running before attempting to connect.
+
+## Adding New APIs
+
+### API Structure
+Our API follows a RESTful structure with the following organization:
+- All routes are prefixed with `/api/v1`
+- Routes are grouped by resource (e.g., users, products)
+- Each resource has its own router file in `backend/api/routes/`
+
+### Steps to Add a New API Endpoint
+
+1. Choose or create a router file in `backend/api/routes/`
+   - For existing resources, use the appropriate file (e.g., `products.py` for product endpoints)
+   - For new resources, create a new file and register it in `backend/api/routes/__init__.py`
+
+2. Define your endpoint using FastAPI decorators:
+   - Use `@router.get(...)`, `@router.post(...)`, etc.
+   - Define the path, summary, description, and response model
+   - Add the endpoint to the router and include it in `api_router` in `backend/api/main.py`
+
+3. For database operations:
+   - Add your database interface functions in `backend/db_interface/`
+   - Use dependency injection with `db: Session = Depends(get_db)`
+   - Handle database exceptions appropriately
+
+4. Testing:
+   - Add tests in `tests/` directory
+   - Test both success and error cases
+   - Use pytest fixtures for database setup
+
+
+### API Response Format
+All API responses should use the `ApiResponse` model:
+- Success: `ApiResponse(data=your_data)`
+- Error: `ApiResponse(error=ErrMessage(message="error message"))`
+
+### Authentication
+- All endpoints are automatically protected by Stytch authentication
+- To bypass auth for specific endpoints, add them to the whitelist in `api_auth.py`
+- Documentation endpoints (`/docs`, `/redoc`, `/openapi.json`) are automatically whitelisted
