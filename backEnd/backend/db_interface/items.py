@@ -318,3 +318,35 @@ def get_product_details(item, db: Session) -> dict:
         "status": item.status.value,
         "description": item.description,
     }
+
+def get_interested_items(user_id: str, db: Session):
+    """
+    Retrieve all products that a user is interested in.
+
+    This function fetches all products that the specified user has expressed interest in.
+    It only includes products that are not marked as deleted.
+
+    Parameters:
+    - user_id: The unique identifier of the user whose interested products are being retrieved.
+    - db: The database session to use for the query.
+
+    Returns:
+    A list of products that the user is interested in.
+    """
+    try:
+        user_uuid = uuid_pkg.UUID(user_id)  # Convert user_id to UUID
+    except ValueError:
+        raise ValueError("Invalid user ID format")
+
+    interested_products = (
+        db.query(ItemsOrm)
+        .join(interested_buyers)
+        .filter(
+            interested_buyers.c.user_id == user_uuid,  # Use the UUID here
+            ItemsOrm.deleted_at.is_(None),  # Ensure the product is not deleted
+            interested_buyers.c.deleted_at.is_(None)  # Ensure interested_buyers is not deleted
+        )
+        .all()
+    )
+    
+    return interested_products

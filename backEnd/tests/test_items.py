@@ -13,6 +13,7 @@ from backend.db_interface.items import (
     delete_item,
     list_items,
     add_interested_buyer,
+    get_interested_items
 )
 from backend.models.item import Item, Location
 from backend.db_models.item_images import ItemImagesOrm
@@ -414,3 +415,38 @@ def test_list_items(test_db):
         assert item.category == items[i].category
         assert item.status == items[i].status
         assert item.condition == items[i].condition
+
+def test_get_interested_products(test_db):
+    db, lister_id, buyer_id = test_db
+
+    # Create a test item
+    item = Item(
+        name="Test Product",
+        description="Test Description",
+        images=["test_image.jpg"],
+        lister_id=lister_id,
+        price=10.99,
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
+    )
+    result = create_item(item, db)
+    item_id = result["item_id"]
+
+    # Add the buyer as an interested buyer
+    add_interested_buyer(item_id, str(buyer_id), db)
+
+    # Retrieve interested products for the buyer
+    interested_products = get_interested_items(str(buyer_id), db)
+
+    # Verify that the interested products list is not empty
+    assert len(interested_products) > 0
+
+    # Verify that the interested product matches the created item
+    assert interested_products[0].id == uuid_pkg.UUID(item_id)
+    assert interested_products[0].name == item.name
+    assert interested_products[0].description == item.description
+    assert interested_products[0].price == item.price
+
+    # Clean up by deleting the item
+    delete_item(item_id, db)

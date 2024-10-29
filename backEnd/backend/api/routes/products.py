@@ -8,7 +8,8 @@ from backend.db_interface.items import (
     delete_item,
     list_items,
     add_interested_buyer,
-    get_product_details
+    get_product_details,
+    get_interested_items
 )
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
@@ -318,6 +319,36 @@ async def add_buyer_interest(product_id: str, buyer_id: str, response: Response,
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    
+@router.get("/interested/{user_id}", summary="Get all products a user is interested in", response_model=ApiResponse)
+async def get_interested_products(user_id: str, response: Response, db: Session = Depends(get_db)):
+    """
+    Retrieve all products that a user is interested in.
+
+    This endpoint allows clients to fetch a list of products that a specific user 
+    has expressed interest in. The response includes detailed information about each 
+    product, such as the product's name, description, price, seller information, 
+    interested buyers, location, images, and category. 
+
+    Parameters:
+    - **user_id**: The unique identifier of the user whose interested products are being retrieved.
+
+    Responses:
+    - **200 OK**: Returns a list of products that the user is interested in.
+    - **500 Internal Server Error**: If an unexpected error occurs during processing.
+    """
+    try:
+        result = get_interested_items(user_id, db)
+
+        product_list = []
+        for item in result:
+            product_details = get_product_details(item, db)
+            product_list.append(product_details)
+
+        return ApiResponse(data=product_list)
     except Exception as e:
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
