@@ -10,7 +10,7 @@ class Location(BaseModel):
     address: str
 
 class ItemImage(BaseModel):
-    image_data: bytes
+    image_data: str
     content_type: str
     display_order: int = 0
 
@@ -18,7 +18,7 @@ class Item(BaseModel):
     name: str
     title: str
     description: Optional[str] = None
-    images: List[ItemImage] = []
+    images: List[str] = []
     lister_id: uuid_pkg.UUID
     price: float
     location: Optional[Location] = None

@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from backend.db_models.connection import Session as DefaultSession
 from backend.db_models.items import ItemsOrm
-from backend.db_models.item_images import ItemImagesOrm
 from backend.db_models.users import UsersOrm
 from backend.models.item import Item
 

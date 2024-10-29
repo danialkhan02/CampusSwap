@@ -146,21 +146,6 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
         if not item.images or not isinstance(item.images, list):
             raise ValueError("Images must be provided as a list.")
 
-        # Decode base64 images and prepare for storage
-        decoded_images = []
-        for img in item.images:
-            if img.startswith("data:image/"):
-                # Split the string to get the base64 part
-                header, base64_data = img.split(",", 1)
-                # Decode the base64 string
-                image_data = base64.b64decode(base64_data)
-                decoded_images.append(image_data)
-            else:
-                raise ValueError("Invalid image format. Must be a base64-encoded string.")
-
-        # Update the item with the decoded images
-        item.images = decoded_images
-
         result = create_item(item, db)
         return ApiResponse(data=result)
     except ValueError as e:
