@@ -9,11 +9,16 @@ class Location(BaseModel):
     longitude: float
     address: str
 
+class ItemImage(BaseModel):
+    image_data: bytes
+    content_type: str
+    display_order: int = 0
+
 class Item(BaseModel):
     name: str
     title: str
     description: Optional[str] = None
-    image: Optional[str] = None
+    images: List[ItemImage] = []
     lister_id: uuid_pkg.UUID
     price: float
     location: Optional[Location] = None

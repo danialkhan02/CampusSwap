@@ -3,6 +3,7 @@ from backend.db_models.base import BaseDbModel
 from sqlalchemy.sql import func
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 from backend.enums import ItemCategory
+from backend.db_models.item_images import ItemImagesOrm
 from typing import List
 
 interested_buyers = Table(
@@ -19,7 +20,6 @@ class ItemsOrm(BaseDbModel):
     name: Mapped[str] = mapped_column(String, nullable=False)
     title: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str] = mapped_column(String)
-    image: Mapped[str] = mapped_column(String)
     lister_id: Mapped[Uuid] = mapped_column(Uuid, ForeignKey("users.id"), nullable=False)
     price: Mapped[float] = mapped_column(Float, nullable=False)
     latitude: Mapped[float] = mapped_column(Float, nullable=True)
@@ -37,4 +37,12 @@ class ItemsOrm(BaseDbModel):
         "UsersOrm",
         secondary=interested_buyers,
         lazy="joined"
+    )
+
+    # One-to-Many Relationship
+    item_images: Mapped[List["ItemImagesOrm"]] = relationship(
+        "ItemImagesOrm", 
+        back_populates="item", 
+        cascade="all, delete-orphan",
+        lazy="select"
     )

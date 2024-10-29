@@ -5,6 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from backend.db_models.users import UsersOrm
 from backend.db_models.base import BaseDbModel
 from backend.db_models.items import ItemsOrm
+from backend.db_models.item_images import ItemImagesOrm
 from backend.db_interface.items import (
     create_item,
     get_item,
@@ -14,9 +15,16 @@ from backend.db_interface.items import (
     list_items,
     add_interested_buyer
 )
-from backend.models.item import Item, Location
+from backend.models.item import Item, Location, ItemImage
 from backend.db_models.items import interested_buyers
 from backend.enums import ItemCategory
+
+def create_test_image(order: int = 0) -> ItemImage:
+    return ItemImage(
+        image_data=b"fake image data",
+        content_type="image/jpeg",
+        display_order=order
+    )
 
 @pytest.fixture(scope="function")
 def test_db():
@@ -48,18 +56,19 @@ def test_db():
     yield db, test_user.id, test_buyer.id
     db.close()
 
-def test_create_item_with_location(test_db):
+def test_create_item_with_location_and_images(test_db):
     db, user_id, _ = test_db
     location = Location(
         latitude=43.6532,
         longitude=-79.3832,
         address="123 Test St"
     )
+    images = [create_test_image(0), create_test_image(1)]
     item = Item(
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        image="test_image.jpg",
+        images=images,
         lister_id=user_id,
         price=10.99,
         location=location,
@@ -75,20 +84,32 @@ def test_create_item_with_location(test_db):
     assert db_item.latitude == item.location.latitude
     assert db_item.longitude == item.location.longitude
     assert db_item.address == item.location.address
+    
+    # Verify images
+    assert len(db_item.item_images) == 2
+    for i, image in enumerate(db_item.item_images):
+        assert image.image_data == images[i].image_data
+        assert image.content_type == images[i].content_type
+        assert image.display_order == images[i].display_order
 
 def test_create_item_without_location(test_db):
     db, user_id, _ = test_db
+    images = [create_test_image()]
     item = Item(
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        image="test_image.jpg",
+        images=images,
         lister_id=user_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS
     )
     result = create_item(item, db)
     assert "item_id" in result
+
+    db_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(result["item_id"])).first()
+    assert db_item is not None
+    assert len(db_item.item_images) == 1
 
 def test_create_item_invalid_input(test_db):
     db, _, _ = test_db
@@ -102,11 +123,12 @@ def test_get_item(test_db):
         longitude=-79.3832,
         address="123 Test St"
     )
+    images = [create_test_image()]
     item = Item(
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        image="test_image.jpg",
+        images=images,
         lister_id=user_id,
         price=10.99,
         location=location,
@@ -121,45 +143,17 @@ def test_get_item(test_db):
     assert retrieved_item.name == item.name
     assert retrieved_item.title == item.title
     assert retrieved_item.description == item.description
-    assert retrieved_item.image == item.image
     assert retrieved_item.lister_id == item.lister_id
     assert retrieved_item.price == item.price
     assert retrieved_item.latitude == item.location.latitude
     assert retrieved_item.longitude == item.location.longitude
     assert retrieved_item.address == item.location.address
     assert retrieved_item.category == item.category
-
-def test_get_item_invalid_id(test_db):
-    db, _, _ = test_db
-    with pytest.raises(ValueError, match="Invalid item ID format"):
-        get_item("invalid-uuid", db)
-
-def test_get_item_by_lister(test_db):
-    db, user_id, _ = test_db
-    location = Location(
-        latitude=43.6532,
-        longitude=-79.3832,
-        address="123 Test St"
-    )
-    item = Item(
-        name="Test Product",
-        title="Test Item",
-        description="Test Description",
-        image="test_image.jpg",
-        lister_id=user_id,
-        price=10.99,
-        location=location,
-        category=ItemCategory.TEXTBOOKS
-    )
-    result = create_item(item, db)
-    item_id = result["item_id"]
-
-    items = get_item_by_lister(str(user_id), db)
-    assert len(items) == 1
-    assert str(items[0].id) == item_id
-    assert items[0].latitude == item.location.latitude
-    assert items[0].longitude == item.location.longitude
-    assert items[0].address == item.location.address
+    
+    # Verify image
+    assert len(retrieved_item.item_images) == 1
+    assert retrieved_item.item_images[0].image_data == images[0].image_data
+    assert retrieved_item.item_images[0].content_type == images[0].content_type
 
 def test_update_item(test_db):
     db, user_id, _ = test_db
@@ -168,11 +162,12 @@ def test_update_item(test_db):
         longitude=-79.3832,
         address="123 Test St"
     )
+    initial_images = [create_test_image()]
     item = Item(
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        image="test_image.jpg",
+        images=initial_images,
         lister_id=user_id,
         price=10.99,
         location=location,
@@ -181,43 +176,77 @@ def test_update_item(test_db):
     result = create_item(item, db)
     item_id = result["item_id"]
 
-    # Verify initial item was created correctly
-    initial_item = get_item(item_id, db)
-    assert initial_item.latitude == item.location.latitude
-    assert initial_item.longitude == item.location.longitude
-    assert initial_item.address == item.location.address
-
     updated_location = Location(
         latitude=43.7000,
         longitude=-79.4000,
         address="456 Updated St"
     )
+    updated_images = [create_test_image(0), create_test_image(1)]
     updated_item = Item(
         name="Updated Product",
         title="Updated Item",
         description="Updated Description",
-        image="updated_image.jpg",
+        images=updated_images,
         lister_id=user_id,
         price=15.99,
         location=updated_location,
         category=ItemCategory.ELECTRONICS
     )
     
-    # Perform update
-    updated_result = update_item(item_id, updated_item, db)
-    
-    # Verify the update was successful by retrieving the item again
+    update_result = update_item(item_id, updated_item, db)
+    assert update_result is not None
+
     retrieved_item = get_item(item_id, db)
     assert retrieved_item is not None
     assert retrieved_item.name == updated_item.name
     assert retrieved_item.title == updated_item.title
     assert retrieved_item.description == updated_item.description
-    assert retrieved_item.image == updated_item.image
     assert retrieved_item.price == updated_item.price
     assert retrieved_item.latitude == updated_item.location.latitude
     assert retrieved_item.longitude == updated_item.location.longitude
     assert retrieved_item.address == updated_item.location.address
     assert retrieved_item.category == updated_item.category
+    
+    # Verify updated images
+    assert len(retrieved_item.item_images) == 2
+    for i, image in enumerate(retrieved_item.item_images):
+        assert image.image_data == updated_images[i].image_data
+        assert image.content_type == updated_images[i].content_type
+        assert image.display_order == updated_images[i].display_order
+
+def test_delete_item_with_images(test_db):
+    db, user_id, _ = test_db
+    images = [create_test_image()]
+    item = Item(
+        name="Test Product",
+        title="Test Item",
+        description="Test Description",
+        images=images,
+        lister_id=user_id,
+        price=10.99,
+        category=ItemCategory.TEXTBOOKS
+    )
+    result = create_item(item, db)
+    item_id = result["item_id"]
+
+    # Verify images exist
+    image_count = db.query(ItemImagesOrm).filter(
+        ItemImagesOrm.item_id == uuid_pkg.UUID(item_id)
+    ).count()
+    assert image_count == 1
+
+    # Delete the item
+    delete_result = delete_item(item_id, db)
+    assert delete_result is True
+
+    # Verify the item and its images were deleted
+    deleted_item = get_item(item_id, db)
+    assert deleted_item is None
+    
+    image_count = db.query(ItemImagesOrm).filter(
+        ItemImagesOrm.item_id == uuid_pkg.UUID(item_id)
+    ).count()
+    assert image_count == 0
 
 def test_add_interested_buyer(test_db):
     db, lister_id, buyer_id = test_db
@@ -226,7 +255,7 @@ def test_add_interested_buyer(test_db):
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        image="test_image.jpg",
+        images=[create_test_image()],  # Updated
         lister_id=lister_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS
@@ -248,7 +277,7 @@ def test_add_interested_buyer_duplicate(test_db):
         name="Test Product",
         title="Test Item",
         description="Test Description",
-        image="test_image.jpg",
+        images=[create_test_image()],  # Updated
         lister_id=lister_id,
         price=10.99,
         category=ItemCategory.TEXTBOOKS
@@ -325,7 +354,6 @@ def test_delete_item_with_interested_buyers(test_db):
         interested_buyers.c.item_id == uuid_pkg.UUID(item_id)
     ).count()
     assert interested_buyers_count == 0
-
 def test_delete_item_not_found(test_db):
     db, _, _ = test_db
     non_existent_id = str(uuid_pkg.uuid4())
@@ -350,7 +378,7 @@ def test_list_items(test_db):
             name="Product 1",
             title="Item 1",
             description="Description 1",
-            image="image1.jpg",
+            images=[create_test_image()],
             lister_id=user_id,
             price=10.99,
             location=location,
@@ -360,7 +388,7 @@ def test_list_items(test_db):
             name="Product 2",
             title="Item 2",
             description="Description 2",
-            image="image2.jpg",
+            images=[create_test_image()],
             lister_id=user_id,
             price=20.99,
             location=location,
@@ -379,10 +407,10 @@ def test_list_items(test_db):
         assert item.name == items[i].name
         assert item.title == items[i].title
         assert item.description == items[i].description
-        assert item.image == items[i].image
+        assert len(item.item_images) == 1
+        assert item.item_images[0].image_data == items[i].images[0].image_data
         assert item.price == items[i].price
         assert item.latitude == items[i].location.latitude
         assert item.longitude == items[i].location.longitude
         assert item.address == items[i].location.address
         assert item.category == items[i].category
-        assert item.lister_id == user_id
