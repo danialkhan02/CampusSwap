@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from backend.db_models.connection import Session as DefaultSession
 from backend.db_models.items import ItemsOrm
+from backend.db_models.users import UsersOrm
 from backend.models.item import Item
 
 logger = logging.getLogger(__name__)
@@ -16,15 +17,24 @@ def create_item(item: Item, db: Session = None):
     new_item_id = uuid_pkg.uuid4()
     session = db or DefaultSession()
     try:
+        location_data = {}
+        if item.location:
+            location_data = {
+                "latitude": item.location.latitude,
+                "longitude": item.location.longitude,
+                "address": item.location.address
+            }
+
         new_item = ItemsOrm(
             id=new_item_id,
+            name=item.name,
             title=item.title,
             description=item.description,
             image=item.image,
             lister_id=item.lister_id,
             price=item.price,
-            location=item.location,
-            category=item.category
+            category=item.category,
+            **location_data
         )
         session.add(new_item)
         session.commit()
@@ -33,6 +43,45 @@ def create_item(item: Item, db: Session = None):
     except SQLAlchemyError as e:
         session.rollback()
         logger.error(f"Database error while creating item: {str(e)}")
+        raise
+    finally:
+        if not db:
+            session.close()
+
+def add_interested_buyer(item_id: str, buyer_id: str, db: Session = None):
+    if not item_id or not buyer_id:
+        logger.error("Invalid input: item_id and buyer_id are required")
+        raise ValueError("Item ID and Buyer ID are required")
+
+    try:
+        item_uuid = uuid_pkg.UUID(item_id)
+        buyer_uuid = uuid_pkg.UUID(buyer_id)
+    except ValueError:
+        logger.error("Invalid UUID format")
+        raise ValueError("Invalid UUID format")
+
+    session = db or DefaultSession()
+    try:
+        item = session.query(ItemsOrm).filter(ItemsOrm.id == item_uuid).first()
+        if not item:
+            logger.error(f"Item not found: {item_id}")
+            return None
+
+        buyer = session.query(UsersOrm).filter(UsersOrm.id == buyer_uuid).first()
+        if not buyer:
+            logger.error(f"Buyer not found: {buyer_id}")
+            return None
+
+        if buyer not in item.interested_buyers:
+            item.interested_buyers.append(buyer)
+            session.commit()
+            logger.info(f"Added interested buyer {buyer_id} to item {item_id}")
+            return True
+        return False
+
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"Database error while adding interested buyer: {str(e)}")
         raise
     finally:
         if not db:
@@ -104,6 +153,20 @@ def update_item(item_id: str, updated_item: Item, db: Session = None):
             return None
 
         update_data = updated_item.model_dump(exclude_unset=True)
+        
+        # Handle location fields separately
+        if 'location' in update_data:
+            location = update_data.pop('location')
+            if location:
+                db_item.latitude = location['latitude']
+                db_item.longitude = location['longitude']
+                db_item.address = location['address']
+            else:
+                db_item.latitude = None
+                db_item.longitude = None
+                db_item.address = None
+
+        # Update remaining fields
         for key, value in update_data.items():
             if hasattr(db_item, key):
                 setattr(db_item, key, value)
