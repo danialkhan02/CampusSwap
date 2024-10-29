@@ -22,6 +22,7 @@ from backend.db_models.base import BaseDbModel
 from backend.db_models.users import UsersOrm
 from backend.db_models.seller_profiles import SellerProfileOrm
 from backend.db_models.items import ItemsOrm
+from backend.db_models.item_images import ItemImagesOrm
 from backend.db_models.notifications import NotificationsOrm
 from backend.db_models.seller_feedbacks import SellerFeedbackOrm
 
