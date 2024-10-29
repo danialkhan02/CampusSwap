@@ -12,6 +12,7 @@ from backend.db_interface.items import (
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
 from backend.models.item import Item, Location
+from backend.db_models.item_images import ItemImagesOrm
 from backend.models.user import User
 from backend.models.provider import Provider
 from typing import List
@@ -59,11 +60,17 @@ async def get_product_list(response: Response, db: Session = Depends(get_db)):
                         "address": item.address
                     }
 
+                images = []
+                #query the item_images table for the item_id
+                item_images = db.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == item.id).all()
+                for image in item_images:
+                    images.append(image.image_data)
+
                 product_list.append({
                     "id": str(item.id),
                     "name": item.name,
                     "price": item.price,
-                    "images": item.images,
+                    "images": images,
                     "seller": seller.dict(),
                     "interested_buyers": interested_buyers,
                     "location": location,
@@ -116,11 +123,20 @@ async def get_product(product_id: str, response: Response, db: Session = Depends
                 "address": item.address
         }
         
+        # Add images to the response
+        images = []
+        #query the item_images table for the item_id
+        item_images = db.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == item.id).all()
+        print(item_images)
+        for image in item_images:
+            print(image.image_data)
+            images.append(image.image_data)
+
         returned_item = {
             "id": str(item.id),
             "name": item.name,
             "price": item.price,
-            "images": item.images,
+            "images": images,
             "seller": seller.dict(),
             "interested_buyers": interested_buyers,
             "location": location,
