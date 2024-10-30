@@ -12,7 +12,6 @@ from backend.db_models.connection import Session as DefaultSession
 import uuid as uuid_pkg
 
 router = APIRouter(
-    prefix="/seller_profiles",
     tags=["seller_profiles"],
     responses={404: {"description": "Not found"}}
 )
@@ -24,7 +23,7 @@ def get_db():
     finally:
         db.close()
 
-@router.post("")
+@router.post("", summary="Create a new seller profile", response_model=ApiResponse)
 async def add_seller_profile(profile: SellerProfile, seller_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     try:
         uuid_obj = uuid_pkg.UUID(seller_id)
@@ -37,7 +36,7 @@ async def add_seller_profile(profile: SellerProfile, seller_id: str, response: R
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
 
-@router.get("/{seller_id}")
+@router.get("/{seller_id}", summary="Get a seller profile by ID", response_model=ApiResponse)
 async def get_profile(seller_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     try:
         uuid_obj = uuid_pkg.UUID(seller_id)
@@ -53,7 +52,7 @@ async def get_profile(seller_id: str, response: Response, db: Session = Depends(
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
 
-@router.put("/{seller_id}")
+@router.put("/{seller_id}", summary="Update an existing seller profile", response_model=ApiResponse)
 async def update_profile(seller_id: str, profile: SellerProfile, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     try:
         uuid_obj = uuid_pkg.UUID(seller_id)
@@ -69,7 +68,7 @@ async def update_profile(seller_id: str, profile: SellerProfile, response: Respo
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
 
-@router.delete("/{seller_id}")
+@router.delete("/{seller_id}", summary="Delete a seller profile", response_model=ApiResponse)
 async def delete_profile(seller_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     try:
         uuid_obj = uuid_pkg.UUID(seller_id)
