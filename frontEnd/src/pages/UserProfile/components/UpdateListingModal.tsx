@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import ListingPreview from 'pages/UserProfile/components/ListingPreview';
 import {
-  IProduct, listerProductListQueryKey, productListQueryKey, useUpdateProduct,
+  IProduct, listerProductListQueryKey, useUpdateProduct,
 } from 'pages/HomePage/queries';
 import LocationAutocomplete from 'pages/UserProfile/components/GoogleMapTextField';
 import IconButton from '@mui/material/IconButton';
