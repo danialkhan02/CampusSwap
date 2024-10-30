@@ -42,7 +42,10 @@ def get_seller_profile(seller_id: uuid_pkg.UUID, db: Session = None):
 
     session = db or DefaultSession()
     try:
-        profile = session.query(SellerProfileOrm).filter(SellerProfileOrm.seller_id == seller_id).first()
+        profile = session.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at.is_(None)  # Only get non-deleted profiles
+        ).first()
         if not profile:
             logger.warning(f"Seller profile not found: {seller_id}")
         return profile
@@ -60,7 +63,10 @@ def update_seller_profile(seller_id: uuid_pkg.UUID, updated_profile: SellerProfi
 
     session = db or DefaultSession()
     try:
-        profile = session.query(SellerProfileOrm).filter(SellerProfileOrm.seller_id == seller_id).first()
+        profile = session.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at.is_(None)  # Only update non-deleted profiles
+        ).first()
         if profile:
             for key, value in updated_profile.model_dump(exclude_unset=True).items():
                 setattr(profile, key, value)
