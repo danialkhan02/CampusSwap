@@ -1,0 +1,257 @@
+import React, { useContext, useState } from 'react';
+import {
+  Dialog, Grid, Box, Typography, TextField, Button,
+} from '@mui/material';
+import ListingPreview from 'pages/UserProfile/components/ListingPreview';
+import { IProduct, useCreateProduct } from 'pages/HomePage/queries';
+import { retrieve } from 'utils/cacheUtils';
+import { CacheKeys } from 'utils/constants';
+import LocationAutocomplete from 'pages/UserProfile/components/GoogleMapTextField';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/Close';
+import PublishIcon from '@mui/icons-material/Publish';
+import SpinnerButton from 'components/Common/SpinnerButton';
+import { AppAlertsCtx } from 'components/Common/AppAlerts';
+import Stack from '@mui/material/Stack';
+
+
+type TProps = {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function ListingModal({
+  isOpen,
+  onClose,
+}: TProps) {
+  const createProductHook = useCreateProduct();
+  const { addAlert } = useContext(AppAlertsCtx);
+  const [Listing, setListing] = useState<IProduct>({
+    name: 'Placeholder Text',
+    title: '',
+    price: 10.99,
+    images: [],
+    category: 'Other',
+    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut.',
+    lister_id: retrieve(CacheKeys.userId, { parseJson: false }),
+    condition: 'Mint',
+    location: {
+      latitude: 0,
+      longitude: 0,
+      address: '',
+    },
+  });
+
+  const handleListingInputChange = (field: keyof IProduct, value: any) => {
+    setListing((prevListing) => ({
+      ...prevListing,
+      [field]: value,
+    }));
+  };
+
+  const handleLocationChange = (address: string, latitude?: number, longitude?: number) => {
+    setListing((prevListing) => ({
+      ...prevListing,
+      location: {
+        ...prevListing.location,
+        address,
+        latitude: latitude ?? prevListing.location.latitude,
+        longitude: longitude ?? prevListing.location.longitude,
+      },
+    }));
+  };
+
+  const handlePublish = () => {
+    createProductHook.mutate(Listing);
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files ? Array.from(
+      event.target.files,
+    ).slice(0, 5) : [];
+    const base64Images: string[] = [];
+
+    const readFileAsBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        }
+        else {
+          reject(new Error('Failed to convert file to base64'));
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    try {
+      for (const file of files) {
+        // eslint-disable-next-line no-await-in-loop
+        const base64String = await readFileAsBase64(file);
+        base64Images.push(base64String);
+      }
+
+      setListing((prevListing) => ({
+        ...prevListing,
+        images: base64Images,
+      }));
+    }
+    catch (error) {
+      addAlert({
+        type: 'error',
+        message: 'Error Uploading Images. Cannot upload more than 5 images',
+      });
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setListing((prevListing) => ({
+      ...prevListing,
+      images: prevListing.images.filter((_, i) => i !== index),
+    }));
+  };
+
+
+  return (
+    <Dialog
+      open={isOpen}
+      onClose={onClose}
+      fullWidth
+      maxWidth='lg'
+      PaperProps={{
+        sx: { width: '90%', height: '100%', overflow: 'hidden' },
+      }}
+    >
+      <Box display='flex' flexDirection='row' sx={{ height: '100%' }}>
+        <Box
+          flex='0 0 30%'
+          paddingY={4}
+          paddingX={2}
+          bgcolor='#F8F8F8'
+          sx={{ maxHeight: '100%', overflowY: 'auto' }}
+        >
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Typography variant='h4'>Create Listing</Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size='medium'
+                label='Item Name'
+                value={Listing?.name || ''}
+                onChange={(event) => handleListingInputChange('name', event.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size='medium'
+                label='Price'
+                value={Listing?.price || 0}
+                onChange={(event) => handleListingInputChange('price', event.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size='medium'
+                label='Condition'
+                value={Listing?.condition || ''}
+                onChange={(event) => handleListingInputChange('condition', event.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size='medium'
+                label='Description'
+                value={Listing?.description || ''}
+                onChange={(event) => handleListingInputChange('description', event.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size='medium'
+                label='Category'
+                value={Listing?.category || ''}
+                onChange={(event) => handleListingInputChange('category', event.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <LocationAutocomplete
+                input={Listing?.location.address || ''}
+                setInput={handleLocationChange}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Button variant='contained' component='label'>
+                Upload Images
+                <input
+                  type='file'
+                  accept='image/*'
+                  multiple
+                  hidden
+                  onChange={handleImageUpload}
+                />
+              </Button>
+            </Grid>
+            <Grid item xs={12}>
+              {/* Image Preview Grid */}
+              <Box display='flex' flexWrap='wrap' gap={2}>
+                {Listing.images.map((image, index) => (
+                  <Box position='relative' width='70px' height='70px'>
+                    <img
+                      src={image}
+                      alt={`Preview ${index}`}
+                      style={{
+                        width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4,
+                      }}
+                    />
+                    <IconButton
+                      size='small'
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                      }}
+                      onClick={() => handleRemoveImage(index)}
+                    >
+                      <CloseIcon fontSize='small' />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+        <Box flex='0 0 70%' paddingY={4} paddingX={2} sx={{ maxHeight: '100%', overflowY: 'auto' }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12}>
+              <Box display='flex' alignItems='center' justifyContent='space-between'>
+                <Typography variant='h4'>Preview</Typography>
+                <Stack direction='row' spacing={1}>
+                  <SpinnerButton
+                    variant='contained'
+                    startIcon={<PublishIcon />}
+                    sx={{ alignSelf: 'flex-end' }}
+                    onClick={handlePublish}
+                  >
+                    Publish Listing
+                  </SpinnerButton>
+                  <IconButton onClick={onClose}><CloseIcon /></IconButton>
+                </Stack>
+              </Box>
+            </Grid>
+            <Grid item xs={12}>
+              <ListingPreview listing={Listing} />
+            </Grid>
+          </Grid>
+        </Box>
+      </Box>
+    </Dialog>
+  );
+}
