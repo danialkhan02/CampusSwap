@@ -44,7 +44,7 @@ async def get_profile(seller_id: str, response: Response, db: Session = Depends(
         if profile is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Seller profile not found"))
-        return ApiResponse(data=profile)
+        return ApiResponse(data=profile.dict())  # Convert to dictionary
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
@@ -60,7 +60,7 @@ async def update_profile(seller_id: str, profile: SellerProfile, response: Respo
         if updated_profile is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Seller profile not found"))
-        return ApiResponse(data=updated_profile)
+        return ApiResponse(data=updated_profile.dict())  # Convert to dictionary
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
