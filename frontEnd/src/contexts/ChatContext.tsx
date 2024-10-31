@@ -3,7 +3,9 @@ import React, {
 } from 'react';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
-import { getChatHistory } from 'api/chat';
+import { chatHistoryQueryKey, useGetChatHistory } from 'pages/Chats/queries';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 interface ChatContextType {
   sendMessage: (receiverId: string, message: string) => void;
@@ -28,6 +30,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const ws = new WebSocket(`${process.env.REACT_APP_WS_URL}/ws/${userId}`);
@@ -47,25 +50,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
   }, [userId]);
 
-  useEffect(() => {
-    const fetchChatHistory = async () => {
-      if (!selectedUserId || !userId) return;
-      
-      try {
-        const history = await getChatHistory(userId, selectedUserId);
-        setMessages(prev => ({
-          ...prev,
-          [selectedUserId]: history
-        }));
-      } catch (error) {
-        console.error('Error fetching chat history:', error);
-      }
-    };
-
-    if (selectedUserId) {
-      fetchChatHistory();
-    }
-  }, [selectedUserId, userId]);
+  const {
+    data: chatHistory,
+    isLoading,
+  } = useGetChatHistory(userId, selectedUserId || '', {
+    queryKey: chatHistoryQueryKey(userId, selectedUserId || ''),
+    enabled: Boolean(selectedUserId),
+  });
 
   const sendMessage = useCallback((receiverId: string, message: string) => {
     if (socket?.readyState === WebSocket.OPEN) {
@@ -83,11 +74,11 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [socket, userId]);
 
-  const contextValue = useMemo(() => ({ 
-    sendMessage, 
-    messages, 
-    selectedUserId, 
-    setSelectedUserId 
+  const contextValue = useMemo(() => ({
+    sendMessage,
+    messages,
+    selectedUserId,
+    setSelectedUserId,
   }), [sendMessage, messages, selectedUserId]);
 
   return (

@@ -2,7 +2,8 @@ import { TApiResponse } from 'utils/apiResponse.type';
 import http from 'utils/http';
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { IUser } from 'pages/Authentication/queries';
-import { getActiveChats, getChatHistory } from 'api/chat';
+import { chats } from 'utils/spaUrls';
+
 
 export interface IChatMessage {
   id?: string;
@@ -21,6 +22,7 @@ export interface IActiveChat {
 }
 
 export const activeChatQueryKey = (userId: string) => ['chat', 'active', userId];
+
 export const chatHistoryQueryKey = (userId: string, otherId: string) => ['chat', 'history', userId, otherId];
 
 export function useGetActiveChats(
@@ -30,7 +32,7 @@ export function useGetActiveChats(
   return useQuery<TApiResponse<IActiveChat[]>, Error>(
     {
       queryKey: activeChatQueryKey(userId),
-      queryFn: () => getActiveChats(userId),
+      queryFn: () => http.get(chats.active(userId)),
       ...options,
     },
   );
@@ -44,7 +46,7 @@ export function useGetChatHistory(
   return useQuery<TApiResponse<IChatMessage[]>, Error>(
     {
       queryKey: chatHistoryQueryKey(userId, otherId),
-      queryFn: () => getChatHistory(userId, otherId),
+      queryFn: () => http.get(chats.history(userId, otherId)),
       ...options,
     },
   );

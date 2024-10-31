@@ -39,7 +39,7 @@ export default function Router() {
           element={<PrivateRoute outlet={<UserProfile />} />}
         />
         <Route
-          path={spaUrls.chats}
+          path={spaUrls.chats.base}
           element={<PrivateRoute outlet={<ChatsPage />} />}
         />
         <Route path='/404' element={<PageNotFound />} />
