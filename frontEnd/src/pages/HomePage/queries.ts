@@ -5,6 +5,7 @@ import {
   useMutation, UseMutationOptions, useQuery, UseQueryOptions,
 } from '@tanstack/react-query';
 import { product } from 'utils/apiUrls';
+import { ECategory, ECondition } from 'pages/HomePage/constants';
 
 
 export interface IProduct {
@@ -13,8 +14,8 @@ export interface IProduct {
     title: string;
     price: number;
     images: string[];
-    category: string;
-    condition?: string;
+    category: ECategory;
+    condition?: ECondition;
     description: string;
     lister_id?: string;
     seller?: IUser;

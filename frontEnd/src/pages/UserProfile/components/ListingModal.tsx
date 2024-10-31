@@ -1,6 +1,6 @@
 import React, { useContext, useState } from 'react';
 import {
-  Dialog, Grid, Box, Typography, TextField, Button,
+  Box, Button, Dialog, FormControl, Grid, InputLabel, Select, TextField, Typography,
 } from '@mui/material';
 import ListingPreview from 'pages/UserProfile/components/ListingPreview';
 import { IProduct, listerProductListQueryKey, useCreateProduct } from 'pages/HomePage/queries';
@@ -14,6 +14,10 @@ import SpinnerButton from 'components/Common/SpinnerButton';
 import { AppAlertsCtx } from 'components/Common/AppAlerts';
 import Stack from '@mui/material/Stack';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  categoryParsed, conditionParsed, ECategory, ECondition,
+} from 'pages/HomePage/constants';
+import MenuItem from '@mui/material/MenuItem';
 
 
 type TProps = {
@@ -34,10 +38,10 @@ export default function ListingModal({
     title: '',
     price: 10.99,
     images: [],
-    category: 'Other',
+    category: ECategory.CATEGORY_OTHER,
     description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut.',
     lister_id: retrieve(CacheKeys.userId, { parseJson: false }),
-    condition: 'Mint',
+    condition: ECondition.CONDITION_NEW,
     location: {
       latitude: 0,
       longitude: 0,
@@ -48,7 +52,7 @@ export default function ListingModal({
   const handleListingInputChange = (field: keyof IProduct, value: any) => {
     setListing((prevListing) => ({
       ...prevListing,
-      [field]: value,
+      [field]: field === 'price' ? parseFloat(value) || 0 : value, // Ensure price is a number
     }));
   };
 
@@ -163,18 +167,30 @@ export default function ListingModal({
                 fullWidth
                 size='medium'
                 label='Price'
-                value={Listing?.price || 0}
+                type='number'
+                value={Listing.price || 0}
                 onChange={(event) => handleListingInputChange('price', event.target.value)}
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size='medium'
-                label='Condition'
-                value={Listing?.condition || ''}
-                onChange={(event) => handleListingInputChange('condition', event.target.value)}
-              />
+              <FormControl fullWidth>
+                <InputLabel>Condition</InputLabel>
+                <Select
+                  fullWidth
+                  size='medium'
+                  label='Condition'
+                  value={Listing.condition}
+                  onChange={(event) => handleListingInputChange('condition', event.target.value)}
+                  displayEmpty
+                >
+                  <MenuItem value='' disabled>Select Condition</MenuItem>
+                  {Object.values(ECondition).map((condition) => (
+                    <MenuItem key={condition} value={condition}>
+                      {conditionParsed.parse(condition).title}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -186,13 +202,24 @@ export default function ListingModal({
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size='medium'
-                label='Category'
-                value={Listing?.category || ''}
-                onChange={(event) => handleListingInputChange('category', event.target.value)}
-              />
+              <FormControl fullWidth>
+                <InputLabel>Category</InputLabel>
+                <Select
+                  fullWidth
+                  size='medium'
+                  label='Category'
+                  value={Listing.category}
+                  onChange={(event) => handleListingInputChange('category', event.target.value)}
+                  displayEmpty
+                >
+                  <MenuItem value='' disabled>Select Category</MenuItem>
+                  {Object.values(ECategory).map((category) => (
+                    <MenuItem key={category} value={category}>
+                      {categoryParsed.parse(category).title}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12}>
               <LocationAutocomplete

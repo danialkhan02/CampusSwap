@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { GoogleMap } from '@react-google-maps/api';
 import { IProduct } from 'pages/HomePage/queries';
 import Typography from '@mui/material/Typography';
@@ -15,6 +15,7 @@ import { AddShoppingCart, Chat } from '@mui/icons-material';
 import RemoveShoppingCartIcon from '@mui/icons-material/RemoveShoppingCart';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
+import { categoryParsed, conditionParsed, ECondition } from 'pages/HomePage/constants';
 
 
 type TProps = {
@@ -154,7 +155,7 @@ export default function ListingPreview({
           <Typography variant='h4'>{listing.name}</Typography>
           <Box display='flex' gap={1} alignItems='center'>
             <Chip
-              label={`Condition: ${listing.condition}`}
+              label={`Condition: ${conditionParsed.parse(listing?.condition || ECondition.CONDITION_NEW).title}`}
               variant='filled'
               sx={{
                 opacity: '60%',
@@ -169,7 +170,7 @@ export default function ListingPreview({
             <Stack direction='row' spacing={1}>
               <Typography variant='body2'>Tags: </Typography>
               <Chip
-                label={`Category: ${listing.category}`}
+                label={`Category: ${categoryParsed.parse(listing.category).title}`}
                 color='primary'
                 variant='filled'
                 sx={{
