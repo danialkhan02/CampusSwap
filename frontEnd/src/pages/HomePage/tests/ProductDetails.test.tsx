@@ -56,9 +56,9 @@ describe('ProductDetails Component', () => {
     expect(screen.getAllByText(/Urban Explorer Sneakers/i)).toHaveLength(2);
     expect(screen.getByText('Blank Blank Blank')).toBeInTheDocument();
     expect(screen.getByText('$35.71')).toBeInTheDocument();
-    const categoryChips = screen.getByText(/Category: TEXTBOOKS/i);
+    const categoryChips = screen.getByText(/Category: Textbook/i);
     expect(categoryChips).toBeDefined();
-    const conditionChips = screen.getByText(/Condition: CONDITION_NEW/i);
+    const conditionChips = screen.getByText(/Condition: New/i);
     expect(conditionChips).toBeDefined();
   });
 

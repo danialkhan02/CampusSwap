@@ -1,9 +1,9 @@
 import React from 'react';
-import { useLoadScript } from '@react-google-maps/api';
+import { Libraries, useLoadScript } from '@react-google-maps/api';
 import Spinner from 'components/Common/Spinner';
 
 
-const libraries: any[] = ['places']; // Add 'places' library for Autocomplete
+const libraries: Libraries = ['places']; // Add 'places' library for Autocomplete
 
 export default function LoadGoogleMaps({ children }: { children: React.ReactNode }) {
   const { isLoaded, loadError } = useLoadScript({

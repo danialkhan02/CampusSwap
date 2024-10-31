@@ -59,9 +59,6 @@ export default function LocationAutocomplete({ input, setInput }: TProps) {
           const address = place.formatted_address || '';
           setInput(address, lat, lng);
         }
-        else {
-          console.error('Error fetching place details:', status);
-        }
       },
     );
   };
@@ -102,6 +99,7 @@ export default function LocationAutocomplete({ input, setInput }: TProps) {
       loading={loading}
       renderInput={(params) => (
         <TextField
+          /* eslint-disable-next-line react/jsx-props-no-spreading */
           {...params}
           label='Enter a location'
           variant='outlined'
