@@ -45,7 +45,6 @@ async def add_user(posted_user: User, response: Response) -> ApiResponse:
         error = ErrMessage(message=stytch_response.text)
         return ApiResponse(error=error)
 
-
 @router.get("/{user_id}")
 async def get_user(user_id: str, response: Response) -> ApiResponse:
     try:
@@ -71,6 +70,7 @@ async def update_user(user_id: str, updated_user: UpdateUser, response: Response
     - profile_image_url
     - phone_number 
     - description
+    - location
 
     All other fields will be ignored during the update.
 

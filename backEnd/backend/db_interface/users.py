@@ -5,7 +5,7 @@ import uuid as uuid_pkg
 
 def handle_insert_user(posted_user: User):
     new_backend_id = uuid_pkg.uuid4()
-    with Session() as session:
+    with DefaultSession() as session:
         new_user = UsersOrm(
             id=new_backend_id,
             email=posted_user.email,
@@ -15,6 +15,7 @@ def handle_insert_user(posted_user: User):
             profile_image_url=posted_user.profile_image_url,
             phone_number=posted_user.phone_number,
             description=posted_user.description,
+            location=posted_user.location,
         )
         session.add(new_user)
         session.commit()
@@ -50,6 +51,8 @@ def handle_update_user(user_id: str, updated_user: UpdateUser):
             db_user.phone_number = updated_user.phone_number
         if updated_user.description is not None:
             db_user.description = updated_user.description
+        if updated_user.location is not None:
+            db_user.location = updated_user.location
         
         session.commit()
         session.refresh(db_user)  # Refresh the object to ensure it's up to date
@@ -64,6 +67,6 @@ def handle_update_user(user_id: str, updated_user: UpdateUser):
         session.close()
 
 def handle_get_user(user_id: str):
-    with Session() as session:
+    with DefaultSession() as session:
         db_user = session.query(UsersOrm).filter(UsersOrm.id == user_id).first()
     return db_user

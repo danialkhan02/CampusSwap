@@ -18,6 +18,7 @@ class UsersOrm(BaseDbModel):
     profile_image_url: Mapped[str] = mapped_column(String, nullable=True)
     phone_number: Mapped[str] = mapped_column(String, nullable=True)
     description: Mapped[str] = mapped_column(String, nullable=True)
+    location: Mapped[str] = mapped_column(String, nullable=True)
 
     # One-to-Many Relationships
     items: Mapped[List["ItemsOrm"]] = relationship(

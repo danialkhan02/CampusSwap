@@ -26,6 +26,7 @@ def upgrade() -> None:
 
     # Add num_listings to seller_profiles
     op.add_column('seller_profiles', sa.Column('num_listings', sa.Integer(), nullable=False, server_default='0'))
+    op.add_column('users', sa.Column('location', sa.String(), nullable=True))
 
     # Drop columns from seller_profiles
     op.drop_column('seller_profiles', 'profile_image_url')
@@ -44,3 +45,4 @@ def downgrade() -> None:
 
     # Drop num_listings from seller_profiles
     op.drop_column('seller_profiles', 'num_listings')
+    op.drop_column('users', 'location')
