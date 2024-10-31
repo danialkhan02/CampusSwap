@@ -5,8 +5,12 @@ const sample = {
 };
 
 const user = {
-  details: `${baseUrl}/api/v1/users`,
+  details: (userId: string) => `${baseUrl}/api/v1/users/${userId}`,
   create: `${baseUrl}/api/v1/users`,
+};
+
+const seller = {
+  details: (sellerId: string) => `${baseUrl}/api/v1/seller_profiles/${sellerId}`,
 };
 
 const product = {
@@ -24,4 +28,5 @@ export {
   user,
   sample,
   product,
+  seller,
 };
