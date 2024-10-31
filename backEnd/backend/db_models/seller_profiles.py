@@ -10,21 +10,11 @@ class SellerProfileOrm(BaseDbModel):
     seller_id: Mapped[Uuid] = mapped_column(Uuid, ForeignKey("users.id"), primary_key=True)
     
     # Profile fields
-    profile_image_url: Mapped[str] = mapped_column(String, nullable=True)
-    phone_number: Mapped[str] = mapped_column(String, nullable=True)
     total_transactions: Mapped[int] = mapped_column(Integer, default=0)
     average_rating: Mapped[float] = mapped_column(Float, default=0.0)
-    
-    # Timestamp fields
-    created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), default=func.now())
-    updated_at: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True),
-        onupdate=func.now(),
-        default=func.now(),
-    )
-    deleted_at: Mapped[DateTime] = mapped_column(
-        DateTime(timezone=True), default=None, nullable=True
-    )
+
+    # Number of listings
+    num_listings: Mapped[int] = mapped_column(Integer, default=0)
 
     # Use string reference to avoid circular import
     user = relationship("UsersOrm", back_populates="seller_profile", lazy="select")

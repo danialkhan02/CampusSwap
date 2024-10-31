@@ -18,8 +18,7 @@ def create_seller_profile(seller_profile: SellerProfile, seller_id: uuid_pkg.UUI
     try:
         new_profile = SellerProfileOrm(
             seller_id=seller_id,
-            profile_image_url=seller_profile.profile_image_url,
-            phone_number=seller_profile.phone_number,
+            num_listings=seller_profile.num_listings,
             total_transactions=seller_profile.total_transactions,
             average_rating=seller_profile.average_rating
         )

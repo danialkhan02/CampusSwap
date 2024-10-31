@@ -13,3 +13,6 @@ class User(BaseApiModel):
     id: Optional[UUID4] = None
     stytch_id: str
     oauth_id: Optional[str] = None
+    profile_image_url: Optional[str] = None
+    phone_number: Optional[str] = None
+    description: Optional[str] = None

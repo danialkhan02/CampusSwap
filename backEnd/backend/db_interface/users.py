@@ -13,6 +13,9 @@ def handle_insert_user(posted_user: User):
             first_name=posted_user.first_name,
             last_name=posted_user.last_name,
             stytch_id=posted_user.stytch_id,
+            profile_image_url=posted_user.profile_image_url,
+            phone_number=posted_user.phone_number,
+            description=posted_user.description,
         )
         session.add(new_user)
         session.commit()
