@@ -12,10 +12,13 @@ import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { useQueryClient } from '@tanstack/react-query';
+import ChatWindow from 'pages/Chats/ChatWindow';
+import { useState } from 'react';
 
 
 export default function ProductDetails() {
   const queryClient = useQueryClient();
+  const [messageButtonClick, setMessageButtonClick] = useState(false);
   const { productId } = useParams<{ productId: string }>();
   const buyerId = retrieve(CacheKeys.userId, { parseJson: false });
   const {
@@ -45,9 +48,16 @@ export default function ProductDetails() {
       </Grid>
       <Grid item xs={12}>
         <LoadGoogleMaps>
-          <ListingPreview listing={productData.data} onWatchListClick={handleLikeToggle} />
+          <ListingPreview
+            listing={productData.data}
+            onWatchListClick={handleLikeToggle}
+            onMessageButtonClick={() => setMessageButtonClick(true)}
+          />
         </LoadGoogleMaps>
       </Grid>
+      {messageButtonClick && (
+      <ChatWindow receiverId={productData.data.seller?.id || ''} receiverName={productData.data.seller?.first_name || 'Unknown'} />
+      )}
     </Grid>
   );
 }
