@@ -44,7 +44,16 @@ async def get_profile(seller_id: str, response: Response, db: Session = Depends(
         if profile is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Seller profile not found"))
-        return ApiResponse(data=profile.dict())  # Convert to dictionary
+        
+        return_profile = {
+            "id": profile.id,
+            "seller_id": profile.seller_id,
+            "profile_image_url": profile.profile_image_url,
+            "phone_number": profile.phone_number,
+            "total_transactions": profile.total_transactions,
+            "average_rating": profile.average_rating,
+        }
+        return ApiResponse(data=return_profile)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
