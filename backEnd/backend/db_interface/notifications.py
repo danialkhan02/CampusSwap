@@ -126,7 +126,15 @@ def list_notifications_by_user(user_id: str, db: Session = None):
     session = db or DefaultSession()
     try:
         # Use the UUID object in the query
-        notifications = session.query(NotificationsOrm).filter(NotificationsOrm.user_id == uuid_obj).all()
+        notifications = (
+            session.query(NotificationsOrm)
+            .filter(
+                NotificationsOrm.user_id == uuid_obj,
+                NotificationsOrm.delete_flag == False
+            )
+            .order_by(NotificationsOrm.created_at.desc())  # This ensures FILO order
+            .all()
+        )
         logger.info(f"Retrieved {len(notifications)} notifications for user {user_id}")
         return notifications
     except SQLAlchemyError as e:
