@@ -46,15 +46,15 @@ async def add_user(posted_user: User, response: Response) -> ApiResponse:
         return ApiResponse(error=error)
 
 
-@router.get("")
-async def get_user(request: Request, response: Response) -> ApiResponse:
+@router.get("/{user_id}")
+async def get_user(user_id: str, response: Response) -> ApiResponse:
     try:
-        user_id = request.state.user_id
-    except AttributeError:
-        error = ErrMessage(message="no user id provided")
+        requested_user_id = uuid_pkg.UUID(user_id)
+    except ValueError as e:
+        error = ErrMessage(message=str(e))
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=error)
-    db_user = handle_get_user(user_id)
+    db_user = handle_get_user(requested_user_id)
     if db_user is None:
         error = ErrMessage(message="user not found")
         response.status_code = status.HTTP_404_NOT_FOUND
