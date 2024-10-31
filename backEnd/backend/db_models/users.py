@@ -55,11 +55,13 @@ class UsersOrm(BaseDbModel):
     chat_sender: Mapped[List["ChatMessagesOrm"]] = relationship(
         "ChatMessagesOrm", 
         back_populates="sender", 
+        foreign_keys="ChatMessagesOrm.sender_id",
         lazy="select"
     )
     # chat receiver
     chat_receiver: Mapped[List["ChatMessagesOrm"]] = relationship(
         "ChatMessagesOrm", 
         back_populates="receiver", 
+        foreign_keys="ChatMessagesOrm.receiver_id",
         lazy="select"
     )

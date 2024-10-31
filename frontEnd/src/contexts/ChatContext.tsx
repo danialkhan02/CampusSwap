@@ -3,11 +3,13 @@ import React, {
 } from 'react';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
-
+import { getChatHistory } from 'api/chat';
 
 interface ChatContextType {
   sendMessage: (receiverId: string, message: string) => void;
   messages: Record<string, Message[]>;
+  setSelectedUserId: (userId: string | null) => void;
+  selectedUserId: string | null;
 }
 
 interface Message {
@@ -24,6 +26,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
 
   useEffect(() => {
@@ -44,6 +47,26 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
   }, [userId]);
 
+  useEffect(() => {
+    const fetchChatHistory = async () => {
+      if (!selectedUserId || !userId) return;
+      
+      try {
+        const history = await getChatHistory(userId, selectedUserId);
+        setMessages(prev => ({
+          ...prev,
+          [selectedUserId]: history
+        }));
+      } catch (error) {
+        console.error('Error fetching chat history:', error);
+      }
+    };
+
+    if (selectedUserId) {
+      fetchChatHistory();
+    }
+  }, [selectedUserId, userId]);
+
   const sendMessage = useCallback((receiverId: string, message: string) => {
     if (socket?.readyState === WebSocket.OPEN) {
       const messageData = {
@@ -60,8 +83,12 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [socket, userId]);
 
-  // Memoize the context value with the memoized sendMessage function
-  const contextValue = useMemo(() => ({ sendMessage, messages }), [sendMessage, messages]);
+  const contextValue = useMemo(() => ({ 
+    sendMessage, 
+    messages, 
+    selectedUserId, 
+    setSelectedUserId 
+  }), [sendMessage, messages, selectedUserId]);
 
   return (
     <ChatContext.Provider value={contextValue}>

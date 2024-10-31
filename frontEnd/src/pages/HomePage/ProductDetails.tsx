@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Spinner from 'components/Common/Spinner';
 import Grid from '@mui/material/Grid';
 import ProductHeader from 'pages/HomePage/components/ProductHeader';
@@ -29,6 +29,7 @@ export default function ProductDetails() {
     enabled: Boolean(productId),
   });
   const addWatchlistHook = useAddWatchlist(productData?.data?.id || '', buyerId);
+  const navigate = useNavigate();
 
   if (!productData || isLoading || !productData?.data) {
     return <Spinner />;
@@ -41,6 +42,10 @@ export default function ProductDetails() {
     });
   };
 
+  const handleMessageSeller = (sellerId: string) => {
+    navigate('/chats', { state: { selectedUserId: sellerId } });
+  };
+
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
@@ -51,7 +56,7 @@ export default function ProductDetails() {
           <ListingPreview
             listing={productData.data}
             onWatchListClick={handleLikeToggle}
-            onMessageButtonClick={() => setMessageButtonClick(true)}
+            onMessageButtonClick={() => handleMessageSeller(productData.data.seller?.id || '')}
           />
         </LoadGoogleMaps>
       </Grid>
