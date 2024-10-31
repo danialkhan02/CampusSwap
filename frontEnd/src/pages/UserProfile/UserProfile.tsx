@@ -2,19 +2,12 @@ import {
   Card, Tab, Tabs,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
-import Avatar from '@mui/material/Avatar';
-import Typography from '@mui/material/Typography';
-import ProfilePic from 'assets/avatar-25.webp';
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import ReviewsIcon from '@mui/icons-material/Reviews';
-import bgImage from 'assets/userBackground.png';
 import Box from '@mui/material/Box';
 import { useState } from 'react';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
-import Button from '@mui/material/Button';
 import ListingModal from 'pages/UserProfile/components/ListingModal';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import UserListings from 'pages/UserProfile/components/UserListings';

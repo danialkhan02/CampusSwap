@@ -24,7 +24,7 @@ type TProps = {
 export default function ProfileCard({ profile }: TProps) {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const {
-    data: sellersData,
+    data: sellerData,
     isLoading,
   } = useGetSellerProfile(profile?.id || '', {
     queryKey: userQueryKey(profile?.id || ''),
@@ -32,18 +32,12 @@ export default function ProfileCard({ profile }: TProps) {
     retry: false,
   });
 
-  const sellerData = {
-    data: {
-      id: '1',
-      seller_id: '2',
-      total_transactions: 60,
-      average_rating: 4.5,
-    },
-  };
-
   const handleClick = () => {
     setModalOpen(true);
   };
+
+  const sellerAccountExists = Boolean(sellerData?.data
+      && !isLoading && sellerData?.data.num_listings > 0);
 
   return (
     <Grid item xs={12}>
@@ -74,7 +68,7 @@ export default function ProfileCard({ profile }: TProps) {
           </CardContent>
         </Card>
       </Grid>
-      {sellerData?.data && (
+      {sellerAccountExists && (
         <Grid item xs={12}>
           <Card sx={{ marginTop: 2 }}>
             <CardContent>
