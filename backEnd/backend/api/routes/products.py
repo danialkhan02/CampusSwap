@@ -11,7 +11,7 @@ from backend.db_interface.items import (
     get_product_details,
     get_interested_items
 )
-from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile
+from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile, increment_num_listings, decrement_num_listings
 from backend.models.seller_profile import SellerProfile
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
@@ -207,6 +207,7 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
 
         result = create_item(item, db)
         response.status_code = status.HTTP_201_CREATED
+        increment_num_listings(lister_uuid, db)
         return ApiResponse(data=result)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -300,6 +301,7 @@ async def delete_product(product_id: str, user_id: str, response: Response, db: 
         if not result:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product not found"))
+        decrement_num_listings(item.lister.id, db)
         return ApiResponse(data={"success": True})
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST

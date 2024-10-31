@@ -9,7 +9,9 @@ from backend.db_interface.seller_profiles import (
     create_seller_profile,
     get_seller_profile,
     update_seller_profile,
-    delete_seller_profile
+    delete_seller_profile,
+    increment_num_listings,
+    decrement_num_listings
 )
 from backend.models.seller_profile import SellerProfile
 
@@ -129,3 +131,55 @@ def test_delete_seller_profile_not_found(test_db):
     non_existent_id = uuid_pkg.uuid4()
     result = delete_seller_profile(non_existent_id, db)
     assert result is False
+
+def test_increment_num_listings(test_db):
+    db, user_id = test_db
+    # Create initial profile
+    profile = SellerProfile(
+        num_listings=0,
+        total_transactions=0,
+        average_rating=0.0
+    )
+    create_seller_profile(profile, user_id, db)
+
+    # Test increment
+    increment_num_listings(user_id, db)
+
+    # Verify increment
+    updated_profile = get_seller_profile(user_id, db)
+    assert updated_profile is not None
+    assert updated_profile.num_listings == 1
+
+def test_decrement_num_listings(test_db):
+    db, user_id = test_db
+    # Create initial profile with num_listings = 2
+    profile = SellerProfile(
+        num_listings=2,
+        total_transactions=0,
+        average_rating=0.0
+    )
+    create_seller_profile(profile, user_id, db)
+
+    # Test decrement
+    decrement_num_listings(user_id, db)
+
+    # Verify decrement
+    updated_profile = get_seller_profile(user_id, db)
+    assert updated_profile is not None
+    assert updated_profile.num_listings == 1
+
+def test_increment_num_listings_nonexistent_profile(test_db):
+    db, _ = test_db
+    # Try to increment listings for non-existent profile
+    non_existent_id = uuid_pkg.uuid4()
+    increment_num_listings(non_existent_id, db)
+    # Should not raise an error, just do nothing
+    assert True
+
+def test_decrement_num_listings_nonexistent_profile(test_db):
+    db, _ = test_db
+    # Try to decrement listings for non-existent profile
+    non_existent_id = uuid_pkg.uuid4()
+    decrement_num_listings(non_existent_id, db)
+    # Should not raise an error, just do nothing
+    assert True
