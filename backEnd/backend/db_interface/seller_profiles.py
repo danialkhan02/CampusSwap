@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from backend.db_models.connection import Session as DefaultSession
 from backend.db_models.seller_profiles import SellerProfileOrm
-from backend.models.seller_profile import SellerProfile, SellerProfileInDB
+from backend.models.seller_profile import SellerProfile
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,6 @@ def create_seller_profile(seller_profile: SellerProfile, seller_id: uuid_pkg.UUI
     try:
         new_profile = SellerProfileOrm(
             seller_id=seller_id,
-            seller_name=seller_profile.seller_name,
             profile_image_url=seller_profile.profile_image_url,
             phone_number=seller_profile.phone_number,
             total_transactions=seller_profile.total_transactions,
@@ -36,13 +36,13 @@ def create_seller_profile(seller_profile: SellerProfile, seller_id: uuid_pkg.UUI
             session.close()
 
 def get_seller_profile(seller_id: uuid_pkg.UUID, db: Session = None):
-    if not seller_id:
-        logger.error("Invalid input: seller_id is missing")
-        raise ValueError("Seller ID is required")
 
     session = db or DefaultSession()
     try:
-        profile = session.query(SellerProfileOrm).filter(SellerProfileOrm.seller_id == seller_id).first()
+        profile = session.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at.is_(None)  # Only get non-deleted profiles
+        ).first()
         if not profile:
             logger.warning(f"Seller profile not found: {seller_id}")
         return profile
@@ -54,13 +54,13 @@ def get_seller_profile(seller_id: uuid_pkg.UUID, db: Session = None):
             session.close()
 
 def update_seller_profile(seller_id: uuid_pkg.UUID, updated_profile: SellerProfile, db: Session = None):
-    if not seller_id:
-        logger.error("Invalid input: seller_id is missing")
-        raise ValueError("Seller ID is required")
 
     session = db or DefaultSession()
     try:
-        profile = session.query(SellerProfileOrm).filter(SellerProfileOrm.seller_id == seller_id).first()
+        profile = session.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at.is_(None)  # Only update non-deleted profiles
+        ).first()
         if profile:
             for key, value in updated_profile.model_dump(exclude_unset=True).items():
                 setattr(profile, key, value)
@@ -79,15 +79,16 @@ def update_seller_profile(seller_id: uuid_pkg.UUID, updated_profile: SellerProfi
             session.close()
 
 def delete_seller_profile(seller_id: uuid_pkg.UUID, db: Session = None):
-    if not seller_id:
-        logger.error("Invalid input: seller_id is missing")
-        raise ValueError("Seller ID is required")
 
     session = db or DefaultSession()
     try:
-        profile = session.query(SellerProfileOrm).filter(SellerProfileOrm.seller_id == seller_id).first()
+        profile = session.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at.is_(None)
+        ).first()
         if profile:
-            session.delete(profile)
+            # Soft delete
+            profile.deleted_at = datetime.now(timezone.utc)
             session.commit()
             logger.info(f"Seller profile deleted successfully: {seller_id}")
             return True
