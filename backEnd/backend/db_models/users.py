@@ -7,7 +7,7 @@ from backend.db_models.items import ItemsOrm
 from backend.db_models.notifications import NotificationsOrm
 from backend.db_models.seller_feedbacks import SellerFeedbackOrm
 from backend.db_models.seller_profiles import SellerProfileOrm
-
+from backend.db_models.chat import ChatMessagesOrm
 class UsersOrm(BaseDbModel):
     __tablename__ = "users"
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
@@ -49,4 +49,17 @@ class UsersOrm(BaseDbModel):
         "SellerProfileOrm", 
         back_populates="user", 
         uselist=False
+    )
+
+    # chat sender
+    chat_sender: Mapped[List["ChatMessagesOrm"]] = relationship(
+        "ChatMessagesOrm", 
+        back_populates="sender", 
+        lazy="select"
+    )
+    # chat receiver
+    chat_receiver: Mapped[List["ChatMessagesOrm"]] = relationship(
+        "ChatMessagesOrm", 
+        back_populates="receiver", 
+        lazy="select"
     )
