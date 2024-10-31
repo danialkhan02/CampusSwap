@@ -12,4 +12,8 @@ export const product = {
   details: '/product/:productId',
 };
 
+export const user = {
+  profile: '/user/profile',
+};
+
 export const homepage = '/welcome';

@@ -5,13 +5,16 @@ import '@testing-library/jest-dom';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { homepage } from 'utils/spaUrls';
-import { useGetProductList } from 'pages/HomePage/queries';
+import { useGetProductDetails, useGetProductList } from 'pages/HomePage/queries';
 import mockProductsData from 'pages/HomePage/tests/mocks/mockProduct';
+import mockSingleProductData from 'pages/HomePage/tests/mocks/mockProductData';
+import ProductDetails from 'pages/HomePage/ProductDetails';
 
 
 jest.mock('pages/HomePage/queries', () => ({
   ...jest.requireActual('pages/HomePage/queries'),
   useGetProductList: jest.fn(),
+  useGetProductDetails: jest.fn(),
 }));
 
 const queryClient = new QueryClient();
@@ -24,6 +27,10 @@ function renderHomePage(): void {
           <Route
             path={homepage}
             element={<HomePage />}
+          />
+          <Route
+            path='/product/:productId'
+            element={<ProductDetails />}
           />
         </Routes>
       </MemoryRouter>
@@ -62,13 +69,15 @@ describe('HomePage Component', () => {
     expect(productCards.length).toBe(6);
   });
 
-  it('should display product name, price, and sale status correctly in product cards', () => {
+  it('should display product name, price, and seller info correctly in product cards', () => {
     renderHomePage();
 
     const products = screen.getAllByText(/urban explorer sneakers/i);
     const prices = screen.getAllByText(/\$35.71/i);
+    const address = screen.getAllByText(/450 Front St W./i);
     expect(products[0]).toBeInTheDocument();
     expect(prices[0]).toBeInTheDocument();
+    expect(address[0]).toBeInTheDocument();
 
     const products2 = screen.getAllByText(/classic leather loafers/i);
     const prices2 = screen.getAllByText(/\$35.54/i);
@@ -91,5 +100,19 @@ describe('HomePage Component', () => {
 
     userEvent.click(filterButton);
     userEvent.click(sortButton);
+  });
+
+  it('should navigate to product details page on card click', async () => {
+    renderHomePage();
+    (useGetProductDetails as jest.Mock).mockReturnValue({
+      data: mockSingleProductData,
+      isLoading: false,
+    });
+    const user = userEvent.setup();
+
+    const productLink = screen.getAllByTestId('product-card-link')[0];
+    await user.click(productLink);
+
+    expect(await screen.findByText(/Urban Explorer Sneakers/i)).toBeInTheDocument();
   });
 });

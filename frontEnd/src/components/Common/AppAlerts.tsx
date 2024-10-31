@@ -3,7 +3,7 @@ import React from 'react';
 
 
 interface IAlert {
-  type: 'success' | 'info',
+  type: 'success' | 'info' | 'error',
   message: string,
 }
 interface IAppAlerts {
