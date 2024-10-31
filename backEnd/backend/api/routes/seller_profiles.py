@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Response, status, Depends
 from sqlalchemy.orm import Session
 from backend.db_interface.seller_profiles import (
-    create_seller_profile,
     get_seller_profile,
     update_seller_profile,
     delete_seller_profile
@@ -22,36 +21,6 @@ def get_db():
         yield db
     finally:
         db.close()
-
-@router.post("", summary="Create a new seller profile", response_model=ApiResponse)
-async def add_seller_profile(profile: SellerProfile, seller_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
-    """
-    Create a new seller profile in the system.
-
-    This endpoint allows the creation of a new seller profile with the provided details.
-    If a profile already exists for the given seller_id, the request will fail with
-    an appropriate error message.
-
-    Parameters:
-    - **profile**: The SellerProfile object containing the seller's profile information
-                 (profile_image_url, phone_number, total_transactions, average_rating)
-    - **seller_id**: The unique identifier (UUID) for the seller
-
-    Responses:
-    - **200 OK**: If the profile is successfully created, returns the created profile data
-    - **400 Bad Request**: If the seller_id is not a valid UUID or profile data is invalid
-    - **500 Internal Server Error**: If an unexpected error occurs during profile creation
-    """
-    try:
-        uuid_obj = uuid_pkg.UUID(seller_id)
-        result = create_seller_profile(profile, uuid_obj, db)
-        return ApiResponse(data=result)
-    except ValueError as e:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return ApiResponse(error=ErrMessage(message=str(e)))
-    except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ApiResponse(error=ErrMessage(message=str(e)))
 
 @router.get("/{seller_id}", summary="Get a seller profile by ID", response_model=ApiResponse)
 async def get_profile(seller_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
@@ -81,8 +50,7 @@ async def get_profile(seller_id: str, response: Response, db: Session = Depends(
         
         return_profile = {
             "seller_id": profile.seller_id,
-            "profile_image_url": profile.profile_image_url,
-            "phone_number": profile.phone_number,
+            "num_listings": profile.num_listings,
             "total_transactions": profile.total_transactions,
             "average_rating": profile.average_rating,
         }
@@ -127,8 +95,7 @@ async def update_profile(seller_id: str, profile: SellerProfile, response: Respo
         
         return_profile = {
             "seller_id": updated_profile.seller_id,
-            "profile_image_url": updated_profile.profile_image_url,
-            "phone_number": updated_profile.phone_number,
+            "num_listings": updated_profile.num_listings,
             "total_transactions": updated_profile.total_transactions,
             "average_rating": updated_profile.average_rating,
         }
