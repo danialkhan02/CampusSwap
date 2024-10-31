@@ -9,6 +9,7 @@ import Fuse from 'fuse.js';
 import { useState } from 'react';
 import { IProduct } from 'pages/HomePage/queries';
 import { TApiResponse } from 'utils/apiResponse.type';
+import Typography from '@mui/material/Typography';
 
 
 type TProps = {
@@ -58,12 +59,19 @@ export default function ProductList({ productsData, showEditButton = false }: TP
 
       {/* Product Grid */}
       <Grid container item xs={12} spacing={3}>
-        {filteredProducts?.map((product) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={product.id} data-testid='product-card'>
-            <ProductCard product={product} showEditButton={showEditButton} />
+        {filteredProducts?.length === 0 ? (
+          <Grid item xs={12} style={{ textAlign: 'center', marginTop: '20px' }} data-testid='empty-screen'>
+            <Typography variant='h6'>No listings found</Typography>
           </Grid>
-        ))}
+        ) : (
+          filteredProducts.map((product) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={product.id} data-testid='product-card'>
+              <ProductCard product={product} showEditButton={showEditButton} />
+            </Grid>
+          ))
+        )}
       </Grid>
+
     </>
   );
 }

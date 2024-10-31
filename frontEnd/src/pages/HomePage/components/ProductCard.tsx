@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import {
   Box, Card, CardMedia, CardContent, Typography, Button,
 } from '@mui/material';
-import { IProduct, productListQueryKey, useAddWatchlist } from 'pages/HomePage/queries';
+import {
+  IProduct, listerWishListQueryKey, productListQueryKey, useAddWatchlist,
+} from 'pages/HomePage/queries';
 import { Favorite, FavoriteBorder } from '@mui/icons-material';
 import IconButton from '@mui/material/IconButton';
 import EditIcon from '@mui/icons-material/Edit';
@@ -36,6 +38,7 @@ export default function ProductCard({
     addWatchlistHook.mutate(undefined, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: productListQueryKey() });
+        queryClient.invalidateQueries({ queryKey: listerWishListQueryKey(buyerId) });
       },
     });
   };
