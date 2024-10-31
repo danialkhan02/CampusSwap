@@ -3,7 +3,7 @@ import {
   Dialog, Grid, Box, Typography, TextField, Button,
 } from '@mui/material';
 import ListingPreview from 'pages/UserProfile/components/ListingPreview';
-import { IProduct, useCreateProduct } from 'pages/HomePage/queries';
+import { IProduct, listerProductListQueryKey, useCreateProduct } from 'pages/HomePage/queries';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import LocationAutocomplete from 'pages/UserProfile/components/GoogleMapTextField';
@@ -13,6 +13,7 @@ import PublishIcon from '@mui/icons-material/Publish';
 import SpinnerButton from 'components/Common/SpinnerButton';
 import { AppAlertsCtx } from 'components/Common/AppAlerts';
 import Stack from '@mui/material/Stack';
+import { useQueryClient } from '@tanstack/react-query';
 
 
 type TProps = {
@@ -24,6 +25,8 @@ export default function ListingModal({
   isOpen,
   onClose,
 }: TProps) {
+  const queryClient = useQueryClient();
+  const userId = retrieve(CacheKeys.userId, { parseJson: false });
   const createProductHook = useCreateProduct();
   const { addAlert } = useContext(AppAlertsCtx);
   const [Listing, setListing] = useState<IProduct>({
@@ -62,7 +65,18 @@ export default function ListingModal({
   };
 
   const handlePublish = () => {
-    createProductHook.mutate(Listing);
+    createProductHook.mutate(Listing, {
+      onSuccess: () => {
+        addAlert({
+          type: 'success',
+          message: 'Listing published successfully',
+        });
+        onClose();
+        queryClient.invalidateQueries(
+          { queryKey: listerProductListQueryKey(userId || '') },
+        );
+      },
+    });
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
