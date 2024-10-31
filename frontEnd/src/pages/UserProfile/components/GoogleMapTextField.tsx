@@ -102,6 +102,7 @@ export default function LocationAutocomplete({ input, setInput }: TProps) {
       loading={loading}
       renderInput={(params) => (
         <TextField
+          /* eslint-disable-next-line react/jsx-props-no-spreading */
           {...params}
           label='Enter a location'
           variant='outlined'
