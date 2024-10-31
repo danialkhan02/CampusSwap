@@ -9,7 +9,9 @@ from backend.db_interface.seller_profiles import (
     create_seller_profile,
     get_seller_profile,
     update_seller_profile,
-    delete_seller_profile
+    delete_seller_profile,
+    increment_num_listings,
+    decrement_num_listings
 )
 from backend.models.seller_profile import SellerProfile
 
@@ -37,8 +39,7 @@ def test_db():
 def test_create_seller_profile(test_db):
     db, user_id = test_db
     profile = SellerProfile(
-        profile_image_url="http://example.com/image.jpg",
-        phone_number="1234567890",
+        num_listings=0,
         total_transactions=0,
         average_rating=0.0
     )
@@ -49,16 +50,14 @@ def test_create_seller_profile(test_db):
     db_profile = db.query(SellerProfileOrm).filter(SellerProfileOrm.seller_id == user_id).first()
     assert db_profile is not None
     assert db_profile.seller_id == user_id  # Verify the PK/FK relationship
-    assert db_profile.profile_image_url == profile.profile_image_url
-    assert db_profile.phone_number == profile.phone_number
+    assert db_profile.num_listings == profile.num_listings
     assert db_profile.total_transactions == profile.total_transactions
     assert db_profile.average_rating == profile.average_rating
 
 def test_get_seller_profile(test_db):
     db, user_id = test_db
     profile = SellerProfile(
-        profile_image_url="http://example.com/image.jpg",
-        phone_number="1234567890",
+        num_listings=0,
         total_transactions=0,
         average_rating=0.0
     )
@@ -67,40 +66,35 @@ def test_get_seller_profile(test_db):
     retrieved_profile = get_seller_profile(user_id, db)
     assert retrieved_profile is not None
     assert retrieved_profile.seller_id == user_id  # Verify the PK matches
-    assert retrieved_profile.profile_image_url == profile.profile_image_url
-    assert retrieved_profile.phone_number == profile.phone_number
+    assert retrieved_profile.num_listings == profile.num_listings
     assert retrieved_profile.total_transactions == profile.total_transactions
     assert retrieved_profile.average_rating == profile.average_rating
 
 def test_update_seller_profile(test_db):
     db, user_id = test_db
     profile = SellerProfile(
-        profile_image_url="http://example.com/image.jpg",
-        phone_number="1234567890",
+        num_listings=0,
         total_transactions=0,
         average_rating=0.0
     )
     create_seller_profile(profile, user_id, db)
 
     updated_profile = SellerProfile(
-        profile_image_url="http://example.com/updated.jpg",
-        phone_number="9876543210",
+        num_listings=5,
         total_transactions=5,
         average_rating=4.5
     )
     result = update_seller_profile(user_id, updated_profile, db)
     assert result is not None
     assert result.seller_id == user_id  # Verify PK remains unchanged
-    assert result.profile_image_url == updated_profile.profile_image_url
-    assert result.phone_number == updated_profile.phone_number
+    assert result.num_listings == updated_profile.num_listings
     assert result.total_transactions == updated_profile.total_transactions
     assert result.average_rating == updated_profile.average_rating
 
 def test_delete_seller_profile(test_db):
     db, user_id = test_db
     profile = SellerProfile(
-        profile_image_url="http://example.com/image.jpg",
-        phone_number="1234567890",
+        num_listings=0,
         total_transactions=0,
         average_rating=0.0
     )
@@ -124,8 +118,7 @@ def test_update_seller_profile_not_found(test_db):
     # Create a random UUID that doesn't correspond to any user
     non_existent_id = uuid_pkg.uuid4()
     updated_profile = SellerProfile(
-        profile_image_url="http://example.com/updated.jpg",
-        phone_number="9876543210",
+        num_listings=5,
         total_transactions=5,
         average_rating=4.5
     )
@@ -138,3 +131,55 @@ def test_delete_seller_profile_not_found(test_db):
     non_existent_id = uuid_pkg.uuid4()
     result = delete_seller_profile(non_existent_id, db)
     assert result is False
+
+def test_increment_num_listings(test_db):
+    db, user_id = test_db
+    # Create initial profile
+    profile = SellerProfile(
+        num_listings=0,
+        total_transactions=0,
+        average_rating=0.0
+    )
+    create_seller_profile(profile, user_id, db)
+
+    # Test increment
+    increment_num_listings(user_id, db)
+
+    # Verify increment
+    updated_profile = get_seller_profile(user_id, db)
+    assert updated_profile is not None
+    assert updated_profile.num_listings == 1
+
+def test_decrement_num_listings(test_db):
+    db, user_id = test_db
+    # Create initial profile with num_listings = 2
+    profile = SellerProfile(
+        num_listings=2,
+        total_transactions=0,
+        average_rating=0.0
+    )
+    create_seller_profile(profile, user_id, db)
+
+    # Test decrement
+    decrement_num_listings(user_id, db)
+
+    # Verify decrement
+    updated_profile = get_seller_profile(user_id, db)
+    assert updated_profile is not None
+    assert updated_profile.num_listings == 1
+
+def test_increment_num_listings_nonexistent_profile(test_db):
+    db, _ = test_db
+    # Try to increment listings for non-existent profile
+    non_existent_id = uuid_pkg.uuid4()
+    increment_num_listings(non_existent_id, db)
+    # Should not raise an error, just do nothing
+    assert True
+
+def test_decrement_num_listings_nonexistent_profile(test_db):
+    db, _ = test_db
+    # Try to decrement listings for non-existent profile
+    non_existent_id = uuid_pkg.uuid4()
+    decrement_num_listings(non_existent_id, db)
+    # Should not raise an error, just do nothing
+    assert True

@@ -18,8 +18,7 @@ def create_seller_profile(seller_profile: SellerProfile, seller_id: uuid_pkg.UUI
     try:
         new_profile = SellerProfileOrm(
             seller_id=seller_id,
-            profile_image_url=seller_profile.profile_image_url,
-            phone_number=seller_profile.phone_number,
+            num_listings=seller_profile.num_listings,
             total_transactions=seller_profile.total_transactions,
             average_rating=seller_profile.average_rating
         )
@@ -73,6 +72,46 @@ def update_seller_profile(seller_id: uuid_pkg.UUID, updated_profile: SellerProfi
     except SQLAlchemyError as e:
         session.rollback()
         logger.error(f"Database error while updating seller profile {seller_id}: {str(e)}")
+        raise
+    finally:
+        if not db:
+            session.close()
+
+# Add 1 to num_listings based on the seller_id
+def increment_num_listings(seller_id: uuid_pkg.UUID, db: Session = None):
+    session = db or DefaultSession()
+    try:
+        profile = session.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at.is_(None)
+        ).first()
+        if profile:
+            profile.num_listings += 1
+            session.commit()
+            logger.info(f"Num listings incremented successfully for seller: {seller_id}")
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"Database error while incrementing num listings for seller {seller_id}: {str(e)}")
+        raise
+    finally:
+        if not db:
+            session.close()
+
+# Subtract 1 from num_listings based on the seller_id
+def decrement_num_listings(seller_id: uuid_pkg.UUID, db: Session = None):
+    session = db or DefaultSession()
+    try:
+        profile = session.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at.is_(None)
+        ).first()
+        if profile:
+            profile.num_listings -= 1
+            session.commit()
+            logger.info(f"Num listings decremented successfully for seller: {seller_id}")
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"Database error while decrementing num listings for seller {seller_id}: {str(e)}")
         raise
     finally:
         if not db:

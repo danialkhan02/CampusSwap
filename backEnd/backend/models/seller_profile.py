@@ -3,8 +3,7 @@ import uuid as uuid_pkg
 from typing import Optional
 
 class SellerProfile(BaseModel):
-    profile_image_url: Optional[str] = None
-    phone_number: Optional[str] = None
+    num_listings: int = 0
     total_transactions: int = 0
     average_rating: float = 0.0
 
