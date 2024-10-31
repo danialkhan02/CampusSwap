@@ -37,7 +37,6 @@ def test_db():
 def test_create_seller_profile(test_db):
     db, user_id = test_db
     profile = SellerProfile(
-        seller_name="Test Seller",
         profile_image_url="http://example.com/image.jpg",
         phone_number="1234567890",
         total_transactions=0,
@@ -45,11 +44,11 @@ def test_create_seller_profile(test_db):
     )
     result = create_seller_profile(profile, user_id, db)
     assert "seller_id" in result
-    assert isinstance(uuid_pkg.UUID(result["seller_id"]), uuid_pkg.UUID)
+    assert str(user_id) == result["seller_id"]  # Should match the user_id since it's the PK
 
     db_profile = db.query(SellerProfileOrm).filter(SellerProfileOrm.seller_id == user_id).first()
     assert db_profile is not None
-    assert db_profile.seller_name == profile.seller_name
+    assert db_profile.seller_id == user_id  # Verify the PK/FK relationship
     assert db_profile.profile_image_url == profile.profile_image_url
     assert db_profile.phone_number == profile.phone_number
     assert db_profile.total_transactions == profile.total_transactions
@@ -58,7 +57,6 @@ def test_create_seller_profile(test_db):
 def test_get_seller_profile(test_db):
     db, user_id = test_db
     profile = SellerProfile(
-        seller_name="Test Seller",
         profile_image_url="http://example.com/image.jpg",
         phone_number="1234567890",
         total_transactions=0,
@@ -68,8 +66,7 @@ def test_get_seller_profile(test_db):
 
     retrieved_profile = get_seller_profile(user_id, db)
     assert retrieved_profile is not None
-    assert retrieved_profile.seller_id == user_id
-    assert retrieved_profile.seller_name == profile.seller_name
+    assert retrieved_profile.seller_id == user_id  # Verify the PK matches
     assert retrieved_profile.profile_image_url == profile.profile_image_url
     assert retrieved_profile.phone_number == profile.phone_number
     assert retrieved_profile.total_transactions == profile.total_transactions
@@ -78,7 +75,6 @@ def test_get_seller_profile(test_db):
 def test_update_seller_profile(test_db):
     db, user_id = test_db
     profile = SellerProfile(
-        seller_name="Test Seller",
         profile_image_url="http://example.com/image.jpg",
         phone_number="1234567890",
         total_transactions=0,
@@ -87,7 +83,6 @@ def test_update_seller_profile(test_db):
     create_seller_profile(profile, user_id, db)
 
     updated_profile = SellerProfile(
-        seller_name="Updated Seller",
         profile_image_url="http://example.com/updated.jpg",
         phone_number="9876543210",
         total_transactions=5,
@@ -95,7 +90,7 @@ def test_update_seller_profile(test_db):
     )
     result = update_seller_profile(user_id, updated_profile, db)
     assert result is not None
-    assert result.seller_name == updated_profile.seller_name
+    assert result.seller_id == user_id  # Verify PK remains unchanged
     assert result.profile_image_url == updated_profile.profile_image_url
     assert result.phone_number == updated_profile.phone_number
     assert result.total_transactions == updated_profile.total_transactions
@@ -104,7 +99,6 @@ def test_update_seller_profile(test_db):
 def test_delete_seller_profile(test_db):
     db, user_id = test_db
     profile = SellerProfile(
-        seller_name="Test Seller",
         profile_image_url="http://example.com/image.jpg",
         phone_number="1234567890",
         total_transactions=0,
@@ -120,15 +114,16 @@ def test_delete_seller_profile(test_db):
 
 def test_get_seller_profile_not_found(test_db):
     db, _ = test_db
+    # Create a random UUID that doesn't correspond to any user
     non_existent_id = uuid_pkg.uuid4()
     result = get_seller_profile(non_existent_id, db)
     assert result is None
 
 def test_update_seller_profile_not_found(test_db):
     db, _ = test_db
+    # Create a random UUID that doesn't correspond to any user
     non_existent_id = uuid_pkg.uuid4()
     updated_profile = SellerProfile(
-        seller_name="Updated Seller",
         profile_image_url="http://example.com/updated.jpg",
         phone_number="9876543210",
         total_transactions=5,
@@ -139,6 +134,7 @@ def test_update_seller_profile_not_found(test_db):
 
 def test_delete_seller_profile_not_found(test_db):
     db, _ = test_db
+    # Create a random UUID that doesn't correspond to any user
     non_existent_id = uuid_pkg.uuid4()
     result = delete_seller_profile(non_existent_id, db)
     assert result is False

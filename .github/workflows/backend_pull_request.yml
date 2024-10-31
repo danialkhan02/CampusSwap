@@ -35,11 +35,12 @@ jobs:
           poetry config virtualenvs.create false
           poetry install --with dev
 
-#      - name: Run Tests
-#        run: poetry run coverage run -m pytest && poetry run coverage report -m > coverage.out
-#
-#      - name: Publish Code Coverage
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: Code Coverage Report
-#          path: coverage.out
+      - name: Run Tests
+        working-directory: ./backEnd
+        run: poetry run coverage run -m pytest && poetry run coverage report -m > coverage.out
+
+      - name: Publish Code Coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: Code Coverage Report
+          path: backEnd/coverage.out
