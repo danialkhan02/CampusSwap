@@ -9,6 +9,7 @@ import ProfilePic from 'assets/avatar-25.webp';
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import CollectionsIcon from '@mui/icons-material/Collections';
+import ReviewsIcon from '@mui/icons-material/Reviews';
 import bgImage from 'assets/userBackground.png';
 import Box from '@mui/material/Box';
 import { useState } from 'react';
@@ -101,7 +102,8 @@ export default function UserProfile() {
                   }}
                 >
                   <Tab icon={<AccountBoxIcon />} label='Profile' />
-                  <Tab icon={<FavoriteIcon />} label='Reviews' />
+                  <Tab icon={<FavoriteIcon />} label='Wishlist' />
+                  <Tab icon={<ReviewsIcon />} label='Reviews' />
                   <Tab icon={<CollectionsIcon />} label='Listings' />
                 </Tabs>
               </Box>
@@ -109,7 +111,7 @@ export default function UserProfile() {
           </Grid>
         </Card>
       </Grid>
-      {selectedTab === 2 && (
+      {selectedTab === 3 && (
       <UserListings />
       )}
       {modalOpen && (

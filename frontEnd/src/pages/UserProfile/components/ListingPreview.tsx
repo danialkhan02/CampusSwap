@@ -125,6 +125,7 @@ export default function ListingPreview({
             {listing.images.length > 0 ? (
               listing.images.map((thumb, index) => (
                 <Avatar
+                  key={`avatar-${thumb.slice(0, 10)}`}
                   src={thumb}
                   variant='square'
                   sx={{

@@ -4,7 +4,6 @@ import Grid from '@mui/material/Grid';
 import ProductHeader from 'pages/HomePage/components/ProductHeader';
 import {
   productDetailsQueryKey,
-  productListQueryKey,
   useAddWatchlist,
   useGetProductDetails,
 } from 'pages/HomePage/queries';

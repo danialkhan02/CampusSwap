@@ -13,7 +13,7 @@ const mockProductsData = {
       id: '1',
       name: 'Urban Explorer Sneakers',
       price: 35.71,
-      image: `${productImage1}`,
+      images: [productImage1],
       seller: {
         id: '1',
         first_name: 'Payas',
@@ -53,7 +53,7 @@ const mockProductsData = {
       id: '2',
       name: 'Classic Leather Loafers',
       price: 35.54,
-      image: `${productImage2}`,
+      images: [productImage2],
       seller: {
         id: '1',
         first_name: 'Payas',
@@ -74,7 +74,7 @@ const mockProductsData = {
       id: '3',
       name: 'Urban Explorer Sneakers',
       price: 35.71,
-      image: `${productImage3}`,
+      images: [productImage3],
       seller: {
         id: '1',
         first_name: 'Payas',
@@ -95,7 +95,7 @@ const mockProductsData = {
       id: '4',
       name: 'Classic Leather Loafers',
       price: 35.54,
-      image: `${productImage4}`,
+      images: [productImage4],
       seller: {
         id: '1',
         first_name: 'Payas',
@@ -116,7 +116,7 @@ const mockProductsData = {
       id: '5',
       name: 'Urban Explorer Sneakers',
       price: 35.71,
-      image: `${productImage5}`,
+      images: [productImage5],
       seller: {
         id: '1',
         first_name: 'Payas',
@@ -137,7 +137,7 @@ const mockProductsData = {
       id: '6',
       name: 'Classic Leather Loafers',
       price: 35.54,
-      image: `${productImage6}`,
+      images: [productImage6],
       seller: {
         id: '1',
         first_name: 'Payas',
