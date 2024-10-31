@@ -59,9 +59,6 @@ export default function LocationAutocomplete({ input, setInput }: TProps) {
           const address = place.formatted_address || '';
           setInput(address, lat, lng);
         }
-        else {
-          console.error('Error fetching place details:', status);
-        }
       },
     );
   };

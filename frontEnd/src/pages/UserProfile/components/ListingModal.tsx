@@ -49,7 +49,8 @@ export default function ListingModal({
     },
   });
 
-  const handleListingInputChange = (field: keyof IProduct, value: any) => {
+
+  const handleListingInputChange = (field: keyof IProduct, value: string) => {
     setListing((prevListing) => ({
       ...prevListing,
       [field]: field === 'price' ? parseFloat(value) || 0 : value, // Ensure price is a number

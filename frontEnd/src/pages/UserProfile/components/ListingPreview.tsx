@@ -74,6 +74,7 @@ export default function ListingPreview({
 
   useEffect(() => {
     initializeMarker();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng]);
 
   useEffect(() => {
