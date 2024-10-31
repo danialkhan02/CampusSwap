@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Response, status
 from fastapi.requests import Request
 
-from backend.db_interface.users import handle_insert_user, handle_get_user
-from backend.models.user import User
+from backend.db_interface.users import handle_insert_user, handle_get_user, handle_update_user
+from backend.models.user import User, UpdateUser
 from backend.db_models.users import UsersOrm
 from backend.stytch_client import StytchClient
 from backend.db_models.connection import Session
@@ -61,3 +61,42 @@ async def get_user(user_id: str, response: Response) -> ApiResponse:
         return ApiResponse(error=error)
     else:
         return ApiResponse(data=db_user.as_dict())
+
+@router.put("/{user_id}", summary="Update an existing user", response_model=ApiResponse)
+async def update_user(user_id: str, updated_user: UpdateUser, response: Response) -> ApiResponse:
+    """
+    Update an existing user's information.
+
+    This endpoint allows modification of only the following user fields:
+    - profile_image_url
+    - phone_number 
+    - description
+
+    All other fields will be ignored during the update.
+
+    Parameters:
+    - **user_id**: The unique identifier (UUID) of the user to update
+    - **updated_user**: The User object containing only the allowed updatable fields
+
+    Responses:
+    - **200 OK**: Returns the updated user details if successful
+    - **404 Not Found**: If the user with the specified ID does not exist
+    - **400 Bad Request**: If the user_id is not a valid UUID or user data is invalid
+    - **500 Internal Server Error**: If an unexpected error occurs during processing
+    """
+    try:        
+        requested_user_id = uuid_pkg.UUID(user_id)
+        result = handle_update_user(requested_user_id, updated_user)
+        
+        if result is None:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return ApiResponse(error=ErrMessage(message="User not found"))
+            
+        return ApiResponse(data=result.as_dict())
+        
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))

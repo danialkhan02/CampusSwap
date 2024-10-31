@@ -16,3 +16,8 @@ class User(BaseApiModel):
     profile_image_url: Optional[str] = None
     phone_number: Optional[str] = None
     description: Optional[str] = None
+
+class UpdateUser(BaseApiModel):
+    profile_image_url: Optional[str] = None
+    phone_number: Optional[str] = None
+    description: Optional[str] = None
