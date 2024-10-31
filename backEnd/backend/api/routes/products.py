@@ -11,9 +11,12 @@ from backend.db_interface.items import (
     get_product_details,
     get_interested_items
 )
+from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile
+from backend.models.seller_profile import SellerProfile
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
 from backend.models.item import Item
+import uuid as uuid_pkg
 
 router = APIRouter()
 
@@ -165,6 +168,7 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
     This endpoint allows clients to create a new product listing by providing 
     the necessary details. The product will be added to the marketplace, 
     making it available for other users to view and interact with. 
+    If the user doesn't have a seller profile, one will be created automatically.
 
     Required Fields:
     - **name**: The name of the product (string).
@@ -186,7 +190,23 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
         if not item.images or not isinstance(item.images, list):
             raise ValueError("Images must be provided as a list.")
 
+        # Convert lister_id to UUID
+        lister_uuid = uuid_pkg.UUID(str(item.lister_id))
+
+        # Check if seller profile exists
+        seller_profile = get_seller_profile(lister_uuid, db)
+        
+        # If no seller profile exists, create one
+        if not seller_profile:
+            new_profile = SellerProfile(
+                num_listings=0,
+                total_transactions=0,
+                average_rating=0.0
+            )
+            create_seller_profile(new_profile, lister_uuid, db)
+
         result = create_item(item, db)
+        response.status_code = status.HTTP_201_CREATED
         return ApiResponse(data=result)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST

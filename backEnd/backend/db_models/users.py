@@ -15,6 +15,11 @@ class UsersOrm(BaseDbModel):
     last_name: Mapped[str] = mapped_column(String)
     stytch_id: Mapped[str] = mapped_column(String)
 
+    profile_image_url: Mapped[str] = mapped_column(String, nullable=True)
+    phone_number: Mapped[str] = mapped_column(String, nullable=True)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    location: Mapped[str] = mapped_column(String, nullable=True)
+
     # One-to-Many Relationships
     items: Mapped[List["ItemsOrm"]] = relationship(
         "ItemsOrm", back_populates="lister", lazy="select"
