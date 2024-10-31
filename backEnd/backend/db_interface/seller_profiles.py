@@ -77,6 +77,46 @@ def update_seller_profile(seller_id: uuid_pkg.UUID, updated_profile: SellerProfi
         if not db:
             session.close()
 
+# Add 1 to num_listings based on the seller_id
+def increment_num_listings(seller_id: uuid_pkg.UUID, db: Session = None):
+    session = db or DefaultSession()
+    try:
+        profile = session.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at.is_(None)
+        ).first()
+        if profile:
+            profile.num_listings += 1
+            session.commit()
+            logger.info(f"Num listings incremented successfully for seller: {seller_id}")
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"Database error while incrementing num listings for seller {seller_id}: {str(e)}")
+        raise
+    finally:
+        if not db:
+            session.close()
+
+# Subtract 1 from num_listings based on the seller_id
+def decrement_num_listings(seller_id: uuid_pkg.UUID, db: Session = None):
+    session = db or DefaultSession()
+    try:
+        profile = session.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at.is_(None)
+        ).first()
+        if profile:
+            profile.num_listings -= 1
+            session.commit()
+            logger.info(f"Num listings decremented successfully for seller: {seller_id}")
+    except SQLAlchemyError as e:
+        session.rollback()
+        logger.error(f"Database error while decrementing num listings for seller {seller_id}: {str(e)}")
+        raise
+    finally:
+        if not db:
+            session.close()
+
 def delete_seller_profile(seller_id: uuid_pkg.UUID, db: Session = None):
 
     session = db or DefaultSession()
