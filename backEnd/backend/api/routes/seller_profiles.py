@@ -39,14 +39,13 @@ async def add_seller_profile(profile: SellerProfile, seller_id: str, response: R
 @router.get("/{seller_id}", summary="Get a seller profile by ID", response_model=ApiResponse)
 async def get_profile(seller_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     try:
-        uuid_obj = uuid_pkg.UUID(seller_id)
-        profile = get_seller_profile(uuid_obj, db)
+        requested_seller_id = uuid_pkg.UUID(seller_id)
+        profile = get_seller_profile(requested_seller_id, db)
         if profile is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Seller profile not found"))
         
         return_profile = {
-            "id": profile.id,
             "seller_id": profile.seller_id,
             "profile_image_url": profile.profile_image_url,
             "phone_number": profile.phone_number,
