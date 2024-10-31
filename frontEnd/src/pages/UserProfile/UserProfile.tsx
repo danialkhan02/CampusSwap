@@ -18,6 +18,7 @@ import Button from '@mui/material/Button';
 import ListingModal from 'pages/UserProfile/components/ListingModal';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import UserListings from 'pages/UserProfile/components/UserListings';
+import UserWishlist from 'pages/UserProfile/components/UserWishlist';
 
 
 export default function UserProfile() {
@@ -111,6 +112,9 @@ export default function UserProfile() {
           </Grid>
         </Card>
       </Grid>
+      {selectedTab === 1 && (
+        <UserWishlist />
+      )}
       {selectedTab === 3 && (
       <UserListings />
       )}

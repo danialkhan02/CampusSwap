@@ -111,3 +111,19 @@ export function useUpdateProduct(
     },
   );
 }
+
+export const listerWishListQueryKey = (userId: string) => ['product', 'lister', 'wishlist', userId];
+
+export function useGetListerWishList(
+  userId: string,
+  options?: UseQueryOptions<TApiResponse<IProduct[]>, Error>,
+) {
+  return useQuery<TApiResponse<IProduct[]>, Error>(
+    {
+      queryKey: listerWishListQueryKey(userId),
+      queryFn: () => http.get(product.wishlist(userId)),
+      retry: false,
+      ...options,
+    },
+  );
+}
