@@ -63,12 +63,20 @@ async def get_profile(seller_id: str, response: Response, db: Session = Depends(
 @router.put("/{seller_id}", summary="Update an existing seller profile", response_model=ApiResponse)
 async def update_profile(seller_id: str, profile: SellerProfile, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     try:
-        uuid_obj = uuid_pkg.UUID(seller_id)
-        updated_profile = update_seller_profile(uuid_obj, profile, db)
+        request_seller_id = uuid_pkg.UUID(seller_id)
+        updated_profile = update_seller_profile(request_seller_id, profile, db)
         if updated_profile is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Seller profile not found"))
-        return ApiResponse(data=updated_profile.dict())  # Convert to dictionary
+        
+        return_profile = {
+            "seller_id": updated_profile.seller_id,
+            "profile_image_url": updated_profile.profile_image_url,
+            "phone_number": updated_profile.phone_number,
+            "total_transactions": updated_profile.total_transactions,
+            "average_rating": updated_profile.average_rating,
+        }
+        return ApiResponse(data=return_profile)  # Convert to dictionary
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))

@@ -1,12 +1,9 @@
 from sqlalchemy import String, Uuid, ForeignKey, Integer, Float
-from sqlalchemy.orm import DeclarativeBase, mapped_column, relationship, Mapped
+from sqlalchemy.orm import mapped_column, relationship, Mapped
 from sqlalchemy import DateTime, func
+from backend.db_models.base import BaseDbModel
 
-# Create a Base class
-class Base(DeclarativeBase):
-    pass
-
-class SellerProfileOrm(Base):
+class SellerProfileOrm(BaseDbModel):
     __tablename__ = "seller_profiles"
     
     # Primary key
@@ -28,6 +25,9 @@ class SellerProfileOrm(Base):
     deleted_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), default=None, nullable=True
     )
+
+    # Use string reference to avoid circular import
+    user = relationship("UsersOrm", back_populates="seller_profile", lazy="select")
 
     def as_dict(self):
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
