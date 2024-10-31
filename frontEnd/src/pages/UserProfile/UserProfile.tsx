@@ -19,11 +19,27 @@ import ListingModal from 'pages/UserProfile/components/ListingModal';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import UserListings from 'pages/UserProfile/components/UserListings';
 import UserWishlist from 'pages/UserProfile/components/UserWishlist';
+import { useGetUser } from 'pages/Authentication/queries';
+import { retrieve } from 'utils/cacheUtils';
+import { CacheKeys } from 'utils/constants';
+import Spinner from 'components/Common/Spinner';
+import ProfileCard from 'pages/UserProfile/components/ProfileCard';
+import ProfileBanner from 'pages/UserProfile/components/ProfileBanner';
 
 
 export default function UserProfile() {
+  const userId = retrieve(CacheKeys.userId, { parseJson: false });
   const [selectedTab, setSelectedTab] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const {
+    data: userData,
+    isLoading,
+  } = useGetUser(userId);
+
+  if (!userData || isLoading || !userData.data) {
+    return <Spinner />;
+  }
+
   const handleTabChange = (event: React.SyntheticEvent<Element, Event>, newValue: number) => {
     setSelectedTab(newValue);
   };
@@ -31,7 +47,6 @@ export default function UserProfile() {
   const handleOnClick = () => {
     setModalOpen(true);
   };
-
 
   return (
     <Grid container spacing={2}>
@@ -41,50 +56,7 @@ export default function UserProfile() {
         }}
         >
           <Grid container>
-            <Grid
-              item
-              xs={12}
-              sx={{
-                p: 2,
-                position: 'relative',
-                backgroundImage: `linear-gradient(rgba(0, 75, 80, 0.7), rgba(0, 75, 80, 0.7)), url(${bgImage})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-              }}
-            >
-              <Button
-                startIcon={<AddCircleIcon />}
-                onClick={handleOnClick}
-                sx={{
-                  position: 'absolute',
-                  top: 16,
-                  right: 16,
-                  backgroundColor: 'white',
-                  color: 'black',
-                  '&:hover': {
-                    backgroundColor: '#f0f0f0',
-                  },
-                }}
-                aria-label='create'
-                variant='contained'
-              >
-                Create Listing
-              </Button>
-              <Stack direction='row' alignItems='center' spacing={2}>
-                <Avatar
-                  src={ProfilePic}
-                  sx={{
-                    width: 130,
-                    height: 130,
-                    border: '2px solid white',
-                  }}
-                />
-                <Stack>
-                  <Typography variant='h4'>Myles Johnson</Typography>
-                  <Typography variant='body2'>I am a second-year student studying math.</Typography>
-                </Stack>
-              </Stack>
-            </Grid>
+            <ProfileBanner handleOnClick={handleOnClick} user={userData.data} />
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', pr: 2 }}>
                 <Tabs
@@ -112,6 +84,9 @@ export default function UserProfile() {
           </Grid>
         </Card>
       </Grid>
+      {selectedTab === 0 && (
+        <ProfileCard profile={userData.data} />
+      )}
       {selectedTab === 1 && (
         <UserWishlist />
       )}
