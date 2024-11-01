@@ -8,7 +8,7 @@ These microservices talk with each other using CRUD APIs.
 #### BackEnd Languages and Frameworks: Python 
 #### Database used: PostgresSQL
 
-To run the frontend and backed locally:
+To run the frontend and backend locally:
 
 ```
 1. Clone the root repository.
