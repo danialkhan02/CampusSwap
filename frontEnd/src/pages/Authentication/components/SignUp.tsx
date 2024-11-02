@@ -10,6 +10,8 @@ import { identifyUser } from 'instrumentation/analytics';
 import { OAuthAuthenticateResponse } from '@stytch/vanilla-js';
 
 
+const ALLOWED_DOMAINS = ['mail.utoronto.ca', 'utoronto.ca'];
+
 type TProps = {
     stytchResponse: OAuthAuthenticateResponse;
 };
@@ -44,6 +46,14 @@ export default function SignUp({ stytchResponse }: TProps) {
         const userData = await graphResponse.json();
         if (!graphResponse.ok) {
           throw new Error(`Graph API error: ${userData.error.message}`);
+        }
+
+        const email = userData?.mail || '';
+        const domain = email.split('@')[1]?.toLowerCase();
+        if (!domain || !ALLOWED_DOMAINS.includes(domain)) {
+          Logger.error('Non-UofT email attempted signup');
+          navigate(auth.logout, { replace: true });
+          return;
         }
 
         save(CacheKeys.userResponse, JSON.stringify(userData));
