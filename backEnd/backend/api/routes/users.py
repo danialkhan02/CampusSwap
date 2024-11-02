@@ -11,13 +11,28 @@ from backend.constants import BACKEND_ID_STYTCH_KEY
 import uuid as uuid_pkg
 from datetime import datetime
 
+ALLOWED_DOMAINS = ["mail.utoronto.ca", "utoronto.ca"]
+
 router = APIRouter(
     tags=["users"],
     responses={404: {"description": "Not found"}}
 )
 
 @router.post("")
+
 async def add_user(posted_user: User, response: Response) -> ApiResponse:
+
+    try:
+        domain = posted_user.email.split('@')[1].lower()
+        if domain not in ALLOWED_DOMAINS:
+            error = ErrMessage(message="Only University of Toronto email addresses are allowed")
+            response.status_code = status.HTTP_403_FORBIDDEN
+            return ApiResponse(error=error)
+    except:
+        error = ErrMessage(message="Invalid email format")
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=error)
+
     # Check if user exists
     with Session() as session:
         existing_user = session.query(UsersOrm).filter(UsersOrm.email == posted_user.email).first()
