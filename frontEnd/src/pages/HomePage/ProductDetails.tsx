@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Spinner from 'components/Common/Spinner';
 import Grid from '@mui/material/Grid';
 import ProductHeader from 'pages/HomePage/components/ProductHeader';
@@ -40,10 +40,6 @@ export default function ProductDetails() {
         queryClient.invalidateQueries({ queryKey: productDetailsQueryKey(productData.data.id || '') });
       },
     });
-  };
-
-  const handleBack = () => {
-    // do nothing
   };
 
   return (
