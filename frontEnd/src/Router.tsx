@@ -12,7 +12,7 @@ import {
 import * as spaUrls from 'utils/spaUrls';
 import ProductDetails from 'pages/HomePage/ProductDetails';
 import UserProfile from 'pages/UserProfile/UserProfile';
-import ChatPage from 'pages/HomePage/ChatPage';
+import ChatPage from 'pages/Chats/ChatPage';
 
 
 export default function Router() {

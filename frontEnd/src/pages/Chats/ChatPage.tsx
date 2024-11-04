@@ -5,8 +5,8 @@ import {
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { IActiveChat } from 'pages/Chats/queries';
-import ChatList from 'pages/Chats/ChatList';
-import ChatWindow from 'pages/Chats/ChatWindow';
+import ChatList from 'pages/Chats/components/ChatList';
+import ChatWindow from 'pages/Chats/components/ChatWindow';
 
 
 type InitialChat = {

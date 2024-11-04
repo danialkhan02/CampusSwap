@@ -7,8 +7,8 @@ import {
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { IActiveChat } from 'pages/Chats/queries';
-import ChatWindow from 'pages/Chats/ChatWindow';
-import ChatList from 'pages/Chats/ChatList';
+import ChatWindow from 'pages/Chats/components/ChatWindow';
+import ChatList from 'pages/Chats/components/ChatList';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 

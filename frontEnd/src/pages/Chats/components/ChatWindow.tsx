@@ -194,6 +194,7 @@ export default function ChatWindow({
         }}
       >
         <TextField
+          data-testid='message-type-textbox'
           fullWidth
           value={message}
           onChange={(e) => setMessage(e.target.value)}
