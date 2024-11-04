@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Box, TextField, Paper, Typography, InputAdornment,
+  Box, TextField, Paper, Typography,
 } from '@mui/material';
 import { useChat } from 'contexts/ChatContext';
 import { retrieve } from 'utils/cacheUtils';

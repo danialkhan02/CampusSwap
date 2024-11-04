@@ -16,7 +16,7 @@ import userImage from 'assets/avatar-25.webp';
 
 export default function UserSettings() {
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
-  const { data: userData, isLoading } = useGetUser(userId);
+  const { data: userData } = useGetUser(userId);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
