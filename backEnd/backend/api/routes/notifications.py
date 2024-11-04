@@ -62,8 +62,8 @@ async def get_user_notifications(user_id: str, response: Response, db: Session =
                 "created_at": notif.created_at.isoformat() if notif.created_at else None,
                 "updated_at": notif.updated_at.isoformat() if notif.updated_at else None
             }
-        notification_list.append(notification_dict)
-        return ApiResponse(data=notifications)
+            notification_list.append(notification_dict)
+        return ApiResponse(data=notification_list)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
