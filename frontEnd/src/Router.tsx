@@ -12,7 +12,6 @@ import {
 import * as spaUrls from 'utils/spaUrls';
 import ProductDetails from 'pages/HomePage/ProductDetails';
 import UserProfile from 'pages/UserProfile/UserProfile';
-import ChatList from 'pages/Chats/ChatList';
 import ChatPage from 'pages/HomePage/ChatPage';
 
 
