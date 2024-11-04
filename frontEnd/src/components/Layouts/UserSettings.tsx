@@ -1,4 +1,3 @@
-import { useAuth0 } from '@auth0/auth0-react';
 import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
 import Link from '@mui/material/Link';
@@ -9,10 +8,15 @@ import Tooltip from '@mui/material/Tooltip';
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { UserMenuTree } from 'utils/NavTree';
+import { useGetUser } from 'pages/Authentication/queries';
+import { retrieve } from 'utils/cacheUtils';
+import { CacheKeys } from 'utils/constants';
+import userImage from 'assets/avatar-25.webp';
 
 
 export default function UserSettings() {
-  const { user } = useAuth0();
+  const userId = retrieve(CacheKeys.userId, { parseJson: false });
+  const { data: userData, isLoading } = useGetUser(userId);
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -27,9 +31,9 @@ export default function UserSettings() {
       <>
         <IconButton sx={{ p: 0 }} onClick={handleClick}>
           <Avatar
-            alt={user?.name}
+            alt={userData?.data.first_name}
             imgProps={{ referrerPolicy: 'no-referrer' }}
-            src={user?.picture}
+            src={userData?.data.profile_image_url || userImage}
           />
         </IconButton>
         <Menu

@@ -12,8 +12,8 @@ import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { useQueryClient } from '@tanstack/react-query';
-import ChatWindow from 'pages/Chats/ChatWindow';
 import { useState } from 'react';
+import ChatWindow from 'pages/Chats/ChatWindow';
 
 
 export default function ProductDetails() {
@@ -42,10 +42,6 @@ export default function ProductDetails() {
     });
   };
 
-  const handleMessageSeller = (sellerId: string) => {
-    navigate('/chats', { state: { selectedUserId: sellerId } });
-  };
-
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
@@ -56,7 +52,7 @@ export default function ProductDetails() {
           <ListingPreview
             listing={productData.data}
             onWatchListClick={handleLikeToggle}
-            onMessageButtonClick={() => handleMessageSeller(productData.data.seller?.id || '')}
+            onMessageButtonClick={() => setMessageButtonClick(true)}
           />
         </LoadGoogleMaps>
       </Grid>

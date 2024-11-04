@@ -18,8 +18,6 @@ export const user = {
 
 export const chats = {
   base: '/chats',
-  active: (userId: string) => `/chat/active/${userId}`,
-  history: (userId: string, recieverId: string) => `/chat/history/${userId}/${recieverId}`,
 };
 
 export const homepage = '/welcome';

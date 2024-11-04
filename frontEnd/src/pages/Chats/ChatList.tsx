@@ -11,18 +11,12 @@ import {
 } from '@mui/material';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
-import { activeChatQueryKey, useGetActiveChats } from 'pages/Chats/queries';
+import { activeChatQueryKey, IActiveChat, useGetActiveChats } from 'pages/Chats/queries';
 import ChatWindow from 'pages/Chats/ChatWindow';
 
 
-interface ActiveChat {
-  user_id: string;
-  user_name: string;
-  last_message?: string;
-}
-
-export default function ChatsPage() {
-  const [selectedChat, setSelectedChat] = useState<ActiveChat | null>(null);
+export default function ChatList() {
+  const [selectedChat, setSelectedChat] = useState<IActiveChat | null>(null);
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
 
   const {
@@ -37,15 +31,15 @@ export default function ChatsPage() {
       <Grid container spacing={2}>
         <Grid item xs={4}>
           <List>
-            {activeChats?.data.map((chat: ActiveChat) => (
-              <ListItem key={chat.user_id} disablePadding>
+            {activeChats?.data.map((chat: IActiveChat) => (
+              <ListItem key={chat.receiver.id} disablePadding>
                 <ListItemButton
-                  selected={selectedChat?.user_id === chat.user_id}
+                  selected={selectedChat?.receiver.id === chat.receiver.id}
                   onClick={() => setSelectedChat(chat)}
                 >
                   <ListItemText
-                    primary={chat.user_name}
-                    secondary={chat.last_message}
+                    primary={chat.message}
+                    secondary={chat.message}
                   />
                 </ListItemButton>
               </ListItem>
@@ -55,8 +49,8 @@ export default function ChatsPage() {
         <Grid item xs={8}>
           {selectedChat ? (
             <ChatWindow
-              receiverId={selectedChat.user_id}
-              receiverName={selectedChat.user_name}
+              receiverId={userId === selectedChat.receiver?.id ? selectedChat.sender.id || '' : selectedChat.receiver?.id || ''}
+              receiverName={userId === selectedChat.receiver?.id ? `${selectedChat.sender.first_name} ${selectedChat.sender.last_name}` : `${selectedChat.receiver.first_name} ${selectedChat.receiver.last_name}`}
             />
           ) : (
             <Box sx={{

@@ -123,7 +123,7 @@ export default function ProductCard({
               <Avatar
                 alt={product.seller?.first_name}
                 imgProps={{ referrerPolicy: 'no-referrer' }}
-                src={userImage}
+                src={product.seller?.profile_image_url || userImage}
               />
               <Stack direction='column' spacing={0}>
                 <Typography variant='subtitle1' color='textPrimary'>

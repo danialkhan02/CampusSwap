@@ -269,6 +269,7 @@ def get_product_details(item, db: Session) -> dict:
         last_name=item.lister.last_name,
         email=item.lister.email,
         stytch_id=item.lister.stytch_id,
+        profile_image_url=item.lister.profile_image_url,
         provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT
     )
 
