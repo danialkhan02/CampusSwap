@@ -17,6 +17,8 @@ import {
 } from 'pages/Chats/queries';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
+import { Logger } from 'utils/logger';
+import { TApiResponse } from 'utils/apiResponse.type';
 
 
 interface ChatContextType {
@@ -62,7 +64,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     enabled: !!userId && !!selectedUserId,
   });
 
-  // Update messages when chat history changes
   useEffect(() => {
     if (chatHistoryResponse?.data && selectedUserId) {
       setMessages((prev) => ({
@@ -72,7 +73,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     }
   }, [chatHistoryResponse, selectedUserId]);
 
-  // WebSocket connection function
   const connectWebSocket = () => {
     if (!userId) return;
 
@@ -86,20 +86,16 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
     try {
       setConnectionStatus('connecting');
-      console.log('Connecting to WebSocket...');
-
       const ws = new WebSocket(`${process.env.REACT_APP_WS_URL}/ws/${userId}`);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket Connected Successfully');
         setConnectionStatus('connected');
         reconnectAttemptsRef.current = 0;
       };
 
       ws.onmessage = (event) => {
         try {
-          console.log('Received message:', event.data);
           const message: IChatMessage = JSON.parse(event.data);
 
           // Determine chat ID based on message direction
@@ -127,10 +123,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             return prev;
           });
 
-          // Update React Query cache
           queryClient.setQueryData(
             chatHistoryQueryKey(userId, chatId),
-            (oldData: any) => {
+            (oldData: TApiResponse<IChatMessage[]>) => {
               const existingMessages = oldData?.data || [];
               const updatedMessages = [...existingMessages, message].sort((a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime());
 
@@ -140,17 +135,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
               };
             },
           );
-
-          // Invalidate active chats query to update the list
           queryClient.invalidateQueries({ queryKey: activeChatQueryKey(userId) });
         }
         catch (err) {
-          console.error('Error handling WebSocket message:', err);
+          Logger.error('Error handling WebSocket message:', err);
         }
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket Closed:', event.code, event.reason);
         setConnectionStatus('disconnected');
         wsRef.current = null;
 
@@ -158,18 +150,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           if (reconnectAttemptsRef.current < maxReconnectAttempts) {
             reconnectAttemptsRef.current += 1;
             const delay = Math.min(1000 * 2 ** reconnectAttemptsRef.current, 30000);
-            console.log(`Attempting to reconnect in ${delay}ms...`);
             reconnectTimeoutRef.current = setTimeout(connectWebSocket, delay);
           }
         }
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket Error:', error);
+        Logger.error('WebSocket Error: ', error);
       };
     }
     catch (error) {
-      console.error('Error creating WebSocket:', error);
+      Logger.error('Error creating WebSocket: ', error);
       setConnectionStatus('disconnected');
     }
   };
@@ -177,12 +168,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   // Initialize WebSocket connection
   useEffect(() => {
     if (userId) {
-      console.log('Initializing WebSocket connection for user:', userId);
       connectWebSocket();
     }
 
     return () => {
-      console.log('Cleaning up WebSocket connection');
       if (wsRef.current) {
         wsRef.current.onclose = null;
         wsRef.current.close();
@@ -192,18 +181,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   // Send message function
   const sendMessage = (receiverId: string, message: string) => {
     if (!userId) {
-      console.error('No user ID available');
       return;
     }
 
     const ws = wsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      console.error('WebSocket is not connected, current state:', ws?.readyState);
+      Logger.error('WebSocket is not connected, current state:', ws?.readyState);
       return;
     }
 
@@ -215,7 +204,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     };
 
     try {
-      console.log('Sending message:', chatMessage);
       ws.send(JSON.stringify(chatMessage));
 
       // Update messages with proper sorting
@@ -232,7 +220,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // Update React Query cache with proper sorting
       queryClient.setQueryData(
         chatHistoryQueryKey(userId, receiverId),
-        (oldData: any) => {
+        (oldData: TApiResponse<IChatMessage[]>) => {
           const existingMessages = oldData?.data || [];
           const updatedMessages = [...existingMessages, chatMessage].sort((a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime());
 
@@ -244,7 +232,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       );
     }
     catch (err) {
-      console.error('Error sending message:', err);
+      Logger.error('Error sending message:', err);
     }
   };
 
@@ -257,6 +245,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     selectedUserId,
     setSelectedUserId,
     connectionStatus,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [
     messages,
     activeChatsResponse?.data,
