@@ -38,8 +38,8 @@ export default function ChatList() {
                   onClick={() => setSelectedChat(chat)}
                 >
                   <ListItemText
-                    primary={chat.message}
-                    secondary={chat.message}
+                    primary={userId === chat.receiver?.id ? `${chat.sender.first_name} ${chat.sender.last_name}` : `${chat.receiver.first_name} ${chat.receiver.last_name}`}
+                    secondary={userId === chat.receiver?.id ? chat.message : `You: ${chat.message}`}
                   />
                 </ListItemButton>
               </ListItem>
