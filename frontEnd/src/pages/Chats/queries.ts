@@ -20,6 +20,7 @@ export interface IActiveChat {
   read: boolean;
   receiver: IUser;
   sender: IUser;
+  timestamp: string;
 }
 
 export const activeChatQueryKey = (userId: string) => ['chat', 'active', userId];

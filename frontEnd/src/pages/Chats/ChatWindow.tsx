@@ -1,20 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Box, TextField, Button, Paper, Typography,
+  Box, TextField, Paper, Typography, InputAdornment,
 } from '@mui/material';
 import { useChat } from 'contexts/ChatContext';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { chatHistoryQueryKey } from 'pages/Chats/queries';
+import IconButton from '@mui/material/IconButton';
+import { ArrowBack, Send } from '@mui/icons-material';
+import Avatar from '@mui/material/Avatar';
+import userImage from 'assets/avatar-25.webp';
 
 
 interface ChatWindowProps {
     receiverId: string;
     receiverName: string;
+    receiverImage?: string;
+    onBack?: () => void;
 }
 
-export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps) {
+export default function ChatWindow({
+  receiverId, receiverName, receiverImage, onBack,
+}: ChatWindowProps) {
   const [message, setMessage] = useState('');
   const {
     sendMessage,
@@ -70,38 +78,57 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
     <Paper
       elevation={3}
       sx={{
-        p: 2,
-        height: '500px',
+        height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        bgcolor: '#f8f9fa',
+        borderRadius: 2,
+        overflow: 'hidden',
       }}
     >
-      <Typography variant='h6' sx={{ mb: 2 }}>
-        Chat with
-        {' '}
-        {receiverName}
-        {connectionStatus !== 'connected' && (
-        <Typography
-          component='span'
-          color='error'
-          sx={{ ml: 1, fontSize: '0.8em' }}
-        >
-          (
-          {connectionStatus}
-          )
-        </Typography>
+      {/* Header */}
+      <Box
+        sx={{
+          p: 2,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          borderBottom: '1px solid #e0e0e0',
+          bgcolor: 'white',
+          flexShrink: 0,
+        }}
+      >
+        {onBack && (
+          <IconButton onClick={onBack} size='small'>
+            <ArrowBack />
+          </IconButton>
         )}
-      </Typography>
+        <Avatar src={receiverImage || userImage} alt={receiverName} sx={{ width: 40, height: 40 }}>
+          {receiverName[0]}
+        </Avatar>
+        <Box>
+          <Typography variant='subtitle1' fontWeight='medium'>
+            {receiverName}
+          </Typography>
+          {connectionStatus !== 'connected' && (
+          <Typography variant='caption' color='error'>
+            {connectionStatus}
+          </Typography>
+          )}
+        </Box>
+      </Box>
 
+      {/* Messages */}
       <Box
         sx={{
           flexGrow: 1,
           overflowY: 'auto',
-          mb: 2,
+          p: 2,
           display: 'flex',
           flexDirection: 'column',
           gap: 1,
           scrollBehavior: 'smooth',
+          minHeight: 0,
         }}
       >
         {isLoading ? (
@@ -114,24 +141,38 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
               <Box
                 key={msg.id || msg.timestamp}
                 sx={{
-                  mb: 1,
-                  p: 1,
-                  backgroundColor: msg.sender_id === userId ? '#e3f2fd' : '#f0f0f0',
-                  borderRadius: 1,
-                  maxWidth: '70%',
-                  alignSelf: msg.sender_id === userId ? 'flex-end' : 'flex-start',
-                  wordBreak: 'break-word',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: msg.sender_id === userId ? 'flex-end' : 'flex-start',
                 }}
               >
-                <Typography>{msg.message}</Typography>
-                {msg.timestamp && (
-                <Typography
-                  variant='caption'
-                  sx={{ display: 'block', mt: 0.5, opacity: 0.7 }}
+                <Box
+                  sx={{
+                    maxWidth: '70%',
+                    p: 1.5,
+                    bgcolor: msg.sender_id === userId ? '#dcf8c6' : 'white',
+                    borderRadius: 2,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                  }}
                 >
-                  {new Date(msg.timestamp).toLocaleTimeString()}
-                </Typography>
-                )}
+                  <Typography>{msg.message}</Typography>
+                  {msg.timestamp && (
+                  <Typography
+                    variant='caption'
+                    sx={{
+                      display: 'block',
+                      mt: 0.5,
+                      opacity: 0.7,
+                      fontSize: '0.7rem',
+                    }}
+                  >
+                    {new Date(msg.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Typography>
+                  )}
+                </Box>
               </Box>
             ))}
             <div ref={messagesEndRef} />
@@ -139,31 +180,44 @@ export default function ChatWindow({ receiverId, receiverName }: ChatWindowProps
         )}
       </Box>
 
-      <Box sx={{ display: 'flex', gap: 1 }}>
+      {/* Input */}
+      <Box
+        sx={{
+          p: 2,
+          bgcolor: 'white',
+          borderTop: '1px solid #e0e0e0',
+          display: 'flex',
+          gap: 1,
+          flexShrink: 0,
+          position: 'sticky',
+          bottom: 0,
+        }}
+      >
         <TextField
           fullWidth
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder={connectionStatus === 'connected'
-            ? 'Type a message...'
-            : 'Waiting for connection...'}
+            ? 'Type a message...' : 'Waiting for connection...'}
           onKeyPress={handleKeyPress}
           multiline
           maxRows={4}
           disabled={isLoading || connectionStatus !== 'connected'}
           sx={{
-            '& .MuiInputBase-input': {
-              color: connectionStatus !== 'connected' ? 'text.disabled' : 'inherit',
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 3,
+              bgcolor: '#f0f2f5',
             },
           }}
         />
-        <Button
-          variant='contained'
+        <IconButton
+          color='primary'
           onClick={handleSend}
           disabled={!message.trim() || isLoading || connectionStatus !== 'connected'}
+          sx={{ alignSelf: 'flex-end' }}
         >
-          Send
-        </Button>
+          <Send />
+        </IconButton>
       </Box>
     </Paper>
   );

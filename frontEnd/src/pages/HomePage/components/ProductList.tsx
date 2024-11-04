@@ -10,7 +10,6 @@ import { useState } from 'react';
 import { IProduct } from 'pages/HomePage/queries';
 import { TApiResponse } from 'utils/apiResponse.type';
 import Typography from '@mui/material/Typography';
-import ChatWindow from 'pages/Chats/ChatWindow';
 
 
 type TProps = {

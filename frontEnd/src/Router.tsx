@@ -12,7 +12,6 @@ import {
 import * as spaUrls from 'utils/spaUrls';
 import ProductDetails from 'pages/HomePage/ProductDetails';
 import UserProfile from 'pages/UserProfile/UserProfile';
-import ChatList from 'pages/Chats/ChatList';
 
 
 export default function Router() {
@@ -37,10 +36,6 @@ export default function Router() {
         <Route
           path={spaUrls.user.profile}
           element={<PrivateRoute outlet={<UserProfile />} />}
-        />
-        <Route
-          path={spaUrls.chats.base}
-          element={<PrivateRoute outlet={<ChatList />} />}
         />
         <Route path='/404' element={<PageNotFound />} />
         <Route path='*' element={<Navigate to='/404' replace />} />

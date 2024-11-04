@@ -13,7 +13,7 @@ import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import ChatWindow from 'pages/Chats/ChatWindow';
+import ChatDrawer from 'pages/Chats/ChatDrawer';
 
 
 export default function ProductDetails() {
@@ -29,17 +29,21 @@ export default function ProductDetails() {
     enabled: Boolean(productId),
   });
   const addWatchlistHook = useAddWatchlist(productData?.data?.id || '', buyerId);
-  const navigate = useNavigate();
 
   if (!productData || isLoading || !productData?.data) {
     return <Spinner />;
   }
+
   const handleLikeToggle = () => {
     addWatchlistHook.mutate(undefined, {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: productDetailsQueryKey(productData.data.id || '') });
       },
     });
+  };
+
+  const handleBack = () => {
+    // do nothing
   };
 
   return (
@@ -57,7 +61,15 @@ export default function ProductDetails() {
         </LoadGoogleMaps>
       </Grid>
       {messageButtonClick && (
-      <ChatWindow receiverId={productData.data.seller?.id || ''} receiverName={productData.data.seller?.first_name || 'Unknown'} />
+      <ChatDrawer
+        open={messageButtonClick}
+        onClose={() => setMessageButtonClick(false)}
+        initialChat={{
+          receiverId: productData.data.seller?.id || '',
+          receiverName: `${productData.data.seller?.first_name || 'Unknown'} ${productData.data.seller?.last_name || ''}`,
+          receiverImage: productData.data.seller?.profile_image_url,
+        }}
+      />
       )}
     </Grid>
   );
