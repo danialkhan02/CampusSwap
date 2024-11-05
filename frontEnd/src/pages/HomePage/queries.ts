@@ -29,6 +29,13 @@ export interface ILocation {
     address?: string;
 }
 
+export interface IGenerateDescription {
+    category: ECategory,
+    condition: ECondition,
+    name: string,
+    images: string[],
+}
+
 export const productDetailsQueryKey = (productId: string) => ['product', 'details', productId];
 
 export function useGetProductDetails(
@@ -124,6 +131,21 @@ export function useGetListerWishList(
       queryKey: listerWishListQueryKey(userId),
       queryFn: () => http.get(product.wishlist(userId)),
       retry: false,
+      ...options,
+    },
+  );
+}
+
+export interface IGenerateResponse {
+    description: string,
+}
+
+export function useGenerateProductDescription(
+  options?: UseMutationOptions<TApiResponse<IGenerateResponse>, Error, IGenerateDescription>,
+) {
+  return useMutation<TApiResponse<IGenerateResponse>, Error, IGenerateDescription>(
+    {
+      mutationFn: (newProduct) => http.post(product.generate, newProduct),
       ...options,
     },
   );

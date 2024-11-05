@@ -21,6 +21,7 @@ const chat = {
 const product = {
   list: `${baseUrl}/api/v1/products/list`,
   create: `${baseUrl}/api/v1/products/create`,
+  generate: `${baseUrl}/api/v1/products/generate-description`,
   details: (id: string) => `${baseUrl}/api/v1/products/${id}`,
   byLister: (id: string) => `${baseUrl}/api/v1/products/lister/${id}`,
   update: (id: string) => `${baseUrl}/api/v1/products/${id}`,
