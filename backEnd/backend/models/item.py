@@ -24,3 +24,9 @@ class ItemInDB(Item):
     id: uuid_pkg.UUID
     seller: User
     interested_buyers: List[User] = []
+
+class GenerateDescriptionRequest(BaseModel):
+    name: str
+    images: List[str]
+    category: ItemCategory
+    condition: ItemCondition

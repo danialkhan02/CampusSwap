@@ -17,6 +17,8 @@ from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
 from backend.models.item import Item
 import uuid as uuid_pkg
+from backend.openai_integration.openai_client import OpenAIClient
+from backend.models.item import GenerateDescriptionRequest
 
 router = APIRouter()
 
@@ -371,6 +373,89 @@ async def get_interested_products(user_id: str, response: Response, db: Session 
             product_list.append(product_details)
 
         return ApiResponse(data=product_list)
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+
+@router.get("/{product_id}/generate-description", summary="Generate product description using AI", response_model=ApiResponse)
+async def generate_product_description(product_id: str, response: Response, db: Session = Depends(get_db)):
+    """
+    Generate an AI-powered product description based on the product's images and details.
+
+    This endpoint uses OpenAI's GPT-4o-mini model to analyze product images and information
+    to generate a detailed, compelling product description.
+
+    Parameters:
+    - **product_id**: The unique identifier of the product
+
+    Responses:
+    - **200 OK**: Returns the generated product description
+    - **404 Not Found**: If the product with the specified ID does not exist
+    - **500 Internal Server Error**: If an error occurs during description generation
+    """
+    try:
+        item = get_item(product_id, db)
+        if not item:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return ApiResponse(error=ErrMessage(message="Product not found"))
+
+        # Get all images for the product
+        images = [img.image_data for img in item.item_images]
+        
+        if not images:
+            raise ValueError("Product must have at least one image")
+
+        # Generate description using OpenAI
+        description = await OpenAIClient.generate_product_description(
+            name=item.name,
+            images=images,
+            category=item.category.value,
+            condition=item.condition.value
+        )
+
+        return ApiResponse(data={"description": description})
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+
+@router.post("/generate-description", summary="Generate product description using AI", response_model=ApiResponse)
+async def generate_description(request: GenerateDescriptionRequest, response: Response):
+    """
+    Generate an AI-powered product description based on provided product details.
+
+    This endpoint uses OpenAI's GPT-4o-mini model to analyze product images and information
+    to generate a detailed, compelling product description.
+
+    Parameters:
+    - **name**: Product name
+    - **images**: List of image URLs/base64 strings
+    - **category**: Product category
+    - **condition**: Product condition
+
+    Responses:
+    - **200 OK**: Returns the generated product description
+    - **400 Bad Request**: If the input parameters are invalid
+    - **500 Internal Server Error**: If an error occurs during description generation
+    """
+    try:
+        if not request.images:
+            raise ValueError("At least one image must be provided")
+
+        # Generate description using OpenAI
+        description = await OpenAIClient.generate_product_description(
+            name=request.name,
+            images=request.images,
+            category=request.category,
+            condition=request.condition
+        )
+
+        return ApiResponse(data={"description": description})
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
     except Exception as e:
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))
