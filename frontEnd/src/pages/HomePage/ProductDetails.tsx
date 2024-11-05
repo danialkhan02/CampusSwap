@@ -12,10 +12,13 @@ import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import ChatDrawer from 'pages/Chats/ChatDrawer';
 
 
 export default function ProductDetails() {
   const queryClient = useQueryClient();
+  const [messageButtonClick, setMessageButtonClick] = useState(false);
   const { productId } = useParams<{ productId: string }>();
   const buyerId = retrieve(CacheKeys.userId, { parseJson: false });
   const {
@@ -30,6 +33,7 @@ export default function ProductDetails() {
   if (!productData || isLoading || !productData?.data) {
     return <Spinner />;
   }
+
   const handleLikeToggle = () => {
     addWatchlistHook.mutate(undefined, {
       onSuccess: () => {
@@ -45,9 +49,24 @@ export default function ProductDetails() {
       </Grid>
       <Grid item xs={12}>
         <LoadGoogleMaps>
-          <ListingPreview listing={productData.data} onWatchListClick={handleLikeToggle} />
+          <ListingPreview
+            listing={productData.data}
+            onWatchListClick={handleLikeToggle}
+            onMessageButtonClick={() => setMessageButtonClick(true)}
+          />
         </LoadGoogleMaps>
       </Grid>
+      {messageButtonClick && (
+      <ChatDrawer
+        open={messageButtonClick}
+        onClose={() => setMessageButtonClick(false)}
+        initialChat={{
+          receiverId: productData.data.seller?.id || '',
+          receiverName: `${productData.data.seller?.first_name || 'Unknown'} ${productData.data.seller?.last_name || ''}`,
+          receiverImage: productData.data.seller?.profile_image_url,
+        }}
+      />
+      )}
     </Grid>
   );
 }

@@ -32,6 +32,7 @@ export default function ProductCard({
     (buyer) => buyer.id === buyerId,
   );
   const addWatchlistHook = useAddWatchlist(product?.id || '', buyerId);
+
   const handleLikeToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -52,6 +53,7 @@ export default function ProductCard({
     event.stopPropagation();
     setModalOpen(true);
   };
+
   return (
     <>
       <Card
@@ -65,22 +67,43 @@ export default function ProductCard({
             transform: 'scale(1.05)',
             boxShadow: 6,
           },
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <Box
-          style={{
+          sx={{
             padding: '8px',
             borderRadius: '8px',
+            position: 'relative',
+            flex: 1,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          <CardMedia
-            component='img'
-            image={product.images[0]}
-            alt={product.name}
-            style={{
-              borderRadius: '4px', height: '254px', width: '254px', objectFit: 'contain',
+          <Box
+            sx={{
+              height: '254px',
+              width: '254px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              borderRadius: '4px',
             }}
-          />
+          >
+            <CardMedia
+              component='img'
+              image={product.images[0]}
+              alt={product.name}
+              sx={{
+                maxHeight: '100%',
+                maxWidth: '100%',
+                objectFit: 'contain',
+                borderRadius: '4px',
+              }}
+            />
+          </Box>
           {showEditButton ? (
             <Button
               variant='contained'
@@ -88,8 +111,8 @@ export default function ProductCard({
               startIcon={<EditIcon />}
               sx={{
                 position: 'absolute',
-                top: 8,
-                right: 8,
+                top: 16,
+                right: 16,
               }}
             >
               Edit Listing
@@ -99,8 +122,8 @@ export default function ProductCard({
               onClick={handleLikeToggle}
               sx={{
                 position: 'absolute',
-                top: 8,
-                right: 8,
+                top: 16,
+                right: 16,
                 color: isLiked ? 'red' : '',
                 backgroundColor: 'rgba(255, 255, 255, 0.8)',
                 '&:hover': {
@@ -123,7 +146,7 @@ export default function ProductCard({
               <Avatar
                 alt={product.seller?.first_name}
                 imgProps={{ referrerPolicy: 'no-referrer' }}
-                src={userImage}
+                src={product.seller?.profile_image_url || userImage}
               />
               <Stack direction='column' spacing={0}>
                 <Typography variant='subtitle1' color='textPrimary'>
@@ -131,7 +154,9 @@ export default function ProductCard({
                 </Typography>
                 <Tooltip title={product.location.address || ''}>
                   <Typography variant='caption'>
-                    {product.location.address && product.location?.address?.length > 15 ? product.location.address?.slice(0, 15) : product.location.address || ''}
+                    {product.location.address && product.location?.address?.length > 15
+                      ? `${product.location.address?.slice(0, 15)}...`
+                      : product.location.address || ''}
                   </Typography>
                 </Tooltip>
               </Stack>
