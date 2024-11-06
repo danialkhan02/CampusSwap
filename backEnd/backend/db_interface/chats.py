@@ -77,6 +77,14 @@ async def get_chat_history(user_id: str, other_user_id: str) -> List[ChatMessage
             )
         ).order_by(ChatMessagesOrm.created_at).all()
         
+        # Get product inquiry id if it exists
+        for msg in messages:
+            if msg.type == ChatMessageType.PRODUCT_INQUIRY:
+                product_inquiry = session.query(ChatProductInquiryOrm).filter(ChatProductInquiryOrm.chat_message_id == msg.id).first()
+                msg.product_inquiry_id = product_inquiry.product_id
+            else:
+                msg.product_inquiry_id = None
+
         return [
             ChatMessage(
                 id=msg.id,
