@@ -1,6 +1,6 @@
 import Grid from '@mui/material/Grid';
 import {
-  Box, Button, CircularProgress, Fade, InputAdornment, TextField,
+  Button, CircularProgress, Fade, InputAdornment, TextField,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import Stack from '@mui/material/Stack';
