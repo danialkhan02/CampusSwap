@@ -28,6 +28,7 @@ const product = {
   delete: (id: string) => `${baseUrl}/api/v1/products/${id}`,
   wishlist: (userId: string) => `${baseUrl}/api/v1/products/interested/${userId}`,
   addInterest: (productId: string, buyerId: string) => `${baseUrl}/api/v1/products/${productId}/interested/${buyerId}`,
+  search: `${baseUrl}/api/v1/products/search`,
 };
 
 export {

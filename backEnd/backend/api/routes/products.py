@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response, status, Depends
+from fastapi import APIRouter, Response, status, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.db_interface.items import (
     create_item,
@@ -19,8 +19,64 @@ from backend.models.item import Item
 import uuid as uuid_pkg
 from backend.openai_integration.openai_client import OpenAIClient
 from backend.models.item import GenerateDescriptionRequest
+from numpy import dot
+from numpy.linalg import norm
 
 router = APIRouter()
+
+def cosine_similarity(a, b):
+    # Add small epsilon to avoid division by zero
+    epsilon = 1e-10
+    dot_product = dot(a, b)
+    norm_a = norm(a)
+    norm_b = norm(b)
+    return dot_product / (max(norm_a * norm_b, epsilon))
+
+@router.get("/search", summary="Search products with AI enhancement", response_model=ApiResponse)
+async def search_products(
+    query: str,
+    db: Session = Depends(get_db)
+):
+    try:
+        products = list_items(db)
+        
+        if not query:
+            return ApiResponse(data=products)
+            
+        embedding = OpenAIClient.client.embeddings.create(
+            model="text-embedding-3-small",
+            input=query,
+            encoding_format="float"
+        )
+        
+        search_results = []
+        for product in products:
+            product_text = f"{product.name} {product.address}"
+            print(product_text)
+            product_embedding = OpenAIClient.client.embeddings.create(
+                model="text-embedding-3-small",
+                input=product_text,
+                encoding_format="float"
+            )
+            
+            similarity = cosine_similarity(
+                embedding.data[0].embedding,
+                product_embedding.data[0].embedding
+            )
+
+            print(similarity)
+
+            if similarity > 0.3:
+                product_details = get_product_details(product, db)
+                search_results.append(product_details)
+        
+        return ApiResponse(data=search_results)
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 @router.get("/list", summary="List all products", response_model=ApiResponse)
 async def get_product_list(response: Response, db: Session = Depends(get_db)):
