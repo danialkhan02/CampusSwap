@@ -39,6 +39,7 @@ jobs:
         working-directory: ./backEnd
         run: poetry run coverage run -m pytest && poetry run coverage report -m > coverage.out
         env:
+          OPENAI_API_KEY: "test_key"
           DB_PORT: "5432"
           DB_HOST: "localhost"
           DB_USER: "test_user"
