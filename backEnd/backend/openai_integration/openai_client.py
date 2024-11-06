@@ -87,7 +87,7 @@ class OpenAIClientWrapper:
                 if field.endswith('_embedding')
             )
             
-            if max_similarity > 0.3:
+            if max_similarity > 0.4:
                 results.append({
                     "product_id": product["product_id"],
                     "similarity": max_similarity
