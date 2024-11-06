@@ -1,49 +1,66 @@
 import Grid from '@mui/material/Grid';
-import { Button, InputAdornment, TextField } from '@mui/material';
+import {
+  Box, Button, CircularProgress, Fade, InputAdornment, TextField,
+} from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import Stack from '@mui/material/Stack';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ProductCard from 'pages/HomePage/components/ProductCard';
-import Fuse from 'fuse.js';
-import { useState } from 'react';
-import { IProduct } from 'pages/HomePage/queries';
+import { useCallback, useState } from 'react';
+import { IProduct, useSearchProducts } from 'pages/HomePage/queries';
 import { TApiResponse } from 'utils/apiResponse.type';
 import Typography from '@mui/material/Typography';
+import debounce from 'lodash/debounce';
 
 
 type TProps = {
-    productsData: TApiResponse<IProduct[]>
-    showEditButton?: boolean
+  productsData: TApiResponse<IProduct[]>;
+  showEditButton?: boolean;
 }
-
 
 export default function ProductList({ productsData, showEditButton = false }: TProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const fuse = new Fuse(productsData.data, {
-    keys: ['name'],
-    threshold: 0.6,
-    distance: 100,
+
+  const { data: searchResults, isLoading: isSearching } = useSearchProducts(searchTerm, {
+    enabled: searchTerm.length >= 2,
+    queryKey: ['products', 'search', searchTerm],
   });
 
-  const filteredProducts = searchTerm
-    ? fuse.search(searchTerm).map((result) => result.item)
+  const debouncedSearch = useCallback(
+    debounce((term: string) => {
+      setSearchTerm(term);
+    }, 300),
+    [],
+  );
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    debouncedSearch(newValue);
+  };
+
+  const displayedProducts = searchTerm.length >= 2
+    ? searchResults?.data || []
     : productsData.data;
+
   return (
     <>
-      {/* Search and Filter Controls */}
       <Grid container item xs={12} alignItems='center' spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={4} md={3}>
           <TextField
             fullWidth
             variant='outlined'
             placeholder='Search...'
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             InputProps={{
               startAdornment: (
                 <InputAdornment position='start'>
                   <SearchIcon />
+                </InputAdornment>
+              ),
+              endAdornment: isSearching && (
+                <InputAdornment position='end'>
+                  <CircularProgress size={20} />
                 </InputAdornment>
               ),
             }}
@@ -57,21 +74,56 @@ export default function ProductList({ productsData, showEditButton = false }: TP
         </Grid>
       </Grid>
 
-      {/* Product Grid */}
-      <Grid container item xs={12} spacing={3}>
-        {filteredProducts?.length === 0 ? (
-          <Grid item xs={12} style={{ textAlign: 'center', marginTop: '20px' }} data-testid='empty-screen'>
-            <Typography variant='h6'>No listings found</Typography>
-          </Grid>
-        ) : (
-          filteredProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={product.id} data-testid='product-card'>
-              <ProductCard product={product} showEditButton={showEditButton} />
-            </Grid>
-          ))
-        )}
-      </Grid>
+      {/* Searching State */}
+      <Fade in={isSearching && searchTerm.length >= 2} timeout={300}>
+        <Box
+          display={isSearching && searchTerm.length >= 2 ? 'flex' : 'none'}
+          flexDirection='column'
+          alignItems='center'
+          justifyContent='center'
+          minHeight='calc(100vh - 300px)'
+          width='100%'
+          position='absolute'
+          top='50%'
+          left='50%'
+          sx={{
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1,
+          }}
+        >
+          <CircularProgress size={40} />
+          <Typography variant='h6' sx={{ mt: 2 }}>
+            Searching for &apos;
+            {searchTerm}
+            ...&apos;
+          </Typography>
+        </Box>
+      </Fade>
 
+      {/* Product Grid - Hidden while searching */}
+      <Fade in={!isSearching || searchTerm.length < 2} timeout={300}>
+        <Grid
+          container
+          item
+          xs={12}
+          spacing={3}
+          style={{
+            display: (isSearching && searchTerm.length >= 2) ? 'none' : 'flex',
+          }}
+        >
+          {displayedProducts?.length === 0 ? (
+            <Grid item xs={12} style={{ textAlign: 'center', marginTop: '20px' }} data-testid='empty-screen'>
+              <Typography variant='h6'>No listings found</Typography>
+            </Grid>
+          ) : (
+            displayedProducts.map((product) => (
+              <Grid item xs={12} sm={6} md={4} lg={3} key={product.id} data-testid='product-card'>
+                <ProductCard product={product} showEditButton={showEditButton} />
+              </Grid>
+            ))
+          )}
+        </Grid>
+      </Fade>
     </>
   );
 }
