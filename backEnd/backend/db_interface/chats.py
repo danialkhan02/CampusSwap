@@ -3,12 +3,12 @@ from backend.db_models.chat import ChatMessagesOrm, ChatProductInquiryOrm
 from backend.db_models.items import ItemsOrm
 from backend.db_models.users import UsersOrm
 from backend.models.chat import ChatMessage
-from backend.models.user import User
+from backend.models.user import UserSummary, User
 from sqlalchemy import or_, and_
 from typing import List
 import uuid
 from backend.enums import ChatMessageType
-
+from backend.models.item import ItemSummary
 from backend.models.provider import Provider
 
 async def save_message(message: ChatMessage) -> ChatMessage:
@@ -79,11 +79,26 @@ async def get_chat_history(user_id: str, other_user_id: str) -> List[ChatMessage
         
         # Get product inquiry id if it exists
         for msg in messages:
+            msg.product_inquiry = None
+            msg.product_inquiry_id = None
             if msg.type == ChatMessageType.PRODUCT_INQUIRY:
                 product_inquiry = session.query(ChatProductInquiryOrm).filter(ChatProductInquiryOrm.chat_message_id == msg.id).first()
-                msg.product_inquiry_id = product_inquiry.product_id
-            else:
-                msg.product_inquiry_id = None
+
+                # if the product exists, get a summary of the product from the item table and construct the ItemSummary object
+                product = session.query(ItemsOrm).filter(ItemsOrm.id == product_inquiry.product_id).first()
+                if product:
+                    item_summary = ItemSummary(
+                        name=product.name,
+                        price=product.price,
+                        lister_information=UserSummary(
+                            first_name=product.lister.first_name,
+                            last_name=product.lister.last_name,
+                            profile_image_url=product.lister.profile_image_url
+                        ),
+                        image=product.images[0] if product.images else None
+                    )
+                    msg.product_inquiry = item_summary
+                    msg.product_inquiry_id = product_inquiry.product_id
 
         return [
             ChatMessage(
@@ -93,6 +108,7 @@ async def get_chat_history(user_id: str, other_user_id: str) -> List[ChatMessage
                 message=msg.message,
                 type=msg.type,
                 product_inquiry_id=msg.product_inquiry_id,
+                product_inquiry=msg.product_inquiry,
                 read=msg.read,
                 timestamp=msg.created_at
             ) for msg in messages
