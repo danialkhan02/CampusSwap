@@ -1,4 +1,4 @@
-import { IChatMessage } from 'pages/Chats/queries';
+import { EMessageType, IChatMessage } from 'pages/Chats/queries';
 
 
 const chatHistoryData: Record<string, IChatMessage[]> = {
@@ -10,6 +10,7 @@ const chatHistoryData: Record<string, IChatMessage[]> = {
       message: 'Yes',
       timestamp: '2024-10-01 07:10:56',
       read: false,
+      type: EMessageType.TEXT,
     },
     {
       id: '2',
@@ -18,6 +19,7 @@ const chatHistoryData: Record<string, IChatMessage[]> = {
       message: 'Is the yellow sneakers available?',
       timestamp: '2024-10-01 07:05:56',
       read: false,
+      type: EMessageType.TEXT,
     },
     {
       id: '3',
@@ -26,6 +28,7 @@ const chatHistoryData: Record<string, IChatMessage[]> = {
       message: 'Yes how can I help you?',
       timestamp: '2024-10-01 07:01:56',
       read: false,
+      type: EMessageType.TEXT,
     },
     {
       id: '4',
@@ -34,6 +37,7 @@ const chatHistoryData: Record<string, IChatMessage[]> = {
       message: 'Hi there!',
       timestamp: '2024-10-01 06:10:56',
       read: false,
+      type: EMessageType.TEXT,
     },
   ],
 };

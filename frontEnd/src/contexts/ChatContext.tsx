@@ -1,15 +1,11 @@
 import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
+  createContext, useContext, useEffect, useMemo, useRef, useState,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   activeChatQueryKey,
   chatHistoryQueryKey,
+  EMessageType,
   IActiveChat,
   IChatMessage,
   useGetActiveChats,
@@ -21,12 +17,20 @@ import { Logger } from 'utils/logger';
 import { TApiResponse } from 'utils/apiResponse.type';
 
 
+export type sendMessage = {
+  receiverId: string,
+  message: string,
+  type: EMessageType,
+  productId?: string
+}
+
+
 interface ChatContextType {
   messages: Record<string, IChatMessage[]>;
   activeChats: IActiveChat[];
   isLoading: boolean;
   error: Error | null;
-  sendMessage: (receiverId: string, message: string) => void;
+  sendMessage: (msgToSend: IChatMessage) => void;
   selectedUserId: string | null;
   setSelectedUserId: (userId: string | null) => void;
   connectionStatus: 'connected' | 'disconnected' | 'connecting';
@@ -113,7 +117,18 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
             );
 
             if (!isDuplicate) {
-              const updatedMessages = [...existingMessages, message].sort((a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime());
+              const matchingMessage = existingMessages.find(
+                (msg) => msg.product_inquiry_id === message.product_inquiry_id,
+              );
+
+              const messageWithProduct = {
+                ...message,
+                product_inquiry: matchingMessage?.product_inquiry,
+              };
+
+              const updatedMessages = [...existingMessages, messageWithProduct].sort(
+                (a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime(),
+              );
 
               return {
                 ...prev,
@@ -185,7 +200,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   }, [userId]);
 
   // Send message function
-  const sendMessage = (receiverId: string, message: string) => {
+  const sendMessage = (msgToSend: IChatMessage) => {
     if (!userId) {
       return;
     }
@@ -196,33 +211,32 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const chatMessage: IChatMessage = {
-      sender_id: userId,
-      receiver_id: receiverId,
-      message,
-      timestamp: new Date().toISOString(),
-    };
-
     try {
-      ws.send(JSON.stringify(chatMessage));
+      const wsMessage = { ...msgToSend };
+      if (wsMessage.product_inquiry) {
+        delete wsMessage.product_inquiry;
+      }
+
+      ws.send(JSON.stringify(wsMessage));
 
       // Update messages with proper sorting
       setMessages((prev) => {
-        const existingMessages = [...(prev[receiverId] || [])];
-        const updatedMessages = [...existingMessages, chatMessage].sort((a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime());
+        const existingMessages = [...(prev[msgToSend.receiver_id] || [])];
+        const updatedMessages = [...existingMessages, msgToSend].sort((a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime());
 
         return {
           ...prev,
-          [receiverId]: updatedMessages,
+          [msgToSend.receiver_id]: updatedMessages,
         };
       });
 
-      // Update React Query cache with proper sorting
       queryClient.setQueryData(
-        chatHistoryQueryKey(userId, receiverId),
+        chatHistoryQueryKey(userId, msgToSend.receiver_id),
         (oldData: TApiResponse<IChatMessage[]>) => {
-          const existingMessages = oldData?.data || [];
-          const updatedMessages = [...existingMessages, chatMessage].sort((a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime());
+          if (!oldData) return oldData;
+
+          const existingMessages = oldData.data || [];
+          const updatedMessages = [...existingMessages, msgToSend].sort((a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime());
 
           return {
             ...oldData,
