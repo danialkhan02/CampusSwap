@@ -14,6 +14,7 @@ import userImage from 'assets/avatar-25.webp';
 import { IProduct } from 'pages/HomePage/queries';
 import ChatInquiryRender from 'pages/Chats/components/ChatInquiryRender';
 import Stack from '@mui/material/Stack';
+import { useNavigate } from 'react-router-dom';
 
 
 interface ChatWindowProps {
@@ -22,10 +23,11 @@ interface ChatWindowProps {
     receiverImage?: string;
     onBack?: () => void;
     productInquiry?: IProduct;
+    onClose?: () => void;
 }
 
 export default function ChatWindow({
-  receiverId, receiverName, receiverImage, onBack, productInquiry,
+  receiverId, receiverName, receiverImage, onBack, productInquiry, onClose,
 }: ChatWindowProps) {
   const [message, setMessage] = useState<IChatMessage | null>(null);
   const {
@@ -37,6 +39,7 @@ export default function ChatWindow({
   } = useChat();
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto scroll to bottom when new messages arrive
@@ -104,6 +107,13 @@ export default function ChatWindow({
     if (messageToSend && messageToSend.message.trim() && connectionStatus === 'connected') {
       sendMessage(messageToSend);
       setMessage(null);
+    }
+  };
+
+  const handleNavigate = (productId: string) => {
+    navigate(`/product/${productId}`);
+    if (onClose) {
+      onClose();
     }
   };
 
@@ -220,6 +230,7 @@ export default function ChatWindow({
                       }}
                     >
                       <Box
+                        onClick={() => handleNavigate(msg.product_inquiry_id || '')}
                         component='img'
                         src={msg.product_inquiry.image}
                         alt={msg.product_inquiry.name}

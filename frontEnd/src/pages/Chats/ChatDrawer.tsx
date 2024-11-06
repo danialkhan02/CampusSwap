@@ -108,6 +108,7 @@ export default function ChatDrawer({
             />
           ) : selectedChat && (
             <ChatWindow
+              onClose={handleClose}
               receiverId={selectedChat.receiverId}
               receiverName={selectedChat.receiverName}
               receiverImage={selectedChat.receiverImage}
