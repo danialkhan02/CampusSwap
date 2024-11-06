@@ -24,6 +24,7 @@ from backend.db_models.seller_profiles import SellerProfileOrm
 from backend.db_models.items import ItemsOrm
 from backend.db_models.notifications import NotificationsOrm
 from backend.db_models.seller_feedbacks import SellerFeedbackOrm
+from backend.db_models.chat import ChatMessagesOrm
 
 target_metadata = BaseDbModel.metadata
 

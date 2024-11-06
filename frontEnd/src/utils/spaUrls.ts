@@ -16,4 +16,8 @@ export const user = {
   profile: '/user/profile',
 };
 
+export const chats = {
+  base: '/chats',
+};
+
 export const homepage = '/welcome';

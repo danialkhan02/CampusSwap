@@ -13,6 +13,11 @@ const seller = {
   details: (sellerId: string) => `${baseUrl}/api/v1/seller_profiles/${sellerId}`,
 };
 
+const chat = {
+  active: (userId: string) => `${baseUrl}/api/v1/chat/active/${userId}`,
+  history: (userId: string, recieverId: string) => `${baseUrl}/api/v1/chat/history/${userId}/${recieverId}`,
+};
+
 const product = {
   list: `${baseUrl}/api/v1/products/list`,
   create: `${baseUrl}/api/v1/products/create`,
@@ -29,4 +34,5 @@ export {
   sample,
   product,
   seller,
+  chat,
 };
