@@ -95,7 +95,7 @@ async def get_chat_history(user_id: str, other_user_id: str) -> List[ChatMessage
                             last_name=product.lister.last_name,
                             profile_image_url=product.lister.profile_image_url
                         ),
-                        image=product.images[0] if product.images else None
+                        image=product.item_images[0].image_data if product.item_images else None
                     )
                     msg.product_inquiry = item_summary
                     msg.product_inquiry_id = product_inquiry.product_id
