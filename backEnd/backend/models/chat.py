@@ -13,6 +13,6 @@ class ChatMessage(BaseModel):
     sender: Optional[User] = None
     message: str
     type: ChatMessageType
-    product_inquiry_id: Optional[str] = None # id of the product inquiry
+    product_inquiry_id: Optional[str] = None # id of the item listing
     timestamp: Optional[datetime] = None
     read: Optional[bool] = False
