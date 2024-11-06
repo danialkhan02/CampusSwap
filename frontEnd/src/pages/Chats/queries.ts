@@ -5,13 +5,32 @@ import { IUser } from 'pages/Authentication/queries';
 import { chat } from 'utils/apiUrls';
 
 
+export enum EMessageType {
+  TEXT = 'TEXT',
+  PRODUCT_INQUIRY = 'PRODUCT_INQUIRY'
+}
+
+export interface IProductSummary {
+    name: string,
+    price: number,
+    lister_information: {
+        first_name: string,
+        last_name: string,
+        profile_image_url?: string,
+    }
+    image: string,
+}
+
 export interface IChatMessage {
   id?: string;
   sender_id: string;
   receiver_id: string;
   message: string;
   timestamp?: string;
+  product_inquiry_id?: string;
+  product_inquiry?: IProductSummary
   read?: boolean;
+  type: EMessageType;
 }
 
 export interface IActiveChat {

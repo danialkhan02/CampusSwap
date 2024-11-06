@@ -18,6 +18,11 @@ class User(BaseApiModel):
     description: Optional[str] = None
     location: Optional[str] = None
 
+class UserSummary(BaseApiModel):
+    first_name: str
+    last_name: str
+    profile_image_url: Optional[str] = None
+
 class UpdateUser(BaseApiModel):
     profile_image_url: Optional[str] = None
     phone_number: Optional[str] = None

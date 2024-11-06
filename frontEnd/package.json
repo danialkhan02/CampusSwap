@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "author": "Hasteerp",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "private": true,
   "dependencies": {
     "@auth0/auth0-react": "^2.1.0 ",
