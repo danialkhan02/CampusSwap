@@ -1,4 +1,4 @@
-from sqlalchemy import String, Uuid, ForeignKey, Float, Enum, Table, Column, DateTime
+from sqlalchemy import String, Uuid, ForeignKey, Float, Enum, Table, Column, DateTime, ARRAY
 from backend.db_models.base import BaseDbModel
 from backend.db_models.item_images import ItemImagesOrm
 from sqlalchemy.sql import func
@@ -56,3 +56,25 @@ class ItemsOrm(BaseDbModel):
         cascade="all, delete-orphan",
         lazy="select"
     )
+
+    # One-to-One Relationship
+    embeddings: Mapped["ProductEmbeddingsOrm"] = relationship(
+        "ProductEmbeddingsOrm",
+        back_populates="product",
+        lazy="select"
+    )
+
+class ProductEmbeddingsOrm(BaseDbModel):
+    __tablename__ = "product_embeddings"
+
+    id: Mapped[Uuid] = mapped_column(Uuid, primary_key=True)
+    product_id: Mapped[Uuid] = mapped_column(Uuid, ForeignKey("items.id"))
+    name_embedding: Mapped[list[float]] = mapped_column(ARRAY(Float))
+    category_embedding: Mapped[list[float]] = mapped_column(ARRAY(Float))
+    address_embedding: Mapped[list[float]] = mapped_column(ARRAY(Float))
+    price_embedding: Mapped[list[float]] = mapped_column(ARRAY(Float))
+    description_embedding: Mapped[list[float]] = mapped_column(ARRAY(Float))
+    condition_embedding: Mapped[list[float]] = mapped_column(ARRAY(Float))
+
+    # FKs
+    product: Mapped["ItemsOrm"] = relationship(back_populates="embeddings")

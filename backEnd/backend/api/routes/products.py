@@ -13,24 +13,16 @@ from backend.db_interface.items import (
 )
 from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile, increment_num_listings, decrement_num_listings
 from backend.models.seller_profile import SellerProfile
+from backend.db_models.items import ItemsOrm, ProductEmbeddingsOrm
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
 from backend.models.item import Item
 import uuid as uuid_pkg
 from backend.openai_integration.openai_client import OpenAIClient
 from backend.models.item import GenerateDescriptionRequest
-from numpy import dot
-from numpy.linalg import norm
+
 
 router = APIRouter()
-
-def cosine_similarity(a, b):
-    # Add small epsilon to avoid division by zero
-    epsilon = 1e-10
-    dot_product = dot(a, b)
-    norm_a = norm(a)
-    norm_b = norm(b)
-    return dot_product / (max(norm_a * norm_b, epsilon))
 
 @router.get("/search", summary="Search products with AI enhancement", response_model=ApiResponse)
 async def search_products(
@@ -38,39 +30,30 @@ async def search_products(
     db: Session = Depends(get_db)
 ):
     try:
-        products = list_items(db)
-        
         if not query:
-            return ApiResponse(data=products)
-            
-        embedding = OpenAIClient.client.embeddings.create(
-            model="text-embedding-3-small",
-            input=query,
-            encoding_format="float"
+            return ApiResponse(data=list_items(db))
+
+        # Get all product embeddings from database
+        product_embeddings = db.query(ProductEmbeddingsOrm).all()
+        
+        # Search products using embeddings
+        search_results = await OpenAIClient.search_products(
+            query, 
+            [{"product_id": pe.product_id, **{
+                f"{field}_embedding": getattr(pe, f"{field}_embedding")
+                for field in ["name", "category", "address", "price", "description", "condition"]
+            }} for pe in product_embeddings]
         )
         
-        search_results = []
-        for product in products:
-            product_text = f"{product.name} {product.address}"
-            print(product_text)
-            product_embedding = OpenAIClient.client.embeddings.create(
-                model="text-embedding-3-small",
-                input=product_text,
-                encoding_format="float"
-            )
-            
-            similarity = cosine_similarity(
-                embedding.data[0].embedding,
-                product_embedding.data[0].embedding
-            )
-
-            print(similarity)
-
-            if similarity > 0.3:
+        # Get full product details for matches
+        results = []
+        for result in search_results:
+            product = db.query(ItemsOrm).filter(ItemsOrm.id == result["product_id"]).first()
+            if product:
                 product_details = get_product_details(product, db)
-                search_results.append(product_details)
-        
-        return ApiResponse(data=search_results)
+                results.append(product_details)
+                
+        return ApiResponse(data=results)
         
     except Exception as e:
         raise HTTPException(
@@ -220,41 +203,13 @@ async def get_products_by_lister(lister_id: str, response: Response, db: Session
 
 @router.post("/create", summary="Create a new product", response_model=ApiResponse)
 async def create_product(item: Item, response: Response, db: Session = Depends(get_db)):
-    """
-    Create a new product listing in the marketplace.
-
-    This endpoint allows clients to create a new product listing by providing 
-    the necessary details. The product will be added to the marketplace, 
-    making it available for other users to view and interact with. 
-    If the user doesn't have a seller profile, one will be created automatically.
-
-    Required Fields:
-    - **name**: The name of the product (string).
-    - **price**: The price of the product (float).
-    - **lister_id**: The ID of the user who is listing the product (string).
-    - **location**: Optional location information (Location object).
-    - **category**: The category of the product (string).
-    - **condition**: The condition of the product (string).
-    - **status**: The status of the product (string).
-    - **images**: A list of base64-encoded images representing the product.
-
-    Responses:
-    - **201 Created**: Returns the details of the newly created product.
-    - **400 Bad Request**: If the input parameters are invalid, such as missing required fields or incorrect data types.
-    - **500 Internal Server Error**: If an unexpected error occurs during processing.
-    """
     try:
-        # Ensure that item.images is provided and is a list
         if not item.images or not isinstance(item.images, list):
             raise ValueError("Images must be provided as a list.")
 
-        # Convert lister_id to UUID
         lister_uuid = uuid_pkg.UUID(str(item.lister_id))
-
-        # Check if seller profile exists
         seller_profile = get_seller_profile(lister_uuid, db)
         
-        # If no seller profile exists, create one
         if not seller_profile:
             new_profile = SellerProfile(
                 num_listings=0,
@@ -263,10 +218,32 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
             )
             create_seller_profile(new_profile, lister_uuid, db)
 
+        # Create the product first
         result = create_item(item, db)
+        
+        # Generate embeddings for the product
+        embeddings = await OpenAIClient.generate_product_embeddings(
+            name=item.name,
+            category=item.category.value,
+            address=item.location.address if item.location else "",
+            price=item.price,
+            description=item.description or "",
+            condition=item.condition.value
+        )
+        
+        # Create embedding record
+        product_embedding = ProductEmbeddingsOrm(
+            id=uuid_pkg.uuid4(),
+            product_id=uuid_pkg.UUID(result["item_id"]),
+            **embeddings
+        )
+        db.add(product_embedding)
+        db.commit()
+
         response.status_code = status.HTTP_201_CREATED
         increment_num_listings(lister_uuid, db)
         return ApiResponse(data=result)
+        
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
@@ -276,47 +253,44 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
 
 @router.put("/{product_id}")
 async def update_product(product_id: str, item: Item, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
-    """
-    Update an existing product listing identified by its unique product ID.
-
-    This endpoint allows clients to modify the details of a product that has 
-    already been listed in the marketplace. Clients can update various attributes 
-    of the product, including its name, description, price, location, category, 
-    and images. 
-
-    Parameters:
-    - **product_id**: The unique identifier of the product to be updated.
-    - **item**: An Item object containing the updated product details.
-
-    Responses:
-    - **200 OK**: Returns the updated product details if the update is successful.
-    - **404 Not Found**: If the product with the specified ID does not exist.
-    - **400 Bad Request**: If the input parameters are invalid.
-    - **500 Internal Server Error**: If an unexpected error occurs during processing.
-    """
     try:
         result = update_item(product_id, item, db)
         if result is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product not found"))
         
-        dict_return = {
-           "id": str(result.id),
-           "name": result.name,
-           "description": result.description,
-           "price": result.price,
-           "location": {
-               "latitude": result.latitude,
-               "longitude": result.longitude,
-               "address": result.address
-           },
-           "category": result.category.value,
-           "condition": result.condition.value,
-           "status": result.status.value,
-           "images": [image.image_data for image in result.item_images]
-        }
+        # Generate new embeddings
+        embeddings = await OpenAIClient.generate_product_embeddings(
+            name=item.name,
+            category=item.category.value,
+            address=item.location.address if item.location else "",
+            price=item.price,
+            description=item.description or "",
+            condition=item.condition.value
+        )
         
-        return ApiResponse(data=dict_return)
+        # Update or create embedding record
+        product_embedding = db.query(ProductEmbeddingsOrm).filter(
+            ProductEmbeddingsOrm.product_id == uuid_pkg.UUID(product_id)
+        ).first()
+        
+        if product_embedding:
+            # Update existing embeddings
+            for field, value in embeddings.items():
+                setattr(product_embedding, field, value)
+        else:
+            # Create new embedding record
+            product_embedding = ProductEmbeddingsOrm(
+                id=uuid_pkg.uuid4(),
+                product_id=uuid_pkg.UUID(product_id),
+                **embeddings
+            )
+            db.add(product_embedding)
+            
+        db.commit()
+        
+        return ApiResponse(data=get_product_details(result, db))
+        
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
