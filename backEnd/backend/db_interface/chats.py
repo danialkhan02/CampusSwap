@@ -1,7 +1,7 @@
 from backend.db_models.connection import Session
 from backend.db_models.chat import ChatMessagesOrm, ChatProductInquiryOrm
+from backend.db_models.items import ItemsOrm
 from backend.db_models.users import UsersOrm
-from backend.db_models.product_inquiry import ProductInquiriesOrm
 from backend.models.chat import ChatMessage
 from backend.models.user import User
 from sqlalchemy import or_, and_
@@ -30,7 +30,7 @@ async def save_message(message: ChatMessage) -> ChatMessage:
                 # check if a product id was provided
                 if message.product_inquiry_id is not None:
                     # Make sure the product inquiry exists
-                    product_inquiry = session.query(ProductInquiriesOrm).filter(ProductInquiriesOrm.id == message.product_inquiry_id).first()
+                    product_inquiry = session.query(ItemsOrm).filter(ItemsOrm.id == message.product_inquiry_id).first()
                     if product_inquiry is None:
                         raise ValueError("Product inquiry not found")
 
