@@ -73,3 +73,11 @@ async def test_save_message_with_product_inquiry(mock_session, sample_chat_messa
     sample_chat_message.type = ChatMessageType.PRODUCT_INQUIRY
     sample_chat_message.product_inquiry_id = str(UUID('98765432-9876-5432-9876-987654321098'))
     mock_session.query.return_value.filter.return_value.first.return_value = MagicMock()
+
+    # Act
+    result = await save_message(sample_chat_message)
+    
+    # Assert
+    assert mock_session.add.call_count >= 1
+    assert result.type == ChatMessageType.PRODUCT_INQUIRY
+    assert result.product_inquiry_id == sample_chat_message.product_inquiry_id
