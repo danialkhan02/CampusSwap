@@ -12,6 +12,7 @@ import { IProduct, useSearchProducts } from 'pages/HomePage/queries';
 import { TApiResponse } from 'utils/apiResponse.type';
 import Typography from '@mui/material/Typography';
 import debounce from 'lodash/debounce';
+import SearchLoadingState from './SearchLoadingState';
 
 
 type TProps = {
@@ -27,12 +28,12 @@ export default function ProductList({ productsData, showEditButton = false }: TP
     queryKey: ['products', 'search', searchTerm],
   });
 
-  const debouncedSearch = useCallback(
-    debounce((term: string) => {
-      setSearchTerm(term);
-    }, 300),
-    [],
-  );
+  const debouncedSearch = useCallback((term: string) => {
+    const handleSearch = debounce((value: string) => {
+      setSearchTerm(value);
+    }, 300);
+    handleSearch(term);
+  }, []);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
@@ -75,30 +76,10 @@ export default function ProductList({ productsData, showEditButton = false }: TP
       </Grid>
 
       {/* Searching State */}
-      <Fade in={isSearching && searchTerm.length >= 2} timeout={300}>
-        <Box
-          display={isSearching && searchTerm.length >= 2 ? 'flex' : 'none'}
-          flexDirection='column'
-          alignItems='center'
-          justifyContent='center'
-          minHeight='calc(100vh - 300px)'
-          width='100%'
-          position='absolute'
-          top='50%'
-          left='50%'
-          sx={{
-            transform: 'translate(-50%, -50%)',
-            zIndex: 1,
-          }}
-        >
-          <CircularProgress size={40} />
-          <Typography variant='h6' sx={{ mt: 2 }}>
-            Searching for &apos;
-            {searchTerm}
-            ...&apos;
-          </Typography>
-        </Box>
-      </Fade>
+      <SearchLoadingState
+        isSearching={isSearching}
+        searchTerm={searchTerm}
+      />
 
       {/* Product Grid - Hidden while searching */}
       <Fade in={!isSearching || searchTerm.length < 2} timeout={300}>

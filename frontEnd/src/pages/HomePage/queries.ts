@@ -159,7 +159,7 @@ export function useSearchProducts(
     {
       queryKey: ['products', 'search', query],
       queryFn: () => http.get(`${product.search}?query=${encodeURIComponent(query)}`),
-      enabled: query.length >= 2, // Only search when query is at least 2 chars
+      enabled: query.length >= 2,
       ...options,
     },
   );
