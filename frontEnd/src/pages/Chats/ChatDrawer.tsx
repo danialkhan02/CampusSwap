@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Drawer,
-  Box,
-  IconButton,
-  Typography,
+  Box, Drawer, IconButton, Typography,
 } from '@mui/material';
 import { Close } from '@mui/icons-material';
 import { IActiveChat } from 'pages/Chats/queries';
@@ -11,11 +8,13 @@ import ChatWindow from 'pages/Chats/components/ChatWindow';
 import ChatList from 'pages/Chats/components/ChatList';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
+import { IProduct } from 'pages/HomePage/queries';
 
 
 interface ChatDrawerProps {
     open: boolean;
     onClose: () => void;
+    product: IProduct;
     initialChat?: {
         receiverId: string;
         receiverName: string;
@@ -23,7 +22,9 @@ interface ChatDrawerProps {
     };
 }
 
-export default function ChatDrawer({ open, onClose, initialChat }: ChatDrawerProps) {
+export default function ChatDrawer({
+  open, onClose, initialChat, product,
+}: ChatDrawerProps) {
   const [selectedChat, setSelectedChat] = useState(initialChat || null);
   const [showChatList, setShowChatList] = useState(!initialChat);
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
@@ -107,10 +108,12 @@ export default function ChatDrawer({ open, onClose, initialChat }: ChatDrawerPro
             />
           ) : selectedChat && (
             <ChatWindow
+              onClose={handleClose}
               receiverId={selectedChat.receiverId}
               receiverName={selectedChat.receiverName}
               receiverImage={selectedChat.receiverImage}
               onBack={handleBack}
+              productInquiry={product}
             />
           )}
         </Box>

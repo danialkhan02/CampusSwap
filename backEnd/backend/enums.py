@@ -19,3 +19,7 @@ class ItemStatus(str, Enum):
 class ItemCondition(str, Enum):
     CONDITION_NEW = "CONDITION_NEW"
     CONDITION_USED = "CONDITION_USED"
+
+class ChatMessageType(str, Enum):
+    TEXT = "TEXT"
+    PRODUCT_INQUIRY = "PRODUCT_INQUIRY"

@@ -2,11 +2,7 @@ import { useParams } from 'react-router-dom';
 import Spinner from 'components/Common/Spinner';
 import Grid from '@mui/material/Grid';
 import ProductHeader from 'pages/HomePage/components/ProductHeader';
-import {
-  productDetailsQueryKey,
-  useAddWatchlist,
-  useGetProductDetails,
-} from 'pages/HomePage/queries';
+import { productDetailsQueryKey, useAddWatchlist, useGetProductDetails } from 'pages/HomePage/queries';
 import ListingPreview from 'pages/UserProfile/components/ListingPreview';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import { retrieve } from 'utils/cacheUtils';
@@ -60,6 +56,7 @@ export default function ProductDetails() {
       <ChatDrawer
         open={messageButtonClick}
         onClose={() => setMessageButtonClick(false)}
+        product={productData.data}
         initialChat={{
           receiverId: productData.data.seller?.id || '',
           receiverName: `${productData.data.seller?.first_name || 'Unknown'} ${productData.data.seller?.last_name || ''}`,
