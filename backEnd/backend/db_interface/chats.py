@@ -107,7 +107,7 @@ async def get_chat_history(user_id: str, other_user_id: str) -> List[ChatMessage
                 receiver_id=msg.receiver_id,
                 message=msg.message,
                 type=msg.type,
-                product_inquiry_id=msg.product_inquiry_id,
+                product_inquiry_id=str(msg.product_inquiry_id) if msg.product_inquiry_id else None,
                 product_inquiry=msg.product_inquiry,
                 read=msg.read,
                 timestamp=msg.created_at
