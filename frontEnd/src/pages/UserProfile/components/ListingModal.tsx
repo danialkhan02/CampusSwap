@@ -1,14 +1,20 @@
 import React, { useContext, useState } from 'react';
 import {
-  Box, Button, Dialog, FormControl, Grid, InputLabel, Select, TextField, Typography,
+  Box, Dialog, FormControl, Grid, InputLabel, Select, TextField, Typography,
 } from '@mui/material';
 import ListingPreview from 'pages/UserProfile/components/ListingPreview';
-import { IProduct, listerProductListQueryKey, useCreateProduct } from 'pages/HomePage/queries';
+import {
+  IProduct,
+  listerProductListQueryKey,
+  useCreateProduct,
+  useGenerateProductDescription,
+} from 'pages/HomePage/queries';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import LocationAutocomplete from 'pages/UserProfile/components/GoogleMapTextField';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import PublishIcon from '@mui/icons-material/Publish';
 import SpinnerButton from 'components/Common/SpinnerButton';
 import { AppAlertsCtx } from 'components/Common/AppAlerts';
@@ -18,6 +24,7 @@ import {
   categoryParsed, conditionParsed, ECategory, ECondition,
 } from 'pages/HomePage/constants';
 import MenuItem from '@mui/material/MenuItem';
+import ImageButton from 'pages/UserProfile/components/ImageButton';
 
 
 type TProps = {
@@ -33,6 +40,7 @@ export default function ListingModal({
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
   const createProductHook = useCreateProduct();
   const { addAlert } = useContext(AppAlertsCtx);
+  const generateDescriptionHook = useGenerateProductDescription();
   const [Listing, setListing] = useState<IProduct>({
     name: 'Placeholder Text',
     title: '',
@@ -48,6 +56,27 @@ export default function ListingModal({
       address: '',
     },
   });
+
+  const handleAIGeneration = () => {
+    if (Listing.images.length === 0 || Listing.name === 'Placeholder Text' || Listing.name === '' || !Listing.category) {
+      addAlert({
+        type: 'error',
+        message: 'Please include product images, title, category, and condition',
+      });
+    }
+    else {
+      generateDescriptionHook.mutate({
+        name: Listing.name,
+        images: Listing.images,
+        category: Listing.category,
+        condition: Listing.condition || ECondition.CONDITION_NEW,
+      }, {
+        onSuccess: (descriptionData) => {
+          handleListingInputChange('description', descriptionData?.data.description || '');
+        },
+      });
+    }
+  };
 
 
   const handleListingInputChange = (field: keyof IProduct, value: string) => {
@@ -194,15 +223,6 @@ export default function ListingModal({
               </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                size='medium'
-                label='Description'
-                value={Listing?.description || ''}
-                onChange={(event) => handleListingInputChange('description', event.target.value)}
-              />
-            </Grid>
-            <Grid item xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Category</InputLabel>
                 <Select
@@ -228,45 +248,59 @@ export default function ListingModal({
                 setInput={handleLocationChange}
               />
             </Grid>
-            <Grid item xs={12}>
-              <Button variant='contained' component='label'>
-                Upload Images
-                <input
-                  type='file'
-                  accept='image/*'
-                  multiple
-                  hidden
-                  onChange={handleImageUpload}
-                />
-              </Button>
+            <Grid container spacing={2} item xs={12}>
+              <Grid item xs={12}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant='body1'>Description</Typography>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <SpinnerButton
+                      variant='contained'
+                      size='small'
+                      isLoading={generateDescriptionHook.isPending}
+                      startIcon={<AutoAwesomeIcon />}
+                      onClick={handleAIGeneration}
+                    >
+                      Generate with AI
+                    </SpinnerButton>
+                  </Grid>
+                </Grid>
+              </Grid>
+              <Grid item xs={12}>
+                <Box
+                  sx={{
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    position: 'relative',
+                  }}
+                >
+                  <TextField
+                    variant='standard'
+                    placeholder='Enter your item description here...'
+                    fullWidth
+                    multiline
+                    InputProps={{ disableUnderline: true }}
+                    value={Listing?.description || ''}
+                    onChange={(event) => handleListingInputChange('description', event.target.value)}
+                    sx={{
+                      '& .MuiInputBase-input': {
+                        padding: 0,
+                        fontSize: '16px',
+                        color: '#757575',
+                      },
+                    }}
+                  />
+                </Box>
+              </Grid>
             </Grid>
             <Grid item xs={12}>
-              {/* Image Preview Grid */}
-              <Box display='flex' flexWrap='wrap' gap={2}>
-                {Listing.images.map((image, index) => (
-                  <Box position='relative' width='70px' height='70px'>
-                    <img
-                      src={image}
-                      alt={`Preview ${index}`}
-                      style={{
-                        width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4,
-                      }}
-                    />
-                    <IconButton
-                      size='small'
-                      sx={{
-                        position: 'absolute',
-                        top: 0,
-                        right: 0,
-                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                      }}
-                      onClick={() => handleRemoveImage(index)}
-                    >
-                      <CloseIcon fontSize='small' />
-                    </IconButton>
-                  </Box>
-                ))}
-              </Box>
+              <ImageButton
+                images={Listing.images}
+                handleImageUpload={handleImageUpload}
+                handleRemoveImage={handleRemoveImage}
+              />
             </Grid>
           </Grid>
         </Box>
