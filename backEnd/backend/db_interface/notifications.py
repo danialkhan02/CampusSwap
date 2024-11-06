@@ -23,6 +23,8 @@ def create_notification(notification: Notification, db: Session = None):
         )
         session.add(new_notification)
         session.commit()
+        session.refresh(new_notification)
+        session.close()
         logger.info(f"Notification created successfully: {new_notification.id}")
         return {"notification_id": str(new_notification.id)}
     except SQLAlchemyError as e:
