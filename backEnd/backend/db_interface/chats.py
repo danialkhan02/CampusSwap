@@ -193,6 +193,7 @@ async def get_user_active_chats(user_id: str) -> List[ChatMessage]:
                 sender=sender_user,
                 receiver=receiver_user,
                 message=msg.message,
+                type=msg.type,
                 timestamp=msg.created_at,
                 read=msg.read
             )
