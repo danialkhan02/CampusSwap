@@ -11,7 +11,6 @@ from backend.enums import ChatMessageType
 
 from backend.models.provider import Provider
 
-
 async def save_message(message: ChatMessage) -> ChatMessage:
     """Save a chat message to the database"""
     with Session() as session:
@@ -24,12 +23,11 @@ async def save_message(message: ChatMessage) -> ChatMessage:
             read=False
         )
         session.add(db_message)
+        db_product_inquiry = None
 
         try:
             if message.type == ChatMessageType.PRODUCT_INQUIRY:
-                # check if a product id was provided
                 if message.product_inquiry_id is not None:
-                    # Make sure the product inquiry exists
                     product_inquiry = session.query(ItemsOrm).filter(ItemsOrm.id == message.product_inquiry_id).first()
                     if product_inquiry is None:
                         raise ValueError("Product inquiry not found")
@@ -37,7 +35,7 @@ async def save_message(message: ChatMessage) -> ChatMessage:
                     db_product_inquiry = ChatProductInquiryOrm(
                         id=uuid.uuid4(),
                         chat_message_id=db_message.id,
-                        product_inquiry_id=message.product_inquiry_id
+                        product_id=message.product_inquiry_id
                     )
                     session.add(db_product_inquiry)
         except Exception as e:
@@ -45,13 +43,20 @@ async def save_message(message: ChatMessage) -> ChatMessage:
 
         session.commit()
         session.refresh(db_message)
+        
+        if db_product_inquiry:
+            session.refresh(db_product_inquiry)
+            product_inquiry_id = db_product_inquiry.product_id
+        else:
+            product_inquiry_id = None
+
         return ChatMessage(
             id=db_message.id,
             sender_id=db_message.sender_id,
             receiver_id=db_message.receiver_id,
             message=db_message.message,
             type=db_message.type,
-            product_inquiry_id=db_product_inquiry.product_inquiry_id if db_product_inquiry else None,
+            product_inquiry_id=product_inquiry_id,
             read=db_message.read,
             timestamp=db_message.created_at
         )
