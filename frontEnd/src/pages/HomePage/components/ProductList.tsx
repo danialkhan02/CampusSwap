@@ -1,11 +1,6 @@
 import Grid from '@mui/material/Grid';
 import {
-  Button,
-  CircularProgress,
-  InputAdornment,
-  TextField,
-  Fade,
-  Box,
+  Box, Button, CircularProgress, Fade, InputAdornment, TextField,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import Stack from '@mui/material/Stack';
@@ -98,9 +93,9 @@ export default function ProductList({ productsData, showEditButton = false }: TP
         >
           <CircularProgress size={40} />
           <Typography variant='h6' sx={{ mt: 2 }}>
-            'Searching for "'
+            Searching for &apos;
             {searchTerm}
-            '..."'
+            ...&apos;
           </Typography>
         </Box>
       </Fade>
