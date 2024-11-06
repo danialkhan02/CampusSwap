@@ -1,7 +1,14 @@
 import pytest
+import os
 import numpy as np
 from unittest.mock import MagicMock, patch
 from backend.openai_integration.openai_client import OpenAIClientWrapper
+
+# Patch the environment variable for OpenAI API Key
+@pytest.fixture(autouse=True)
+def mock_openai_api_key_env_var():
+    with patch.dict(os.environ, {"OPENAI_API_KEY": "test_key"}):
+        yield
 
 @pytest.fixture
 def mock_openai_client():
