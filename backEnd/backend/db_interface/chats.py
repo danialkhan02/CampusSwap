@@ -83,6 +83,8 @@ async def get_chat_history(user_id: str, other_user_id: str) -> List[ChatMessage
                 sender_id=msg.sender_id,
                 receiver_id=msg.receiver_id,
                 message=msg.message,
+                type=msg.type,
+                product_inquiry_id=msg.product_inquiry_id,
                 read=msg.read,
                 timestamp=msg.created_at
             ) for msg in messages
