@@ -1,11 +1,13 @@
 from backend.db_models.connection import Session
-from backend.db_models.chat import ChatMessagesOrm
+from backend.db_models.chat import ChatMessagesOrm, ChatProductInquiryOrm
 from backend.db_models.users import UsersOrm
+from backend.db_models.product_inquiry import ProductInquiriesOrm
 from backend.models.chat import ChatMessage
 from backend.models.user import User
 from sqlalchemy import or_, and_
 from typing import List
 import uuid
+from backend.enums import ChatMessageType
 
 from backend.models.provider import Provider
 
@@ -18,9 +20,29 @@ async def save_message(message: ChatMessage) -> ChatMessage:
             sender_id=message.sender_id,
             receiver_id=message.receiver_id,
             message=message.message,
+            type=message.type,
             read=False
         )
         session.add(db_message)
+
+        try:
+            if message.type == ChatMessageType.PRODUCT_INQUIRY:
+                # check if a product id was provided
+                if message.product_inquiry_id is not None:
+                    # Make sure the product inquiry exists
+                    product_inquiry = session.query(ProductInquiriesOrm).filter(ProductInquiriesOrm.id == message.product_inquiry_id).first()
+                    if product_inquiry is None:
+                        raise ValueError("Product inquiry not found")
+
+                    db_product_inquiry = ChatProductInquiryOrm(
+                        id=uuid.uuid4(),
+                        chat_message_id=db_message.id,
+                        product_inquiry_id=message.product_inquiry_id
+                    )
+                    session.add(db_product_inquiry)
+        except Exception as e:
+            print(f"Could not determine product inquiry: {e}")
+
         session.commit()
         session.refresh(db_message)
         return ChatMessage(
@@ -28,6 +50,8 @@ async def save_message(message: ChatMessage) -> ChatMessage:
             sender_id=db_message.sender_id,
             receiver_id=db_message.receiver_id,
             message=db_message.message,
+            type=db_message.type,
+            product_inquiry_id=db_product_inquiry.product_inquiry_id if db_product_inquiry else None,
             read=db_message.read,
             timestamp=db_message.created_at
         )
