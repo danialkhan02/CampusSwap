@@ -3,10 +3,11 @@ from backend.db_models.base import BaseDbModel
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 from typing import List
 
-from backend.db_models.categories import CategoriesOrm
+from backend.db_models.items import ItemsOrm
 from backend.db_models.notifications import NotificationsOrm
 from backend.db_models.seller_feedbacks import SellerFeedbackOrm
-
+from backend.db_models.seller_profiles import SellerProfileOrm
+from backend.db_models.chat import ChatMessagesOrm
 class UsersOrm(BaseDbModel):
     __tablename__ = "users"
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
@@ -14,10 +15,16 @@ class UsersOrm(BaseDbModel):
     last_name: Mapped[str] = mapped_column(String)
     stytch_id: Mapped[str] = mapped_column(String)
 
-    # One-to-Many Relationship
-    categories: Mapped[List["CategoriesOrm"]] = relationship(
-        "CategoriesOrm", back_populates="lister", lazy="select"
+    profile_image_url: Mapped[str] = mapped_column(String, nullable=True)
+    phone_number: Mapped[str] = mapped_column(String, nullable=True)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    location: Mapped[str] = mapped_column(String, nullable=True)
+
+    # One-to-Many Relationships
+    items: Mapped[List["ItemsOrm"]] = relationship(
+        "ItemsOrm", back_populates="lister", lazy="select"
     )
+    
     notifications: Mapped[List["NotificationsOrm"]] = relationship(
         "NotificationsOrm", back_populates="user", lazy="select"
     )
@@ -33,5 +40,28 @@ class UsersOrm(BaseDbModel):
         "SellerFeedbackOrm", 
         back_populates="buyer", 
         foreign_keys="SellerFeedbackOrm.buyer_id",
+        lazy="select"
+    )
+
+    # One-to-One Relationship by setting uselist to False
+    # This means that each user can have only one seller profile
+    seller_profile: Mapped["SellerProfileOrm"] = relationship(
+        "SellerProfileOrm", 
+        back_populates="user", 
+        uselist=False
+    )
+
+    # chat sender
+    chat_sender: Mapped[List["ChatMessagesOrm"]] = relationship(
+        "ChatMessagesOrm", 
+        back_populates="sender", 
+        foreign_keys="ChatMessagesOrm.sender_id",
+        lazy="select"
+    )
+    # chat receiver
+    chat_receiver: Mapped[List["ChatMessagesOrm"]] = relationship(
+        "ChatMessagesOrm", 
+        back_populates="receiver", 
+        foreign_keys="ChatMessagesOrm.receiver_id",
         lazy="select"
     )

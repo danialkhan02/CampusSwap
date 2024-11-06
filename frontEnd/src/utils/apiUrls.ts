@@ -5,15 +5,35 @@ const sample = {
 };
 
 const user = {
-  details: `${baseUrl}/api/v1/users`,
+  details: (userId: string) => `${baseUrl}/api/v1/users/${userId}`,
   create: `${baseUrl}/api/v1/users`,
 };
 
+const seller = {
+  details: (sellerId: string) => `${baseUrl}/api/v1/seller_profiles/${sellerId}`,
+};
+
+const chat = {
+  active: (userId: string) => `${baseUrl}/api/v1/chat/active/${userId}`,
+  history: (userId: string, recieverId: string) => `${baseUrl}/api/v1/chat/history/${userId}/${recieverId}`,
+};
+
 const product = {
-  list: `${baseUrl}/api/v1/product/list`,
-  details: (productId: string) => `${baseUrl}/api/v1/product/${productId}`,
+  list: `${baseUrl}/api/v1/products/list`,
+  create: `${baseUrl}/api/v1/products/create`,
+  generate: `${baseUrl}/api/v1/products/generate-description`,
+  details: (id: string) => `${baseUrl}/api/v1/products/${id}`,
+  byLister: (id: string) => `${baseUrl}/api/v1/products/lister/${id}`,
+  update: (id: string) => `${baseUrl}/api/v1/products/${id}`,
+  delete: (id: string) => `${baseUrl}/api/v1/products/${id}`,
+  wishlist: (userId: string) => `${baseUrl}/api/v1/products/interested/${userId}`,
+  addInterest: (productId: string, buyerId: string) => `${baseUrl}/api/v1/products/${productId}/interested/${buyerId}`,
 };
 
 export {
-  user, sample, product,
+  user,
+  sample,
+  product,
+  seller,
+  chat,
 };

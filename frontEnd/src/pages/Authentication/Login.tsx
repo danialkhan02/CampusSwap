@@ -36,7 +36,6 @@ export default function Login() {
 
   return (
     <Grid container style={{ height: '100vh' }}>
-      {/* Left Side */}
       <Grid
         item
         xs={12}
@@ -52,7 +51,6 @@ export default function Login() {
         </Box>
       </Grid>
 
-      {/* Right Side */}
       <Grid item xs={12} md={6} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Box width='80%' maxWidth={400} textAlign='center'>
           <Grid container alignItems='center' spacing={1} sx={{ mb: 4 }}>

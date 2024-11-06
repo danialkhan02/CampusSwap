@@ -2,21 +2,31 @@ import type { IconButtonProps } from '@mui/material/IconButton';
 import Badge from '@mui/material/Badge';
 import SvgIcon from '@mui/material/SvgIcon';
 import IconButton from '@mui/material/IconButton';
+import { useNavigate } from 'react-router-dom';
+import * as spaUrls from 'utils/spaUrls';
 
 // ----------------------------------------------------------------------
 
 export type SettingsButtonProps = IconButtonProps;
 
 export function SettingsButton({ sx }: SettingsButtonProps) {
+  const navigate = useNavigate();
   return (
     <IconButton
       aria-label='settings'
       sx={{
         p: 0, width: 40, height: 40, ...sx,
       }}
+      onClick={() => navigate(spaUrls.user.profile)}
     >
       <Badge color='error' variant='dot'>
-        <SvgIcon>
+        <SvgIcon sx={{
+          transition: 'transform 0.3s ease', // Smooth transition
+          '&:hover': {
+            transform: 'rotate(180deg)', // Rotate on hover
+          },
+        }}
+        >
           {/* https://icon-sets.iconify.design/solar/settings-bold-duotone/ */}
           <path
             fill='currentColor'

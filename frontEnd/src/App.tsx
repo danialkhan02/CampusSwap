@@ -9,6 +9,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { CacheKeys } from 'utils/constants';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import createTheme from 'create-theme';
+import { ChatProvider } from 'contexts/ChatContext';
 
 
 const queryClient = new QueryClient();
@@ -33,11 +34,13 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <CssVarsProvider defaultColorScheme='light' defaultMode='light' theme={theme}>
             <CssBaseline enableColorScheme />
-            <AppAlerts>
-              <ErrorBoundary>
-                <Router />
-              </ErrorBoundary>
-            </AppAlerts>
+            <ChatProvider>
+              <AppAlerts>
+                <ErrorBoundary>
+                  <Router />
+                </ErrorBoundary>
+              </AppAlerts>
+            </ChatProvider>
           </CssVarsProvider>
         </QueryClientProvider>
       </BrowserRouter>

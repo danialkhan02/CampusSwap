@@ -98,8 +98,8 @@ export default function createTheme(): Theme {
             contrastText: '#ffffff',
           },
           text: {
-            primary: grey[800],
-            secondary: grey[600],
+            primary: '#1C252E',
+            secondary: '#637381',
             disabled: grey[500],
           },
           warning: {
