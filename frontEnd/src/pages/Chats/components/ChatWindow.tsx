@@ -90,6 +90,7 @@ export default function ChatWindow({
       };
       setMessage(firstMessage);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRemoveFirstMessage = () => {
