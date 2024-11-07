@@ -18,7 +18,7 @@ url_object = URL.create(
 )
 
 # Create database engine
-engine = create_engine(settings.DATABASE_URL)
+engine = create_engine(url_object)
 
 # Create sessionmaker
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
