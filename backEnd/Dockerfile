@@ -2,9 +2,9 @@ FROM python:3.12
 
 WORKDIR '/app'
 
-ADD backend backend
-ADD alembic alembic
-COPY alembic.ini ./
+COPY backend/ backend/
+COPY alembic/ alembic/
+COPY alembic.ini .
 COPY poetry.lock pyproject.toml ./
 
 ENV POETRY_VERSION=1.8.0
