@@ -51,6 +51,9 @@ def create_item(item: Item, db: Session = None):
             session.add(new_image)
 
         session.commit()
+        session.refresh(new_item)
+        session.close()
+        
         logger.info(f"Item created successfully: {new_item_id}")
         return {"item_id": str(new_item_id)}
     except SQLAlchemyError as e:

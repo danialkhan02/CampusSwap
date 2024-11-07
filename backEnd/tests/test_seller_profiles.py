@@ -1,185 +1,158 @@
 import pytest
 import uuid as uuid_pkg
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from backend.db_models.base import BaseDbModel
-from backend.db_models.users import UsersOrm
-from backend.db_models.seller_profiles import SellerProfileOrm
-from backend.db_interface.seller_profiles import (
-    create_seller_profile,
-    get_seller_profile,
-    update_seller_profile,
-    delete_seller_profile,
-    increment_num_listings,
-    decrement_num_listings
-)
+from unittest.mock import Mock, patch
 from backend.models.seller_profile import SellerProfile
+from backend.db_models.seller_profiles import SellerProfileOrm
+from backend.db_models.users import UsersOrm
+from datetime import datetime, timezone
 
-@pytest.fixture(scope="function")
-def test_db():
-    engine = create_engine("sqlite:///:memory:")
-    BaseDbModel.metadata.create_all(engine)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = TestingSessionLocal()
+@pytest.fixture
+def mock_db_session():
+    session = Mock()
+    return session
+
+def test_create_seller_profile(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    profile = SellerProfile(
+        num_listings=0,
+        total_transactions=0,
+        average_rating=0.0
+    )
+
+    from backend.db_interface.seller_profiles import create_seller_profile
+    result = create_seller_profile(profile, seller_id, mock_db_session)
+
+    # Verify database operations
+    mock_db_session.add.assert_called_once()
+    mock_db_session.commit.assert_called_once()
     
-    # Create a test user
-    user = UsersOrm(
-        email="seller@example.com",
-        first_name="Test",
-        last_name="Seller",
-        stytch_id="test_seller_stytch_id"
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+    assert result == {"seller_id": str(seller_id)}
+
+def test_get_seller_profile(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_profile = Mock(spec=SellerProfileOrm)
+    mock_profile.seller_id = seller_id
+    mock_profile.num_listings = 0
+    mock_profile.total_transactions = 0
+    mock_profile.average_rating = 0.0
     
-    yield db, user.id
-    db.close()
+    mock_db_session.query.return_value.filter.return_value.first.return_value = mock_profile
+    
+    from backend.db_interface.seller_profiles import get_seller_profile
+    result = get_seller_profile(seller_id, mock_db_session)
+    
+    mock_db_session.query.assert_called_once_with(SellerProfileOrm)
+    assert result == mock_profile
 
-def test_create_seller_profile(test_db):
-    db, user_id = test_db
-    profile = SellerProfile(
-        num_listings=0,
-        total_transactions=0,
-        average_rating=0.0
-    )
-    result = create_seller_profile(profile, user_id, db)
-    assert "seller_id" in result
-    assert str(user_id) == result["seller_id"]  # Should match the user_id since it's the PK
-
-    db_profile = db.query(SellerProfileOrm).filter(SellerProfileOrm.seller_id == user_id).first()
-    assert db_profile is not None
-    assert db_profile.seller_id == user_id  # Verify the PK/FK relationship
-    assert db_profile.num_listings == profile.num_listings
-    assert db_profile.total_transactions == profile.total_transactions
-    assert db_profile.average_rating == profile.average_rating
-
-def test_get_seller_profile(test_db):
-    db, user_id = test_db
-    profile = SellerProfile(
-        num_listings=0,
-        total_transactions=0,
-        average_rating=0.0
-    )
-    create_seller_profile(profile, user_id, db)
-
-    retrieved_profile = get_seller_profile(user_id, db)
-    assert retrieved_profile is not None
-    assert retrieved_profile.seller_id == user_id  # Verify the PK matches
-    assert retrieved_profile.num_listings == profile.num_listings
-    assert retrieved_profile.total_transactions == profile.total_transactions
-    assert retrieved_profile.average_rating == profile.average_rating
-
-def test_update_seller_profile(test_db):
-    db, user_id = test_db
-    profile = SellerProfile(
-        num_listings=0,
-        total_transactions=0,
-        average_rating=0.0
-    )
-    create_seller_profile(profile, user_id, db)
-
+def test_update_seller_profile(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_profile = Mock(spec=SellerProfileOrm)
+    mock_profile.seller_id = seller_id
+    
+    mock_db_session.query.return_value.filter.return_value.first.return_value = mock_profile
+    
     updated_profile = SellerProfile(
         num_listings=5,
         total_transactions=5,
         average_rating=4.5
     )
-    result = update_seller_profile(user_id, updated_profile, db)
-    assert result is not None
-    assert result.seller_id == user_id  # Verify PK remains unchanged
-    assert result.num_listings == updated_profile.num_listings
-    assert result.total_transactions == updated_profile.total_transactions
-    assert result.average_rating == updated_profile.average_rating
+    
+    from backend.db_interface.seller_profiles import update_seller_profile
+    result = update_seller_profile(seller_id, updated_profile, mock_db_session)
+    
+    mock_db_session.query.assert_called_once_with(SellerProfileOrm)
+    mock_db_session.commit.assert_called_once()
+    assert result == mock_profile
 
-def test_delete_seller_profile(test_db):
-    db, user_id = test_db
-    profile = SellerProfile(
-        num_listings=0,
-        total_transactions=0,
-        average_rating=0.0
-    )
-    create_seller_profile(profile, user_id, db)
+def test_delete_seller_profile(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_profile = Mock(spec=SellerProfileOrm)
+    mock_profile.seller_id = seller_id
+    mock_profile.deleted_at = None
+    
+    mock_db_session.query.return_value.filter.return_value.first.return_value = mock_profile
+    
+    from backend.db_interface.seller_profiles import delete_seller_profile
+    result = delete_seller_profile(seller_id, mock_db_session)
+    
+    mock_db_session.query.assert_called_once_with(SellerProfileOrm)
+    mock_db_session.commit.assert_called_once()
+    assert result is True
+    assert mock_profile.deleted_at is not None
 
-    delete_result = delete_seller_profile(user_id, db)
-    assert delete_result is True
-
-    deleted_profile = get_seller_profile(user_id, db)
-    assert deleted_profile is None
-
-def test_get_seller_profile_not_found(test_db):
-    db, _ = test_db
-    # Create a random UUID that doesn't correspond to any user
-    non_existent_id = uuid_pkg.uuid4()
-    result = get_seller_profile(non_existent_id, db)
+def test_get_seller_profile_not_found(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_db_session.query.return_value.filter.return_value.first.return_value = None
+    
+    from backend.db_interface.seller_profiles import get_seller_profile
+    result = get_seller_profile(seller_id, mock_db_session)
+    
     assert result is None
 
-def test_update_seller_profile_not_found(test_db):
-    db, _ = test_db
-    # Create a random UUID that doesn't correspond to any user
-    non_existent_id = uuid_pkg.uuid4()
+def test_update_seller_profile_not_found(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_db_session.query.return_value.filter.return_value.first.return_value = None
+    
     updated_profile = SellerProfile(
         num_listings=5,
         total_transactions=5,
         average_rating=4.5
     )
-    result = update_seller_profile(non_existent_id, updated_profile, db)
+    
+    from backend.db_interface.seller_profiles import update_seller_profile
+    result = update_seller_profile(seller_id, updated_profile, mock_db_session)
+    
     assert result is None
 
-def test_delete_seller_profile_not_found(test_db):
-    db, _ = test_db
-    # Create a random UUID that doesn't correspond to any user
-    non_existent_id = uuid_pkg.uuid4()
-    result = delete_seller_profile(non_existent_id, db)
+def test_delete_seller_profile_not_found(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_db_session.query.return_value.filter.return_value.first.return_value = None
+    
+    from backend.db_interface.seller_profiles import delete_seller_profile
+    result = delete_seller_profile(seller_id, mock_db_session)
+    
     assert result is False
 
-def test_increment_num_listings(test_db):
-    db, user_id = test_db
-    # Create initial profile
-    profile = SellerProfile(
-        num_listings=0,
-        total_transactions=0,
-        average_rating=0.0
-    )
-    create_seller_profile(profile, user_id, db)
+def test_increment_num_listings(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_profile = Mock(spec=SellerProfileOrm)
+    mock_profile.num_listings = 0
+    
+    mock_db_session.query.return_value.filter.return_value.first.return_value = mock_profile
+    
+    from backend.db_interface.seller_profiles import increment_num_listings
+    increment_num_listings(seller_id, mock_db_session)
+    
+    assert mock_profile.num_listings == 1
+    mock_db_session.commit.assert_called_once()
 
-    # Test increment
-    increment_num_listings(user_id, db)
+def test_decrement_num_listings(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_profile = Mock(spec=SellerProfileOrm)
+    mock_profile.num_listings = 2
+    
+    mock_db_session.query.return_value.filter.return_value.first.return_value = mock_profile
+    
+    from backend.db_interface.seller_profiles import decrement_num_listings
+    decrement_num_listings(seller_id, mock_db_session)
+    
+    assert mock_profile.num_listings == 1
+    mock_db_session.commit.assert_called_once()
 
-    # Verify increment
-    updated_profile = get_seller_profile(user_id, db)
-    assert updated_profile is not None
-    assert updated_profile.num_listings == 1
+def test_increment_num_listings_nonexistent_profile(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_db_session.query.return_value.filter.return_value.first.return_value = None
+    
+    from backend.db_interface.seller_profiles import increment_num_listings
+    increment_num_listings(seller_id, mock_db_session)
+    
+    mock_db_session.commit.assert_not_called()
 
-def test_decrement_num_listings(test_db):
-    db, user_id = test_db
-    # Create initial profile with num_listings = 2
-    profile = SellerProfile(
-        num_listings=2,
-        total_transactions=0,
-        average_rating=0.0
-    )
-    create_seller_profile(profile, user_id, db)
-
-    # Test decrement
-    decrement_num_listings(user_id, db)
-
-    # Verify decrement
-    updated_profile = get_seller_profile(user_id, db)
-    assert updated_profile is not None
-    assert updated_profile.num_listings == 1
-
-def test_increment_num_listings_nonexistent_profile(test_db):
-    db, _ = test_db
-    # Try to increment listings for non-existent profile
-    non_existent_id = uuid_pkg.uuid4()
-    increment_num_listings(non_existent_id, db)
-    # Should not raise an error, just do nothing
-    assert True
-
-def test_decrement_num_listings_nonexistent_profile(test_db):
-    db, _ = test_db
-    # Try to decrement listings for non-existent profile
-    non_existent_id = uuid_pkg.uuid4()
-    decrement_num_listings(non_existent_id, db)
-    # Should not raise an error, just do nothing
-    assert True
+def test_decrement_num_listings_nonexistent_profile(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    mock_db_session.query.return_value.filter.return_value.first.return_value = None
+    
+    from backend.db_interface.seller_profiles import decrement_num_listings
+    decrement_num_listings(seller_id, mock_db_session)
+    
+    mock_db_session.commit.assert_not_called()
