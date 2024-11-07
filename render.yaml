@@ -2,9 +2,9 @@ services:
   - type: web
     name: swapsquad-backend
     env: docker
-    rootDirectory: backEnd  # This sets the build context to the backEnd directory
+    rootDirectory: backEnd
     buildCommand: docker build -t swapsquad-backend .
-    dockerfilePath: Dockerfile  # Relative to rootDirectory
+    startCommand: python -m backend.main
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.3
