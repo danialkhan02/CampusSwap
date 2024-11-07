@@ -46,7 +46,7 @@ export default function Login() {
       >
         <Box textAlign='center'>
           <img src={image} alt='Workflow illustration' style={{ width: '80%', marginBottom: 20 }} />
-          <Typography variant='h4' fontWeight='bold'>Hi, Welcome to Swap Squad</Typography>
+          <Typography variant='h4' fontWeight='bold'>Hi, Welcome to Campus Swap</Typography>
           <Typography variant='body1'>Buy second hand items more efficiently.</Typography>
         </Box>
       </Grid>
@@ -57,7 +57,7 @@ export default function Login() {
             <Grid item xs={12}>
               <Stack direction='row' alignItems='center' spacing={2}>
                 <img src={logo} alt='Logo' style={{ maxHeight: '150px', marginTop: '20px' }} />
-                <Typography variant='h3' color='text.primary' marginLeft='-40px'>Swap Squad</Typography>
+                <Typography variant='h3' color='text.primary' marginLeft='-40px'>Campus Swap</Typography>
               </Stack>
             </Grid>
             <Grid item xs={12} style={{ marginTop: '-30px' }}>
