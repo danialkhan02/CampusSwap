@@ -4,8 +4,8 @@ WORKDIR '/app'
 
 COPY backend/ backend/
 COPY alembic/ alembic/
-COPY alembic.ini .
-COPY poetry.lock pyproject.toml ./
+COPY alembic.ini ./
+COPY pyproject.toml poetry.lock ./
 
 ENV POETRY_VERSION=1.8.0
 RUN pip install "poetry==$POETRY_VERSION"

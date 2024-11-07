@@ -2,10 +2,9 @@ services:
   - type: web
     name: swapsquad-backend
     env: docker
-    rootDirectory: backEnd
-    dockerfilePath: Dockerfile
-    buildCommand: pip install poetry==1.8.0 && poetry install
-    startCommand: poetry run alembic upgrade head && poetry run start
+    rootDirectory: backEnd  # This sets the build context to the backEnd directory
+    buildCommand: docker build -t swapsquad-backend .
+    dockerfilePath: Dockerfile  # Relative to rootDirectory
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.3
