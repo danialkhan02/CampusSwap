@@ -2,8 +2,8 @@ services:
   - type: web
     name: swapsquad-backend
     env: python
-    buildCommand: cd backEnd && pip install poetry==1.8.0 && poetry install
-    startCommand: cd backEnd && poetry run alembic upgrade head && poetry run start
+    buildCommand: pip install poetry==1.8.0 && poetry install
+    startCommand: poetry run alembic upgrade head && poetry run start
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.3
@@ -43,8 +43,8 @@ services:
   - type: web
     name: swapsquad-frontend
     env: node
-    buildCommand: cd frontEnd && npm install && npm run build
-    startCommand: cd frontEnd && npm start
+    buildCommand: npm install && npm run build
+    startCommand: npm start
     envVars:
       - key: NODE_VERSION
         value: 18.9.1
