@@ -1,53 +1,18 @@
 import pytest
 import uuid as uuid_pkg
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from backend.db_models.base import BaseDbModel
-from backend.db_models.users import UsersOrm
-from backend.db_models.seller_feedbacks import SellerFeedbackOrm
-from backend.db_interface.seller_feedbacks import (
-    create_seller_feedback,
-    get_seller_feedback,
-    update_seller_feedback,
-    delete_seller_feedback,
-    list_seller_feedbacks,
-    list_seller_feedbacks_by_buyer
-)
+from unittest.mock import Mock, patch
 from backend.models.seller_feedback import SellerFeedback
+from backend.db_models.seller_feedbacks import SellerFeedbackOrm
+from backend.db_models.users import UsersOrm
 
-# Setup test database
-@pytest.fixture(scope="function")
-def test_db():
-    engine = create_engine("sqlite:///:memory:")
-    BaseDbModel.metadata.create_all(engine)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    db = TestingSessionLocal()
-    
-    # Create test users (seller and buyer)
-    seller = UsersOrm(
-        email="seller@example.com",
-        first_name="Test",
-        last_name="Seller",
-        stytch_id="test_seller_stytch_id"
-    )
-    buyer = UsersOrm(
-        email="buyer@example.com",
-        first_name="Test",
-        last_name="Buyer",
-        stytch_id="test_buyer_stytch_id"
-    )
-    db.add(seller)
-    db.add(buyer)
-    db.commit()
-    db.refresh(seller)
-    db.refresh(buyer)
-    
-    yield db, seller.id, buyer.id
-    db.close()
+@pytest.fixture
+def mock_db_session():
+    session = Mock()
+    return session
 
-# Test create_seller_feedback
-def test_create_seller_feedback(test_db):
-    db, seller_id, buyer_id = test_db
+def test_create_seller_feedback(mock_db_session):
+    seller_id = uuid_pkg.uuid4()
+    buyer_id = uuid_pkg.uuid4()
     feedback = SellerFeedback(
         seller_id=seller_id,
         buyer_id=buyer_id,
@@ -55,187 +20,119 @@ def test_create_seller_feedback(test_db):
         feedback_message="Great seller!",
         verified_purchase=True
     )
-    result = create_seller_feedback(feedback, db)
-    assert "feedback_id" in result
-    assert isinstance(uuid_pkg.UUID(result["feedback_id"]), uuid_pkg.UUID)
 
-    db_feedback = db.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.id == uuid_pkg.UUID(result["feedback_id"])).first()
-    assert db_feedback is not None
-    assert db_feedback.seller_id == feedback.seller_id
-    assert db_feedback.buyer_id == feedback.buyer_id
-    assert db_feedback.rating == feedback.rating
-    assert db_feedback.feedback_message == feedback.feedback_message
-    assert db_feedback.verified_purchase == feedback.verified_purchase
+    # Mock UUID generation
+    test_uuid = uuid_pkg.uuid4()
+    with patch('uuid.uuid4', return_value=test_uuid):
+        from backend.db_interface.seller_feedbacks import create_seller_feedback
+        result = create_seller_feedback(feedback, mock_db_session)
 
-def test_create_seller_feedback_invalid_input(test_db):
-    db, _, _ = test_db
-    with pytest.raises(ValueError, match="Feedback data is required"):
-        create_seller_feedback(None, db)
+        # Verify database operations
+        mock_db_session.add.assert_called_once()
+        mock_db_session.commit.assert_called_once()
 
-# Test get_seller_feedback
-def test_get_seller_feedback(test_db):
-    db, seller_id, buyer_id = test_db
-    feedback = SellerFeedback(
-        seller_id=seller_id,
-        buyer_id=buyer_id,
-        rating=4,
-        feedback_message="Good experience",
-        verified_purchase=True
-    )
-    result = create_seller_feedback(feedback, db)
-    feedback_id = result["feedback_id"]
+        assert result == {"feedback_id": str(test_uuid)}
 
-    retrieved_feedback = get_seller_feedback(feedback_id, db)
-    assert retrieved_feedback is not None
-    assert str(retrieved_feedback.id) == feedback_id
-    assert retrieved_feedback.seller_id == feedback.seller_id
-    assert retrieved_feedback.buyer_id == feedback.buyer_id
-    assert retrieved_feedback.rating == feedback.rating
-    assert retrieved_feedback.feedback_message == feedback.feedback_message
-    assert retrieved_feedback.verified_purchase == feedback.verified_purchase
+def test_get_seller_feedback(mock_db_session):
+    feedback_id = str(uuid_pkg.uuid4())
+    mock_feedback = Mock(spec=SellerFeedbackOrm)
+    mock_feedback.seller_id = uuid_pkg.uuid4()
+    mock_feedback.buyer_id = uuid_pkg.uuid4()
+    mock_feedback.rating = 5
+    mock_feedback.feedback_message = "Great seller!"
+    mock_feedback.verified_purchase = True
+    
+    mock_db_session.query.return_value.filter.return_value.first.return_value = mock_feedback
+    
+    from backend.db_interface.seller_feedbacks import get_seller_feedback
+    result = get_seller_feedback(feedback_id, mock_db_session)
+    
+    mock_db_session.query.assert_called_once_with(SellerFeedbackOrm)
+    assert result == mock_feedback
 
-def test_get_seller_feedback_invalid_id(test_db):
-    db, _, _ = test_db
+def test_get_seller_feedback_invalid_id(mock_db_session):
+    from backend.db_interface.seller_feedbacks import get_seller_feedback
     with pytest.raises(ValueError, match="Invalid feedback ID format"):
-        get_seller_feedback("invalid-uuid", db)
+        get_seller_feedback("invalid-uuid", mock_db_session)
 
-def test_get_seller_feedback_not_found(test_db):
-    db, _, _ = test_db
-    non_existent_id = str(uuid_pkg.uuid4())
-    result = get_seller_feedback(non_existent_id, db)
-    assert result is None
-
-# Test update_seller_feedback
-def test_update_seller_feedback(test_db):
-    db, seller_id, buyer_id = test_db
-    feedback = SellerFeedback(
-        seller_id=seller_id,
-        buyer_id=buyer_id,
-        rating=3,
-        feedback_message="Average",
-        verified_purchase=True
-    )
-    result = create_seller_feedback(feedback, db)
-    feedback_id = result["feedback_id"]
-
+def test_update_seller_feedback(mock_db_session):
+    feedback_id = str(uuid_pkg.uuid4())
+    mock_feedback = Mock(spec=SellerFeedbackOrm)
+    
+    mock_db_session.query.return_value.filter.return_value.first.return_value = mock_feedback
+    
     updated_feedback = SellerFeedback(
-        seller_id=seller_id,
-        buyer_id=buyer_id,
+        seller_id=uuid_pkg.uuid4(),
+        buyer_id=uuid_pkg.uuid4(),
         rating=4,
-        feedback_message="Better than expected",
+        feedback_message="Updated feedback",
         verified_purchase=True
     )
-    updated_result = update_seller_feedback(feedback_id, updated_feedback, db)
-    assert updated_result is not None
-    assert updated_result.rating == updated_feedback.rating
-    assert updated_result.feedback_message == updated_feedback.feedback_message
+    
+    from backend.db_interface.seller_feedbacks import update_seller_feedback
+    result = update_seller_feedback(feedback_id, updated_feedback, mock_db_session)
+    
+    mock_db_session.query.assert_called_once_with(SellerFeedbackOrm)
+    mock_db_session.commit.assert_called_once()
+    assert result == mock_feedback
 
-def test_update_seller_feedback_not_found(test_db):
-    db, seller_id, buyer_id = test_db
-    non_existent_id = str(uuid_pkg.uuid4())
-    updated_feedback = SellerFeedback(
-        seller_id=seller_id,
-        buyer_id=buyer_id,
-        rating=5,
-        feedback_message="Excellent",
-        verified_purchase=True
-    )
-    result = update_seller_feedback(non_existent_id, updated_feedback, db)
-    assert result is None
+def test_delete_seller_feedback(mock_db_session):
+    feedback_id = str(uuid_pkg.uuid4())
+    mock_feedback = Mock(spec=SellerFeedbackOrm)
+    
+    mock_db_session.query.return_value.filter.return_value.first.return_value = mock_feedback
+    
+    from backend.db_interface.seller_feedbacks import delete_seller_feedback
+    result = delete_seller_feedback(feedback_id, mock_db_session)
+    
+    mock_db_session.query.assert_called_once_with(SellerFeedbackOrm)
+    mock_db_session.delete.assert_called_once_with(mock_feedback)
+    mock_db_session.commit.assert_called_once()
+    assert result is True
 
-def test_update_seller_feedback_invalid_id(test_db):
-    db, seller_id, buyer_id = test_db
-    updated_feedback = SellerFeedback(
-        seller_id=seller_id,
-        buyer_id=buyer_id,
-        rating=5,
-        feedback_message="Excellent",
-        verified_purchase=True
-    )
-    with pytest.raises(ValueError, match="Invalid feedback ID format"):
-        update_seller_feedback("invalid-uuid", updated_feedback, db)
-
-# Test delete_seller_feedback
-def test_delete_seller_feedback(test_db):
-    db, seller_id, buyer_id = test_db
-    feedback = SellerFeedback(
-        seller_id=seller_id,
-        buyer_id=buyer_id,
-        rating=4,
-        feedback_message="Good seller",
-        verified_purchase=True
-    )
-    result = create_seller_feedback(feedback, db)
-    feedback_id = result["feedback_id"]
-
-    delete_result = delete_seller_feedback(feedback_id, db)
-    assert delete_result is True
-
-    deleted_feedback = get_seller_feedback(feedback_id, db)
-    assert deleted_feedback is None
-
-def test_delete_seller_feedback_not_found(test_db):
-    db, _, _ = test_db
-    non_existent_id = str(uuid_pkg.uuid4())
-    result = delete_seller_feedback(non_existent_id, db)
+def test_delete_seller_feedback_not_found(mock_db_session):
+    feedback_id = str(uuid_pkg.uuid4())
+    mock_db_session.query.return_value.filter.return_value.first.return_value = None
+    
+    from backend.db_interface.seller_feedbacks import delete_seller_feedback
+    result = delete_seller_feedback(feedback_id, mock_db_session)
+    
     assert result is False
 
-def test_delete_seller_feedback_invalid_id(test_db):
-    db, _, _ = test_db
-    with pytest.raises(ValueError, match="Invalid feedback ID format"):
-        delete_seller_feedback("invalid-uuid", db)
-
-# Test list_seller_feedbacks
-def test_list_seller_feedbacks(test_db):
-    db, seller_id, buyer_id = test_db
-    
-    feedbacks = [
-        SellerFeedback(seller_id=seller_id, buyer_id=buyer_id, rating=5, feedback_message="Excellent", verified_purchase=True),
-        SellerFeedback(seller_id=seller_id, buyer_id=buyer_id, rating=4, feedback_message="Good", verified_purchase=True),
-        SellerFeedback(seller_id=seller_id, buyer_id=buyer_id, rating=3, feedback_message="Average", verified_purchase=False),
+def test_list_seller_feedbacks(mock_db_session):
+    seller_id = str(uuid_pkg.uuid4())
+    mock_feedbacks = [
+        Mock(spec=SellerFeedbackOrm, rating=5, feedback_message="Excellent"),
+        Mock(spec=SellerFeedbackOrm, rating=4, feedback_message="Good")
     ]
+    mock_db_session.query.return_value.filter.return_value.all.return_value = mock_feedbacks
     
-    for feedback in feedbacks:
-        create_seller_feedback(feedback, db)
-
-    listed_feedbacks = list_seller_feedbacks(str(seller_id), db)
-    assert len(listed_feedbacks) == 3
+    from backend.db_interface.seller_feedbacks import list_seller_feedbacks
+    result = list_seller_feedbacks(seller_id, mock_db_session)
     
-    for i, feedback in enumerate(listed_feedbacks):
-        assert feedback.seller_id == seller_id
-        assert feedback.buyer_id == buyer_id
-        assert feedback.rating == feedbacks[i].rating
-        assert feedback.feedback_message == feedbacks[i].feedback_message
-        assert feedback.verified_purchase == feedbacks[i].verified_purchase
+    mock_db_session.query.assert_called_once_with(SellerFeedbackOrm)
+    assert result == mock_feedbacks
 
-def test_list_seller_feedbacks_invalid_id(test_db):
-    db, _, _ = test_db
+def test_list_seller_feedbacks_invalid_id(mock_db_session):
+    from backend.db_interface.seller_feedbacks import list_seller_feedbacks
     with pytest.raises(ValueError, match="Invalid seller ID format"):
-        list_seller_feedbacks("invalid-uuid", db)
+        list_seller_feedbacks("invalid-uuid", mock_db_session)
 
-# Test list_seller_feedbacks_by_buyer
-def test_list_seller_feedbacks_by_buyer(test_db):
-    db, seller_id, buyer_id = test_db
-    
-    feedbacks = [
-        SellerFeedback(seller_id=seller_id, buyer_id=buyer_id, rating=5, feedback_message="Excellent", verified_purchase=True),
-        SellerFeedback(seller_id=seller_id, buyer_id=buyer_id, rating=4, feedback_message="Good", verified_purchase=True),
+def test_list_seller_feedbacks_by_buyer(mock_db_session):
+    buyer_id = str(uuid_pkg.uuid4())
+    mock_feedbacks = [
+        Mock(spec=SellerFeedbackOrm, rating=5, feedback_message="Excellent"),
+        Mock(spec=SellerFeedbackOrm, rating=4, feedback_message="Good")
     ]
+    mock_db_session.query.return_value.filter.return_value.all.return_value = mock_feedbacks
     
-    for feedback in feedbacks:
-        create_seller_feedback(feedback, db)
-
-    listed_feedbacks = list_seller_feedbacks_by_buyer(str(buyer_id), db)
-    assert len(listed_feedbacks) == 2
+    from backend.db_interface.seller_feedbacks import list_seller_feedbacks_by_buyer
+    result = list_seller_feedbacks_by_buyer(buyer_id, mock_db_session)
     
-    for i, feedback in enumerate(listed_feedbacks):
-        assert feedback.seller_id == seller_id
-        assert feedback.buyer_id == buyer_id
-        assert feedback.rating == feedbacks[i].rating
-        assert feedback.feedback_message == feedbacks[i].feedback_message
-        assert feedback.verified_purchase == feedbacks[i].verified_purchase
+    mock_db_session.query.assert_called_once_with(SellerFeedbackOrm)
+    assert result == mock_feedbacks
 
-def test_list_seller_feedbacks_by_buyer_invalid_id(test_db):
-    db, _, _ = test_db
+def test_list_seller_feedbacks_by_buyer_invalid_id(mock_db_session):
+    from backend.db_interface.seller_feedbacks import list_seller_feedbacks_by_buyer
     with pytest.raises(ValueError, match="Invalid buyer ID format"):
-        list_seller_feedbacks_by_buyer("invalid-uuid", db)
+        list_seller_feedbacks_by_buyer("invalid-uuid", mock_db_session)

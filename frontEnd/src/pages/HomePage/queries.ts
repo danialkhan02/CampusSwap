@@ -150,3 +150,17 @@ export function useGenerateProductDescription(
     },
   );
 }
+
+export function useSearchProducts(
+  query: string,
+  options?: UseQueryOptions<TApiResponse<IProduct[]>, Error>,
+) {
+  return useQuery<TApiResponse<IProduct[]>, Error>(
+    {
+      queryKey: ['products', 'search', query],
+      queryFn: () => http.get(`${product.search}?query=${encodeURIComponent(query)}`),
+      enabled: query.length >= 2,
+      ...options,
+    },
+  );
+}
