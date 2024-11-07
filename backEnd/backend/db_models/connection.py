@@ -5,12 +5,8 @@ from sqlalchemy.orm import Session as SQLAlchemySession
 from alembic.config import Config
 from alembic import command
 from backend.config import settings
-from dotenv import load_dotenv
 
 from backend.db_models.base import BaseDbModel
-
-# Load environment variables from .env file
-load_dotenv()
 
 url_object = URL.create(
     "postgresql+psycopg2",

@@ -25,7 +25,7 @@ services:
           name: swapsquad-db
           property: password
       - key: DB_PORT
-        value: 5432
+        value: "5432"
       - key: ENVIRONMENT
         value: production
       - key: LOGGING_ENABLED
@@ -39,7 +39,7 @@ services:
       - key: ENVIRONMENT
         value: live
       - key: SERVER_URL
-        value: 0.0.0.0
+        value: "0.0.0.0"
 
   - type: web
     name: swapsquad-frontend
