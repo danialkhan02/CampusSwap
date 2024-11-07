@@ -1,7 +1,5 @@
 import os
 
-import rollbar
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 from fastapi.requests import Request
 from backend.stytch_client import StytchClient
@@ -25,8 +23,6 @@ async def stytch_authentication(request: Request, call_next):
                 request.state.user_id = resp.user.trusted_metadata[BACKEND_ID_STYTCH_KEY]
                 return await call_next(request)
         else:
-            rollbar.report_message(resp.error_message, "error", resp)
             raise HTTPException(detail=f"Invalid Stytch Auth {resp.error_message}", status_code=resp.status_code)
     except Exception as exc:
-        rollbar.report_message(str(exc), "error")
         raise HTTPException(detail=f"Error authenticating with stytch: {str(exc)}", status_code=500)
