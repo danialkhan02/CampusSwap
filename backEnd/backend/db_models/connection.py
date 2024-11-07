@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import Session as SQLAlchemySession
@@ -6,20 +7,27 @@ from alembic.config import Config
 from alembic import command
 from backend.config import settings
 
-from backend.db_models.base import BaseDbModel
+# Load environment variables
+load_dotenv()
+
+# Set default values
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_USER = os.getenv("DB_USER", "backend")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "secret")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_NAME = os.getenv("DB_NAME", "backend")
 
 url_object = URL.create(
     "postgresql+psycopg2",
-    username=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASSWORD"),
-    host=os.getenv("DB_HOST"),
-    port=int(os.getenv("DB_PORT")),
-    database=os.getenv("DB_NAME"),
+    username=DB_USER,
+    password=DB_PASSWORD,
+    host=DB_HOST,
+    port=int(DB_PORT),
+    database=DB_NAME,
 )
 
 # Create database engine
 engine = create_engine(settings.DATABASE_URL)
-
 # Create sessionmaker
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

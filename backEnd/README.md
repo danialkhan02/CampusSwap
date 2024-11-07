@@ -53,7 +53,6 @@ API Gateway
    DB_USER=backend
    ENVIRONMENT=development
    LOGGING_ENABLED=False
-   ROLLBAR_SERVER_ACCESS_TOKEN=token
    SERVER_PORT=6050
    ```
 

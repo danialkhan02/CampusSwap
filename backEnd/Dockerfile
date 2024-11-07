@@ -10,6 +10,7 @@ COPY pyproject.toml poetry.lock ./
 ENV POETRY_VERSION=1.8.0
 RUN pip install "poetry==$POETRY_VERSION"
 RUN poetry config virtualenvs.create false
-RUN poetry install --no-interaction --no-ansi -vvv --without dev
+RUN poetry install --no-interaction --no-ansi
 
-CMD ["poetry", "run", "start"]
+# Run migrations and start the application
+CMD ["python", "-m", "backend.main"]
