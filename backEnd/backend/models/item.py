@@ -39,7 +39,6 @@ class GenerateDescriptionRequest(BaseModel):
     condition: ItemCondition
 
 class ProductListQueryParams(BaseModel):
-    user_id: Optional[str] = None
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=20, ge=1, le=100)
     category: Optional[ItemCategory] = None

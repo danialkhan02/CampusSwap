@@ -75,8 +75,9 @@ async def search_products(
             detail=str(e)
         )
 
-@router.get("/list", summary="List filtered products", response_model=ApiResponse)
+@router.get("/list/{user_id}", summary="List filtered products", response_model=ApiResponse)
 async def get_product_list(
+    user_id: str,
     params: ProductListQueryParams = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -125,7 +126,7 @@ async def get_product_list(
                     "longitude": item.longitude
                 },
                 "seller": handle_get_basic_user_info(str(item.lister_id)),
-                "interested": determine_if_user_is_interested(str(item.id), str(params.user_id), db)
+                "interested": determine_if_user_is_interested(str(item.id), str(user_id), db)
             }
             for item in items
         ]
@@ -186,9 +187,10 @@ async def get_product(product_id: str, response: Response, db: Session = Depends
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))    
 
-@router.get("/lister/{lister_id}", summary="Get a product by lister ID", response_model=ApiResponse)
+@router.get("/lister/{lister_id}/user/{user_id}", summary="Get a product by lister ID", response_model=ApiResponse)
 async def get_products_by_lister(
     lister_id: str,
+    user_id: str,
     params: ProductListQueryParams = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -242,7 +244,7 @@ async def get_products_by_lister(
                     "longitude": item.longitude
                 },
                 "seller": handle_get_basic_user_info(str(item.lister_id)),
-                "interested": determine_if_user_is_interested(str(item.id), str(params.user_id), db)
+                "interested": determine_if_user_is_interested(str(item.id), str(user_id), db)
             }
             for item in items
         ]
@@ -515,7 +517,7 @@ async def get_interested_products(
                     "longitude": item.longitude
                 },
                 "seller": handle_get_basic_user_info(str(item.lister_id)),
-                "interested": determine_if_user_is_interested(str(item.id), str(params.user_id), db)
+                "interested": determine_if_user_is_interested(str(item.id), str(user_id), db)
             }
             for item in items
         ]
