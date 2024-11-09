@@ -10,6 +10,8 @@ import { ECondition, ESort } from 'pages/HomePage/constants';
 import { Pagination } from '@mui/material';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
+import useMediaQuery from '@mui/material/useMediaQuery';
+import { useTheme } from '@mui/material/styles';
 
 
 export const defaultFilters: IFilters = {
@@ -28,6 +30,22 @@ export const defaultFilters: IFilters = {
   seller_rating: 0,
 };
 
+export const useBreakpointLimit = () => {
+  const theme = useTheme();
+
+  // Define all media queries unconditionally
+  const isXl = useMediaQuery(theme.breakpoints.up('xl'));
+  const isLg = useMediaQuery(theme.breakpoints.up('lg'));
+  const isMd = useMediaQuery(theme.breakpoints.up('md'));
+  const isSm = useMediaQuery(theme.breakpoints.up('sm'));
+
+  if (isXl) return 30;
+  if (isLg) return 20;
+  if (isMd) return 15;
+  if (isSm) return 10;
+  return 5;
+};
+
 
 export default function HomePage() {
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
@@ -39,14 +57,17 @@ export default function HomePage() {
   const [applyFilter, setApplyFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const currentLimit = useBreakpointLimit();
+
   // Convert filters to query params only when applyFilter is true
   const queryParams = useMemo(() => {
     if (!applyFilter && !applySort && !applySearch) {
-      return { page: currentPage, limit: 20 };
+      return { page: currentPage, limit: currentLimit };
     }
 
-    return convertFiltersToQueryParams(activeFilters, currentSort, currentPage, 20, applySearch ? searchKeyword : '');
-  }, [activeFilters, applyFilter, applySearch, applySort, currentPage, currentSort, searchKeyword]);
+    return convertFiltersToQueryParams(activeFilters, currentSort, currentPage, currentLimit, applySearch ? searchKeyword : '');
+  }, [activeFilters, applyFilter, applySearch,
+    applySort, currentLimit, currentPage, currentSort, searchKeyword]);
 
   const queryKey = useMemo(() => ({
     ...productListQueryKey(userId),

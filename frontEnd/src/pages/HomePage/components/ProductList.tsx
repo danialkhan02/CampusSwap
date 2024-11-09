@@ -260,7 +260,7 @@ export default function ProductList({
           </Grid>
         ) : (
           displayedProducts.map((product) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={product.id} data-testid='product-card'>
+            <Grid item xs={12} sm={6} md={4} lg={3} xl={2} key={product.id} data-testid='product-card'>
               <ProductCard product={product} showEditButton={showEditButton} />
             </Grid>
           ))
