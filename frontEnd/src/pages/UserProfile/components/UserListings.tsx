@@ -1,13 +1,13 @@
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import ProductList, { IFilters } from 'pages/HomePage/components/ProductList';
-import { listerProductListQueryKey, useGetListerProductList } from 'pages/HomePage/queries';
+import { convertFiltersToQueryParams, listerProductListQueryKey, useGetListerProductList } from 'pages/HomePage/queries';
 import Spinner from 'components/Common/Spinner';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { useMemo, useState } from 'react';
-import { convertFiltersToQueryParams, defaultFilters } from 'pages/HomePage/utils';
 import { ESort } from 'pages/HomePage/constants';
+import { defaultFilters } from 'pages/HomePage/HomePage';
 
 
 export default function UserListings() {
