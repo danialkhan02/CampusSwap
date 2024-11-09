@@ -1,5 +1,15 @@
+from typing import List
+
+from PIL import Image
+import base64
+import io
+import os
+import uuid
 import uuid as uuid_pkg
 import logging
+
+import boto3
+from botocore.exceptions import ClientError
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from backend.db_models.connection import Session as DefaultSession
@@ -8,15 +18,86 @@ from backend.db_models.item_images import ItemImagesOrm
 from backend.db_models.users import UsersOrm
 from backend.models.item import Item
 from sqlalchemy.sql import func
+from dotenv import load_dotenv
 from backend.db_models.items import interested_buyers
 from backend.models.user import User
 from backend.models.provider import Provider
+
+load_dotenv()
 logger = logging.getLogger(__name__)
+
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name='us-east-1',
+)
+BUCKET_NAME = os.getenv('AWS_BUCKET_NAME')
+
+def upload_to_s3(image_data: str, product_id: str, index: int) -> str:
+    """
+    Upload an image to S3 and return its URL.
+    """
+    try:
+        if 'base64,' in image_data:
+            image_data = image_data.split(',')[1]
+        try:
+            image_bytes = base64.b64decode(image_data)
+        except Exception as e:
+            logger.error("Invalid base64 string")
+            raise ValueError("Invalid image format: not a valid base64 string")
+
+        # Convert to JPEG using PIL
+        img = Image.open(io.BytesIO(image_bytes))
+
+        # Convert to RGB if needed
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+
+        # Convert to JPEG bytes
+        jpeg_buffer = io.BytesIO()
+        img.save(jpeg_buffer, format='JPEG', quality=85, optimize=True)
+        jpeg_bytes = jpeg_buffer.getvalue()
+
+        file_name = f'products/{product_id}/image_{index}.jpg'
+
+        s3_client.put_object(
+            Bucket=BUCKET_NAME,
+            Body=jpeg_bytes,
+            ContentType='image/jpeg',
+            ACL='public-read',
+            Key=file_name
+        )
+
+        return f"https://{BUCKET_NAME}.s3.amazonaws.com/{file_name}"
+    except ClientError as e:
+        logger.error(f"Error uploading to S3: {str(e)}")
+        raise ValueError(f"Failed to upload image to S3: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error processing image: {str(e)}")
+        raise ValueError(f"Failed to process image: {str(e)}")
+
+def cleanup_s3_images(image_urls: List[str]):
+    """Helper function to clean up S3 images on error"""
+    for url in image_urls:
+        try:
+            key = url.split('.amazonaws.com/')[-1]
+            s3_client.delete_object(Bucket=BUCKET_NAME, Key=key)
+        except Exception as del_err:
+            logger.error(f"Error cleaning up S3 image: {str(del_err)}")
 
 def create_item(item: Item, db: Session = None):
     if not item:
         logger.error("Invalid input: item data is missing")
         raise ValueError("Item data is required")
+
+    if not item.images:
+        logger.error("Invalid input: no images provided")
+        raise ValueError("At least one image is required")
+
+    if len(item.images) > 5:
+        logger.error("Too many images provided")
+        raise ValueError("Maximum 5 images allowed")
 
     new_item_id = uuid_pkg.uuid4()
     session = db or DefaultSession()
@@ -42,24 +123,42 @@ def create_item(item: Item, db: Session = None):
         )
         session.add(new_item)
 
-        # Handle images
-        for image in item.images:
-            new_image = ItemImagesOrm(
-                item_id=new_item_id,
-                image_data=image  # Store the image string directly
-            )
-            session.add(new_image)
+        image_urls = []
+        for index, file_data in enumerate(item.images):
+            try:
+                image_url = upload_to_s3(file_data, str(new_item_id), index)
+                image_urls.append(image_url)
+
+                new_image = ItemImagesOrm(
+                    item_id=new_item_id,
+                    image_data=image_url
+                )
+                session.add(new_image)
+            except Exception as e:
+                # Clean up any uploaded images if there's an error
+                cleanup_s3_images(image_urls)
+                logger.error(f"Error processing image {index}: {str(e)}")
+                raise ValueError(f"Error processing image {index}: {str(e)}")
 
         session.commit()
         session.refresh(new_item)
         session.close()
-        
+
         logger.info(f"Item created successfully: {new_item_id}")
         return {"item_id": str(new_item_id)}
+
     except SQLAlchemyError as e:
         session.rollback()
+        cleanup_s3_images(image_urls)
         logger.error(f"Database error while creating item: {str(e)}")
         raise
+
+    except Exception as e:
+        session.rollback()
+        cleanup_s3_images(image_urls)
+        logger.error(f"Error creating item: {str(e)}")
+        raise
+
     finally:
         if not db:
             session.close()
@@ -120,6 +219,8 @@ def update_item(item_id: str, updated_item: Item, db: Session):
     if not existing_item:
         raise ValueError("Item not found")
 
+    old_image_urls = [img.image_data for img in existing_item.item_images]
+
     existing_item.name = updated_item.name
     existing_item.description = updated_item.description
     existing_item.price = updated_item.price
@@ -134,15 +235,30 @@ def update_item(item_id: str, updated_item: Item, db: Session):
     existing_item.item_images.clear()
 
     # Add updated images
-    for image in updated_item.images:
-        new_image = ItemImagesOrm(
-            item_id=existing_item.id,
-            image_data=image
-        )
-        existing_item.item_images.append(new_image)
+    new_image_urls = []
+    try:
+        for index, image_data in enumerate(updated_item.images):
+            # Upload new image to S3
+            image_url = upload_to_s3(image_data, str(existing_item.id), index)
+            new_image_urls.append(image_url)
 
-    db.commit()
-    return existing_item
+            # Create new image record
+            new_image = ItemImagesOrm(
+                item_id=existing_item.id,
+                image_data=image_url
+            )
+            existing_item.item_images.append(new_image)
+
+        # Commit database changes
+        db.commit()
+
+        # After successful commit, delete old images from S3
+        cleanup_s3_images(old_image_urls)
+        return existing_item
+
+    except Exception as e:
+        cleanup_s3_images(new_image_urls)
+        raise e
 
 def delete_item(item_id: str, db: Session = None):
     if not item_id:

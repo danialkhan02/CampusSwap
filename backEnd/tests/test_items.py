@@ -11,14 +11,17 @@ def mock_db_session():
     session = Mock()
     return session
 
-def test_create_item_with_location_and_images(mock_db_session):
+@patch('backend.db_interface.items.upload_to_s3', return_value="https://mocked_s3_url.com/image.jpg")
+def test_create_item_with_location_and_images(mock_upload_to_s3, mock_db_session):
     user_id = uuid_pkg.uuid4()
     location = Location(
         latitude=43.6532,
         longitude=-79.3832,
         address="123 Test St"
     )
-    images = ["test_image_0", "test_image_1"]
+    # Use a valid base64 string for a 1x1 pixel transparent PNG
+    images = ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/8h9CEYAAAAASUVORK5CYII="]
+
     item = Item(
         name="Test Product",
         description="Test Description",
@@ -43,10 +46,14 @@ def test_create_item_with_location_and_images(mock_db_session):
         mock_db_session.close.assert_called_once()
 
         assert result == {"item_id": str(test_uuid)}
+        assert mock_upload_to_s3.call_count == len(item.images)
 
-def test_create_item_without_location(mock_db_session):
+@patch('backend.db_interface.items.upload_to_s3', return_value="https://mocked_s3_url.com/image.jpg")
+def test_create_item_without_location(mock_upload_to_s3, mock_db_session):
     user_id = uuid_pkg.uuid4()
-    images = ["test_image_0"]
+    # Use valid base64 strings for testing
+    images = ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/8h9CEYAAAAASUVORK5CYII="]
+
     item = Item(
         name="Test Product",
         description="Test Description",
@@ -68,6 +75,7 @@ def test_create_item_without_location(mock_db_session):
         mock_db_session.close.assert_called_once()
 
         assert result == {"item_id": str(test_uuid)}
+        assert mock_upload_to_s3.call_count == len(item.images)
 
 def test_get_item(mock_db_session):
     item_id = str(uuid_pkg.uuid4())
@@ -85,19 +93,20 @@ def test_get_item(mock_db_session):
     mock_db_session.query.assert_called_once_with(ItemsOrm)
     assert result == mock_item
 
-def test_update_item(mock_db_session):
+@patch('backend.db_interface.items.upload_to_s3', return_value="https://mocked_s3_url.com/image.jpg")
+def test_update_item(mock_upload_to_s3, mock_db_session):
     item_id = str(uuid_pkg.uuid4())
     user_id = uuid_pkg.uuid4()
-    
+
     # Create mock existing item
     mock_item = Mock(spec=ItemsOrm)
-    mock_item.item_images = Mock()
+    mock_item.item_images = [Mock(spec=ItemImagesOrm, image_data="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/8h9CEYAAAAASUVORK5CYII=")]  # Mock item_images as a list
     mock_db_session.query.return_value.filter.return_value.first.return_value = mock_item
-    
+
     updated_item = Item(
         name="Updated Product",
         description="Updated Description",
-        images=["new_image.jpg"],
+        images=["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/8h9CEYAAAAASUVORK5CYII="],
         lister_id=user_id,
         price=20.99,
         location=Location(latitude=43.6532, longitude=-79.3832, address="456 New St"),
@@ -105,13 +114,14 @@ def test_update_item(mock_db_session):
         status=ItemStatus.STATUS_CLOSED,
         condition=ItemCondition.CONDITION_USED
     )
-    
+
     from backend.db_interface.items import update_item
     result = update_item(item_id, updated_item, mock_db_session)
-    
+
     mock_db_session.query.assert_called_once_with(ItemsOrm)
     mock_db_session.commit.assert_called_once()
     assert result == mock_item
+    assert mock_upload_to_s3.call_count == len(updated_item.images)
 
 def test_delete_item(mock_db_session):
     item_id = str(uuid_pkg.uuid4())
