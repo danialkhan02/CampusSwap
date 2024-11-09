@@ -2,9 +2,11 @@ import AppBar from '@mui/material/AppBar';
 import Grid from '@mui/material/Grid';
 import { useTheme } from '@mui/material/styles';
 import Toolbar from '@mui/material/Toolbar';
+import Stack from '@mui/material/Stack';
+import Box from '@mui/material/Box';
+import Logo from 'assets/logo.png';
 import UserSettings from 'components/Layouts/UserSettings';
 import { SettingsButton } from 'pages/Authentication/components/SettingsButton';
-import Stack from '@mui/material/Stack';
 import MessageButton from 'pages/Authentication/components/MessageButton';
 import Breadcrumbs from 'components/Layouts/Breadcrumbs';
 
@@ -18,17 +20,28 @@ export default function Header() {
         <Toolbar disableGutters>
           <Grid
             container
-            justifyContent='flex-end'
+            alignItems='center'
             sx={{ px: 2 }}
           >
-            <Grid
-              item
-              sx={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                width: 'auto',
-              }}
-            >
+            {/* Logo Section */}
+            <Grid item>
+              <Box
+                component='img'
+                src={Logo}
+                alt='Logo'
+                sx={{
+                  height: 80,
+                  width: 'auto',
+                  mt: 2,
+                }}
+              />
+            </Grid>
+
+            {/* Spacer */}
+            <Grid item xs />
+
+            {/* Actions Section */}
+            <Grid item>
               <Stack
                 direction='row'
                 spacing={1}
