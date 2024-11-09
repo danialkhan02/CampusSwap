@@ -60,10 +60,22 @@ export default function Login() {
           {errorMessage && (
             <Alert
               severity='error'
-              sx={{ mb: 2, textAlign: 'left' }}
+              sx={{
+                mb: 2,
+                textAlign: 'left',
+                borderRadius: 2,
+                '& .MuiAlert-message': {
+                  width: '100%',
+                },
+                '& .MuiAlert-icon': {
+                  alignItems: 'center',
+                },
+              }}
               onClose={() => setErrorMessage(null)}
             >
-              {errorMessage}
+              <Typography variant='body2' fontWeight={500}>
+                {errorMessage}
+              </Typography>
             </Alert>
           )}
           <Grid container alignItems='center' spacing={1} sx={{ mb: 4 }}>
