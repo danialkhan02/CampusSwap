@@ -54,6 +54,15 @@ API Gateway
    ENVIRONMENT=development
    LOGGING_ENABLED=False
    SERVER_PORT=6050
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   REDIS_DB=0
+   ```
+
+10. Install and start Redis for caching:
+   ```
+   brew install redis
+   brew services start redis
    ```
 
 ### Running the server

@@ -21,9 +21,18 @@ import uuid as uuid_pkg
 from sqlalchemy.sql import func
 from backend.openai_integration.openai_client import OpenAIClient
 from backend.models.item import GenerateDescriptionRequest
+from backend.cache.redis_client import redis_client
+import hashlib
+import json
 
 
 router = APIRouter()
+
+def generate_cache_key(params: ProductListQueryParams) -> str:
+    # Create a unique cache key based on all query parameters
+    param_dict = params.dict()
+    param_str = json.dumps(param_dict, sort_keys=True)
+    return f"product_list:{hashlib.md5(param_str.encode()).hexdigest()}"
 
 @router.get("/search", summary="Search products with AI enhancement", response_model=ApiResponse)
 async def search_products(
@@ -64,24 +73,17 @@ async def search_products(
 
 @router.get("/list", summary="List filtered products", response_model=ApiResponse)
 async def get_product_list(
-    response: Response,
-    db: Session = Depends(get_db),
-    params: ProductListQueryParams = Depends()
+    params: ProductListQueryParams = Depends(),
+    db: Session = Depends(get_db)
 ):
-    """
-    Get a filtered list of products with pagination.
-
-    This endpoint retrieves products based on the provided filters and pagination parameters.
-    It returns a list of products matching the specified criteria.
-
-    Parameters are provided through query parameters, validated by ProductListQueryParams.
-
-    Responses:
-    - **200 OK**: Returns a list of filtered products.
-    - **400 Bad Request**: If the input parameters are invalid.
-    - **500 Internal Server Error**: If an unexpected error occurs during processing.
-    """
     try:
+        # Check cache first
+        cache_key = generate_cache_key(params)
+        cached_response = redis_client.get(cache_key)
+        if cached_response:
+            print("Cache hit")
+            return ApiResponse(**cached_response)
+
         # Build the base query once
         query = (
             db.query(
@@ -96,20 +98,24 @@ async def get_product_list(
             .filter(ItemsOrm.deleted_at.is_(None))
         )
 
+        # Check cached total count for category
+        total = None
+        if params.category and not any([params.condition, params.price_min, params.price_max, params.latitude]):
+            total = redis_client.get_total_count(params.category)
+
         # Apply filters
-        print("Reached part 1")
         if params.category:
             query = query.filter(ItemsOrm.category == params.category)
-        print("Reached part 2")
+
         if params.condition:
             query = query.filter(ItemsOrm.condition == params.condition)
-        print("Reached part 3")
+
         if params.price_min is not None:
             query = query.filter(ItemsOrm.price >= params.price_min)
-        print("Reached part 4")
+
         if params.price_max is not None:
             query = query.filter(ItemsOrm.price <= params.price_max)
-        print("Reached part 5")
+
         # Location-based filtering
         if all(coord is not None for coord in [params.latitude, params.longitude, params.radius]):
             distance = func.acos(
@@ -121,7 +127,7 @@ async def get_product_list(
                 func.radians(params.longitude))
             ) * 6371
             query = query.filter(distance <= params.radius)
-        print("Reached part 6")
+
         # Apply sorting
         if params.sort:
             sort_mapping = {
@@ -131,11 +137,16 @@ async def get_product_list(
                 "created_at_desc": ItemsOrm.created_at.desc()
             }
             query = query.order_by(sort_mapping[params.sort])
-        print("Reached part 7")
-        # Get total count and paginated results in a single transaction
-        total = query.count()
+
+        # Get total count if not cached
+        if total is None:
+            total = query.count()
+            if params.category and not any([params.condition, params.price_min, params.price_max, params.latitude]):
+                redis_client.set_total_count(total, params.category)
+
+        # Get paginated results
         items = query.offset((params.page - 1) * params.limit).limit(params.limit).all()
-        print("Reached part 8")
+
         # Transform items efficiently
         product_list = [
             {
@@ -147,20 +158,26 @@ async def get_product_list(
             }
             for item in items
         ]
-        print("Reached part 9")
-        return ApiResponse(data={
-            "items": product_list,
-            "total": total,
-            "page": params.page,
-            "limit": params.limit
-        })
+
+        response_data = {
+            "data": {
+                "items": product_list,
+                "total": total,
+                "page": params.page,
+                "limit": params.limit
+            }
+        }
+
+        # Cache the response
+        redis_client.set(cache_key, response_data)
+
+        return ApiResponse(**response_data)
 
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
-
 @router.get("/{product_id}", summary="Get a product by ID", response_model=ApiResponse)
 async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
     """
