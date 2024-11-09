@@ -403,6 +403,15 @@ def add_interested_buyer(item_id: str, user_id: str, db: Session = None):
         if not db:
             session.close()
 
+def determine_if_user_is_interested(item_id: str, user_id: str, db: Session = None):
+    # Iterate through the interested buyers table to see if the user is interested
+    count = db.query(interested_buyers).filter(
+        interested_buyers.c.item_id == item_id,
+        interested_buyers.c.user_id == user_id,
+        interested_buyers.c.deleted_at.is_(None)
+    ).count()
+    return count > 0
+
 def get_product_details(item, db: Session) -> dict:
     seller = User(
         id=str(item.lister.id),

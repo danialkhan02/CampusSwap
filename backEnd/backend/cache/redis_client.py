@@ -77,18 +77,12 @@ class RedisClient:
         key = f"location:{lat_key}:{lon_key}:{radius}"
         self.set(key, products, ttl=timedelta(minutes=30))
 
-    def clear_all_caches_except_location(self):
-        # Clear all cache keys except those related to location
-        keys_to_clear = [
-            "total_products:*",
-            "count:*",
-            # Add any other relevant cache keys here
-        ]
-        for key_pattern in keys_to_clear:
-            self.delete_keys_by_pattern(key_pattern)
+    def clear_all_caches(self):
+        # Clear all cache keys
+        self.delete_all_keys()
 
-    def delete_keys_by_pattern(self, pattern: str):
-        keys = self.redis.keys(pattern)
+    def delete_all_keys(self):
+        keys = self.redis.keys('*')  # Get all keys
         for key in keys:
             self.redis.delete(key)
 

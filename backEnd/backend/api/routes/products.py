@@ -9,7 +9,7 @@ from backend.db_interface.items import (
     list_items,
     add_interested_buyer,
     get_product_details,
-    get_interested_items,
+    determine_if_user_is_interested,
     apply_product_filters_with_cache,
     add_first_image_to_items
 )
@@ -102,6 +102,7 @@ async def get_product_list(
                 ItemsOrm.latitude,
                 ItemsOrm.longitude,
                 ItemsOrm.address,
+                ItemsOrm.interested_buyers
             )
             .filter(ItemsOrm.deleted_at.is_(None))
         )
@@ -123,7 +124,8 @@ async def get_product_list(
                     "latitude": item.latitude,
                     "longitude": item.longitude
                 },
-                #"seller": handle_get_basic_user_info(str(item.lister_id))
+                "seller": handle_get_basic_user_info(str(item.lister_id)),
+                "interested": determine_if_user_is_interested(str(item.id), str(params.user_id), db)
             }
             for item in items
         ]
@@ -239,7 +241,8 @@ async def get_products_by_lister(
                     "latitude": item.latitude,
                     "longitude": item.longitude
                 },
-                "seller": handle_get_basic_user_info(str(item.lister_id))
+                "seller": handle_get_basic_user_info(str(item.lister_id)),
+                "interested": determine_if_user_is_interested(str(item.id), str(params.user_id), db)
             }
             for item in items
         ]
@@ -307,7 +310,7 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
         increment_num_listings(lister_uuid, db)
 
         # Clear all relevant caches except for location
-        redis_client.clear_all_caches_except_location()
+        redis_client.clear_all_caches()
         return ApiResponse(data=result)
         
     except ValueError as e:
@@ -356,7 +359,7 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
         db.commit()
 
         # Clear all relevant caches except for location
-        redis_client.clear_all_caches_except_location()
+        redis_client.clear_all_caches()
         
         return ApiResponse(data=get_product_details(result, db))
         
@@ -404,8 +407,8 @@ async def delete_product(product_id: str, user_id: str, response: Response, db: 
             return ApiResponse(error=ErrMessage(message="Product not found"))
         decrement_num_listings(item.lister.id, db)
 
-        # Clear all relevant caches except for location
-        redis_client.clear_all_caches_except_location()
+        # Clear all relevant caches
+        redis_client.clear_all_caches()
         
         return ApiResponse(data={"success": True})
     except ValueError as e:
@@ -442,6 +445,9 @@ async def add_buyer_interest(product_id: str, buyer_id: str, response: Response,
         if result is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product or buyer not found"))
+        
+        # Clear all relevant caches
+        redis_client.clear_all_caches()
         return ApiResponse(data={"interested": result})
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -508,7 +514,8 @@ async def get_interested_products(
                     "latitude": item.latitude,
                     "longitude": item.longitude
                 },
-                "seller": handle_get_basic_user_info(str(item.lister_id))
+                "seller": handle_get_basic_user_info(str(item.lister_id)),
+                "interested": determine_if_user_is_interested(str(item.id), str(params.user_id), db)
             }
             for item in items
         ]
