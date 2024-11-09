@@ -19,7 +19,7 @@ type TProps = {
 export default function SignUp({ stytchResponse }: TProps) {
   const navigate = useNavigate();
   const createUserHook = useCreateUser();
-  const hasCreatedUserRef = useRef(false); // Track if user creation has been attempted
+  const hasCreatedUserRef = useRef(false);
 
   useEffect(() => {
     const createUser = async () => {
@@ -52,6 +52,7 @@ export default function SignUp({ stytchResponse }: TProps) {
         const domain = email.split('@')[1]?.toLowerCase();
         if (!domain || !ALLOWED_DOMAINS.includes(domain)) {
           Logger.error('Non-UofT email attempted signup');
+          sessionStorage.setItem('auth_error', 'Sign in is restricted to @utoronto.ca and @mail.utoronto.ca email addresses.');
           navigate(auth.logout, { replace: true });
           return;
         }

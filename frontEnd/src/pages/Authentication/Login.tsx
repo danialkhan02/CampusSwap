@@ -1,7 +1,7 @@
 import { useStytch, useStytchSession } from '@stytch/react';
 import { auth, homepage } from 'utils/spaUrls';
 import {
-  Button, Grid, Typography,
+  Button, Grid, Typography, Alert,
 } from '@mui/material';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +17,7 @@ export default function Login() {
   const { session } = useStytchSession();
   const navigate = useNavigate();
   const REDIRECT_URL = `${window.location.origin}${auth.landingPad}`;
+  const [errorMessage, setErrorMessage] = React.useState(sessionStorage.getItem('auth_error'));
 
   React.useEffect(() => {
     if (session) {
@@ -24,6 +25,9 @@ export default function Login() {
     }
     else {
       localStorage.clear();
+      if (errorMessage) {
+        sessionStorage.removeItem('auth_error');
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -53,6 +57,15 @@ export default function Login() {
 
       <Grid item xs={12} md={6} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Box width='80%' maxWidth={400} textAlign='center'>
+          {errorMessage && (
+            <Alert
+              severity='error'
+              sx={{ mb: 2, textAlign: 'left' }}
+              onClose={() => setErrorMessage(null)}
+            >
+              {errorMessage}
+            </Alert>
+          )}
           <Grid container alignItems='center' spacing={1} sx={{ mb: 4 }}>
             <Grid item xs={12}>
               <Stack direction='row' alignItems='center' spacing={2}>
