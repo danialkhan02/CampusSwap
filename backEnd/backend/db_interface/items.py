@@ -215,14 +215,13 @@ def get_item_by_lister(user_id: str, db: Session = None):
             session.close()
 
 def update_item(item_id: str, updated_item: Item, db: Session):
-    existing_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(item_id) and 
-                                              ItemsOrm.lister_id == updated_item.lister_id and 
+    existing_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(item_id) and
+                                              ItemsOrm.lister_id == updated_item.lister_id and
                                               ItemsOrm.deleted_at.is_(None)).first()
     if not existing_item:
         raise ValueError("Item not found")
 
-    old_image_urls = [img.image_data for img in existing_item.item_images]
-
+    # Update basic item information
     existing_item.name = updated_item.name
     existing_item.description = updated_item.description
     existing_item.price = updated_item.price
@@ -233,34 +232,55 @@ def update_item(item_id: str, updated_item: Item, db: Session):
     existing_item.status = updated_item.status
     existing_item.condition = updated_item.condition
 
-    # Clear existing images
-    existing_item.item_images.clear()
+    # Check if new images are provided and are in base64 format
+    has_new_images = any(
+        isinstance(img, str) and img.startswith('data:image')
+        for img in updated_item.images
+    ) if updated_item.images else False
 
-    # Add updated images
-    new_image_urls = []
-    try:
-        for index, image_data in enumerate(updated_item.images):
-            # Upload new image to S3
-            image_url = upload_to_s3(image_data, str(existing_item.id), index)
-            new_image_urls.append(image_url)
+    if has_new_images:
+        # Store old image URLs for cleanup
+        old_image_urls = [img.image_data for img in existing_item.item_images]
 
-            # Create new image record
-            new_image = ItemImagesOrm(
-                item_id=existing_item.id,
-                image_data=image_url
-            )
-            existing_item.item_images.append(new_image)
+        # Clear existing images
+        existing_item.item_images.clear()
 
-        # Commit database changes
-        db.commit()
+        # Add updated images
+        new_image_urls = []
+        try:
+            for index, image_data in enumerate(updated_item.images):
+                if isinstance(image_data, str) and image_data.startswith('data:image'):
+                    # Upload new image to S3
+                    image_url = upload_to_s3(image_data, str(existing_item.id), index)
+                    new_image_urls.append(image_url)
 
-        # After successful commit, delete old images from S3
-        cleanup_s3_images(old_image_urls)
-        return existing_item
+                    # Create new image record
+                    new_image = ItemImagesOrm(
+                        item_id=existing_item.id,
+                        image_data=image_url
+                    )
+                    existing_item.item_images.append(new_image)
 
-    except Exception as e:
-        cleanup_s3_images(new_image_urls)
-        raise e
+            # Commit database changes
+            db.commit()
+
+            # After successful commit, delete old images from S3
+            cleanup_s3_images(old_image_urls)
+            return existing_item
+
+        except Exception as e:
+            # Clean up any newly uploaded images if there's an error
+            cleanup_s3_images(new_image_urls)
+            db.rollback()
+            raise e
+    else:
+        # If no new images, just commit the basic information updates
+        try:
+            db.commit()
+            return existing_item
+        except Exception as e:
+            db.rollback()
+            raise e
 
 def delete_item(item_id: str, db: Session = None):
     if not item_id:

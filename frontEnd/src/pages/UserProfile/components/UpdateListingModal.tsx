@@ -1,10 +1,14 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
-  Dialog, Grid, Box, Typography, TextField, Button, InputLabel, Select, FormControl,
+  Box, Button, Dialog, FormControl, Grid, InputLabel, Select, TextField, Typography,
 } from '@mui/material';
 import ListingPreview from 'pages/UserProfile/components/ListingPreview';
 import {
-  IProduct, listerProductListQueryKey, useUpdateProduct,
+  IProduct,
+  listerProductListQueryKey,
+  productDetailsQueryKey,
+  useGetProductDetails,
+  useUpdateProduct,
 } from 'pages/HomePage/queries';
 import LocationAutocomplete from 'pages/UserProfile/components/GoogleMapTextField';
 import IconButton from '@mui/material/IconButton';
@@ -18,12 +22,13 @@ import MenuItem from '@mui/material/MenuItem';
 import {
   categoryParsed, conditionParsed, ECategory, ECondition,
 } from 'pages/HomePage/constants';
+import Spinner from 'components/Common/Spinner';
 
 
 type TProps = {
-    isOpen: boolean;
-    onClose: () => void;
-    currentListing: IProduct;
+  isOpen: boolean;
+  onClose: () => void;
+  currentListing: IProduct;
 }
 
 export default function UpdateListingModal({
@@ -34,32 +39,57 @@ export default function UpdateListingModal({
   const queryClient = useQueryClient();
   const updateProductHook = useUpdateProduct(currentListing.id || '');
   const { addAlert } = useContext(AppAlertsCtx);
-  const [Listing, setListing] = useState<IProduct>({
-    ...currentListing,
-    lister_id: currentListing.seller?.id || '',
+  const { data: productDetailsData, isLoading } = useGetProductDetails(currentListing?.id || '', {
+    enabled: !!currentListing.id,
+    queryKey: productDetailsQueryKey(currentListing.id || ''),
   });
 
+  const [listing, setListing] = useState<IProduct | null>(null);
+
+  // Update listing state when productDetailsData changes
+  useEffect(() => {
+    if (productDetailsData?.data) {
+      setListing({
+        ...productDetailsData.data,
+        lister_id: currentListing.seller?.id || '',
+        images: productDetailsData.data.images || [], // Ensure images array exists
+        location: {
+          ...productDetailsData.data.location,
+          address: productDetailsData.data.location?.address || '',
+          latitude: productDetailsData.data.location?.latitude || 0,
+          longitude: productDetailsData.data.location?.longitude || 0,
+        },
+      });
+    }
+  }, [productDetailsData, currentListing.seller?.id]);
+
   const handleListingInputChange = (field: keyof IProduct, value: string) => {
-    setListing((prevListing) => ({
-      ...prevListing,
-      [field]: field === 'price' ? parseFloat(value) || 0 : value, // Ensure price is a number
-    }));
+    if (!listing) return;
+
+    setListing({
+      ...listing,
+      [field]: field === 'price' ? parseFloat(value) || 0 : value,
+    });
   };
 
   const handleLocationChange = (address: string, latitude?: number, longitude?: number) => {
-    setListing((prevListing) => ({
-      ...prevListing,
+    if (!listing) return;
+
+    setListing({
+      ...listing,
       location: {
-        ...prevListing.location,
+        ...listing.location,
         address,
-        latitude: latitude ?? prevListing.location.latitude,
-        longitude: longitude ?? prevListing.location.longitude,
+        latitude: latitude ?? listing.location.latitude,
+        longitude: longitude ?? listing.location.longitude,
       },
-    }));
+    });
   };
 
   const handlePublish = () => {
-    updateProductHook.mutate(Listing, {
+    if (!listing) return;
+
+    updateProductHook.mutate(listing, {
       onSuccess: () => {
         addAlert({
           type: 'success',
@@ -80,6 +110,8 @@ export default function UpdateListingModal({
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!listing) return;
+
     const files = event.target.files ? Array.from(
       event.target.files,
     ).slice(0, 5) : [];
@@ -106,10 +138,10 @@ export default function UpdateListingModal({
         base64Images.push(base64String);
       }
 
-      setListing((prevListing) => ({
-        ...prevListing,
+      setListing({
+        ...listing,
         images: base64Images,
-      }));
+      });
     }
     catch (error) {
       addAlert({
@@ -120,12 +152,17 @@ export default function UpdateListingModal({
   };
 
   const handleRemoveImage = (index: number) => {
-    setListing((prevListing) => ({
-      ...prevListing,
-      images: prevListing.images.filter((_, i) => i !== index),
-    }));
+    if (!listing) return;
+
+    setListing({
+      ...listing,
+      images: listing.images.filter((_, i) => i !== index),
+    });
   };
 
+  if (!productDetailsData || !productDetailsData.data || isLoading || !listing) {
+    return <Spinner />;
+  }
 
   return (
     <Dialog
@@ -154,7 +191,7 @@ export default function UpdateListingModal({
                 fullWidth
                 size='medium'
                 label='Item Name'
-                value={Listing?.name || ''}
+                value={listing.name || ''}
                 onChange={(event) => handleListingInputChange('name', event.target.value)}
               />
             </Grid>
@@ -164,7 +201,7 @@ export default function UpdateListingModal({
                 size='medium'
                 label='Price'
                 type='number'
-                value={Listing.price || 0}
+                value={listing.price || 0}
                 onChange={(event) => handleListingInputChange('price', event.target.value)}
               />
             </Grid>
@@ -175,7 +212,7 @@ export default function UpdateListingModal({
                   fullWidth
                   size='medium'
                   label='Condition'
-                  value={Listing.condition}
+                  value={listing.condition || ''}
                   onChange={(event) => handleListingInputChange('condition', event.target.value)}
                   displayEmpty
                 >
@@ -193,7 +230,7 @@ export default function UpdateListingModal({
                 fullWidth
                 size='medium'
                 label='Description'
-                value={Listing?.description || ''}
+                value={listing.description || ''}
                 onChange={(event) => handleListingInputChange('description', event.target.value)}
               />
             </Grid>
@@ -204,7 +241,7 @@ export default function UpdateListingModal({
                   fullWidth
                   size='medium'
                   label='Category'
-                  value={Listing.category}
+                  value={listing.category || ''}
                   onChange={(event) => handleListingInputChange('category', event.target.value)}
                   displayEmpty
                 >
@@ -219,7 +256,7 @@ export default function UpdateListingModal({
             </Grid>
             <Grid item xs={12}>
               <LocationAutocomplete
-                input={Listing?.location.address || ''}
+                input={listing.location.address || ''}
                 setInput={handleLocationChange}
               />
             </Grid>
@@ -236,10 +273,9 @@ export default function UpdateListingModal({
               </Button>
             </Grid>
             <Grid item xs={12}>
-              {/* Image Preview Grid */}
               <Box display='flex' flexWrap='wrap' gap={2}>
-                {Listing.images.map((image, index) => (
-                  <Box position='relative' width='70px' height='70px'>
+                {listing.images.map((image, index) => (
+                  <Box key={image} position='relative' width='70px' height='70px'>
                     <img
                       src={image}
                       alt={`Preview ${index}`}
@@ -284,7 +320,7 @@ export default function UpdateListingModal({
               </Box>
             </Grid>
             <Grid item xs={12}>
-              <ListingPreview listing={Listing} />
+              <ListingPreview listing={listing} />
             </Grid>
           </Grid>
         </Box>
