@@ -472,6 +472,12 @@ def get_interested_items(user_id: str, db: Session):
     
     return interested_products
 
+def add_first_image_to_items(item: ItemsOrm, db: Session):
+    """Add the first image to each item."""
+    first_image = db.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == item.id).first()
+    first_image = [first_image.image_data] if first_image else []
+    return first_image
+
 def apply_product_filters_with_cache(
     query, 
     params: ProductListQueryParams, 

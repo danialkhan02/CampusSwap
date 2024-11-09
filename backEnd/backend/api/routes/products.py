@@ -10,7 +10,8 @@ from backend.db_interface.items import (
     add_interested_buyer,
     get_product_details,
     get_interested_items,
-    apply_product_filters_with_cache
+    apply_product_filters_with_cache,
+    add_first_image_to_items
 )
 from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile, increment_num_listings, decrement_num_listings
 from backend.models.seller_profile import SellerProfile
@@ -110,6 +111,7 @@ async def get_product_list(
                 "price": item.price,
                 "category": item.category.value,
                 "condition": item.condition.value,
+                "images": add_first_image_to_items(item, db)
             }
             for item in items
         ]
@@ -216,6 +218,7 @@ async def get_products_by_lister(
                 "price": item.price,
                 "category": item.category.value,
                 "condition": item.condition.value,
+                "images": add_first_image_to_items(item, db)
             }
             for item in items
         ]
@@ -476,6 +479,7 @@ async def get_interested_products(
                 "price": item.price,
                 "category": item.category.value,
                 "condition": item.condition.value,
+                "images": add_first_image_to_items(item, db)
             }
             for item in items
         ]
