@@ -5,6 +5,7 @@ import {
 import {
   Home as HomeIcon,
   Inventory as ProductIcon,
+  Message,
   NavigateNext as NavigateNextIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
@@ -42,6 +43,16 @@ function Breadcrumbs() {
           label: 'User Profile',
           href: path,
           icon: SettingsIcon,
+        },
+      ];
+    }
+    else if (path.includes('/chats')) {
+      return [
+        baseCrumb,
+        {
+          label: 'Messages',
+          href: path,
+          icon: Message,
         },
       ];
     }
