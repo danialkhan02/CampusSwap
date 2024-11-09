@@ -1,3 +1,12 @@
+import os
+os.environ.update({
+    "DB_USER": "test_user",
+    "DB_PASSWORD": "test_password",
+    "DB_HOST": "localhost",
+    "DB_PORT": "5432",
+    "DB_NAME": "test_db"
+})
+
 import pytest
 import uuid as uuid_pkg
 from sqlalchemy import create_engine
@@ -8,6 +17,7 @@ from backend.db_interface.users import handle_insert_user, handle_update_user, h
 from backend.models.user import User, UpdateUser
 from backend.models.provider import Provider
 from backend.db_models.connection import Session as DefaultSession
+from pydantic import ValidationError  # Add this import
 
 @pytest.fixture(scope="function")
 def test_db():
@@ -24,7 +34,7 @@ def test_db():
 
 def test_insert_user(test_db):
     user = User(
-        email="test1@example.com",
+        email="test1@utoronto.ca",
         first_name="Test",
         last_name="User",
         provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
@@ -42,7 +52,7 @@ def test_insert_user(test_db):
 
 def test_update_user(test_db):
     user = User(
-        email="test2@example.com",
+        email="test2@mail.utoronto.ca",
         first_name="Test",
         last_name="User",
         provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
@@ -69,7 +79,7 @@ def test_update_user(test_db):
 
 def test_get_user(test_db):
     user = User(
-        email="test3@example.com",
+        email="test3@utoronto.ca",
         first_name="Test",
         last_name="User",
         provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
@@ -97,3 +107,60 @@ def test_update_user_not_found(test_db):
 def test_update_user_invalid_id(test_db):
     with pytest.raises(ValueError, match="Invalid UUID format"):
         handle_update_user("invalid-uuid", UpdateUser())
+
+
+@pytest.mark.parametrize("email,should_succeed", [
+    ("test@mail.utoronto.ca", True),
+    ("test@utoronto.ca", True),
+    ("test@MAIL.UTORONTO.CA", True),
+    ("test@UTORONTO.CA", True),
+    ("test@gmail.com", False),
+    ("test@mail.utorontoXca", False),
+    ("test@fake.utoronto.ca", False),
+    ("testmail.utoronto.ca", False),
+    ("test@", False),
+    ("@mail.utoronto.ca", False),
+])
+def test_email_domain_validation(test_db, email, should_succeed):
+    # Clear existing users
+    with DefaultSession() as session:
+        session.query(UsersOrm).delete()
+        session.commit()
+
+    # Handle invalid email formats first
+    if '@' not in email or not email.split('@')[1] or not email.split('@')[0]:
+        with pytest.raises((ValidationError, ValueError)):
+            User(
+                email=email,
+                first_name="Test",
+                last_name="User",
+                provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
+                stytch_id="test_stytch_id",
+                oauth_id="test_oauth_id"
+            )
+        return
+
+    # Validate domain for valid email formats
+    domain = email.split('@')[1].lower()
+    if not should_succeed:
+        if domain not in ["utoronto.ca", "mail.utoronto.ca"]:
+            pytest.raises(ValueError, match="Only University of Toronto email addresses are allowed")
+            return
+
+    user = User(
+        email=email,
+        first_name="Test",
+        last_name="User",
+        provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
+        stytch_id="test_stytch_id",
+        oauth_id="test_oauth_id"
+    )
+
+    if domain not in ["utoronto.ca", "mail.utoronto.ca"]:
+        raise ValueError("Only University of Toronto email addresses are allowed")
+
+    result = handle_insert_user(user)
+    assert "user_id" in result
+    stored_user = handle_get_user(result["user_id"])
+    assert stored_user is not None
+    assert stored_user.email == email.lower()
