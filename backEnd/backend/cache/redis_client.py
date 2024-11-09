@@ -46,37 +46,6 @@ class RedisClient:
         except Exception as e:
             logger.error(f"Redis set error: {str(e)}")
 
-    def get_total_count(self, category: Optional[str] = None) -> Optional[int]:
-        key = f"total_products:{category if category else 'all'}"
-        count = self.get(key)
-        return int(count) if count is not None else None
-
-    def set_total_count(self, count: int, category: Optional[str] = None):
-        key = f"total_products:{category if category else 'all'}"
-        self.set(key, count, ttl=timedelta(hours=1))
-
-    def get_filter_count(self, category: str, condition: str = None, price_range: str = None) -> Optional[int]:
-        key = f"count:{category}:{condition}:{price_range}"
-        count = self.get(key)
-        return int(count) if count is not None else None
-
-    def set_filter_count(self, count: int, category: str, condition: str = None, price_range: str = None):
-        key = f"count:{category}:{condition}:{price_range}"
-        self.set(key, count, ttl=timedelta(hours=1))
-
-    def get_location_products(self, lat: float, lon: float, radius: float) -> Optional[list]:
-        # Round coordinates to reduce cache variations
-        lat_key = round(lat, 2)
-        lon_key = round(lon, 2)
-        key = f"location:{lat_key}:{lon_key}:{radius}"
-        return self.get(key)
-
-    def set_location_products(self, products: list, lat: float, lon: float, radius: float):
-        lat_key = round(lat, 2)
-        lon_key = round(lon, 2)
-        key = f"location:{lat_key}:{lon_key}:{radius}"
-        self.set(key, products, ttl=timedelta(minutes=30))
-
     def clear_all_caches(self):
         # Clear all cache keys
         self.delete_all_keys()
