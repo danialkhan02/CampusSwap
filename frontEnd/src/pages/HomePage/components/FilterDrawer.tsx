@@ -168,8 +168,7 @@ export default function FilterDrawer({
       anchor='right'
       open={open}
       onClose={onClose}
-      slotProps={{ backdrop: { invisible: true } }}
-      PaperProps={{ sx: { width: 320 } }}
+      PaperProps={{ sx: { width: 320, boxShadow: (theme) => theme.shadows[20], backgroundColor: 'white' } }}
     >
       <ContentContainer>
         <Box>

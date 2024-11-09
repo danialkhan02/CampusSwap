@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { product } from 'utils/apiUrls';
 import { ECategory, ECondition } from 'pages/HomePage/constants';
+import { buildQueryString, IProductListQueryParams } from 'pages/HomePage/utils';
 
 
 export interface IProduct {
@@ -36,19 +37,6 @@ export interface IGenerateDescription {
     images: string[],
 }
 
-export interface IProductListQueryParams {
-    page: number;
-    limit: number;
-    category?: ECategory;
-    condition?: ECondition;
-    price_min?: number;
-    price_max?: number;
-    sort?: 'price_asc' | 'price_desc' | 'created_at_asc' | 'created_at_desc';
-    latitude?: number;
-    longitude?: number;
-    radius?: number;
-}
-
 export const productDetailsQueryKey = (productId: string) => ['product', 'details', productId];
 
 export function useGetProductDetails(
@@ -65,45 +53,16 @@ export function useGetProductDetails(
   );
 }
 
-export const productListQueryKey = (params: string) => ['product', 'list', params];
+export const productListQueryKey = () => ['product', 'list'];
 
 export function useGetProductList(
   filters: IProductListQueryParams,
   options?: UseQueryOptions<TApiResponse<IProduct[]>, Error>,
 ) {
-  const queryParams = new URLSearchParams();
-  queryParams.set('page', filters.page.toString());
-  queryParams.set('limit', filters.limit.toString());
-
-  if (filters.category) {
-    queryParams.set('category', filters.category);
-  }
-  if (filters.condition) {
-    queryParams.set('condition', filters.condition);
-  }
-  if (filters.price_min !== undefined) {
-    queryParams.set('price_min', filters.price_min.toString());
-  }
-  if (filters.price_max !== undefined) {
-    queryParams.set('price_max', filters.price_max.toString());
-  }
-  if (filters.sort) {
-    queryParams.set('sort', filters.sort);
-  }
-  if (filters.latitude !== undefined) {
-    queryParams.set('latitude', filters.latitude.toString());
-  }
-  if (filters.longitude !== undefined) {
-    queryParams.set('longitude', filters.longitude.toString());
-  }
-  if (filters.radius !== undefined) {
-    queryParams.set('radius', filters.radius.toString());
-  }
-
   return useQuery<TApiResponse<IProduct[]>, Error>(
     {
-      queryKey: productListQueryKey(queryParams.toString()),
-      queryFn: () => http.get(`${product.list}?${queryParams.toString()}`),
+      queryKey: productListQueryKey(),
+      queryFn: () => http.get(`${product.list}?${buildQueryString(filters).toString()}`),
       retry: false,
       ...options,
     },
@@ -139,12 +98,13 @@ export const listerProductListQueryKey = (listerId: string) => ['product', 'list
 
 export function useGetListerProductList(
   listerId: string,
+  filters: IProductListQueryParams,
   options?: UseQueryOptions<TApiResponse<IProduct[]>, Error>,
 ) {
   return useQuery<TApiResponse<IProduct[]>, Error>(
     {
       queryKey: listerProductListQueryKey(listerId),
-      queryFn: () => http.get(product.byLister(listerId)),
+      queryFn: () => http.get(`${product.byLister(listerId)}?${buildQueryString(filters).toString()}`),
       retry: false,
       ...options,
     },
@@ -167,12 +127,13 @@ export const listerWishListQueryKey = (userId: string) => ['product', 'lister', 
 
 export function useGetListerWishList(
   userId: string,
+  filters: IProductListQueryParams,
   options?: UseQueryOptions<TApiResponse<IProduct[]>, Error>,
 ) {
   return useQuery<TApiResponse<IProduct[]>, Error>(
     {
       queryKey: listerWishListQueryKey(userId),
-      queryFn: () => http.get(product.wishlist(userId)),
+      queryFn: () => http.get(`${product.wishlist(userId)}?${buildQueryString(filters).toString()}`),
       retry: false,
       ...options,
     },

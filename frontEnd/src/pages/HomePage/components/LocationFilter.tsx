@@ -5,6 +5,7 @@ import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
 import { IFilters } from 'pages/HomePage/components/ProductList';
 import { ILocation } from 'pages/HomePage/queries';
+import { Logger } from 'utils/logger';
 
 
 type TProps = {
@@ -59,7 +60,7 @@ export default function LocationFilter({ filters, onLocationChange, onRadiusChan
         setPredictions(response.predictions);
       }
       catch (error) {
-        console.error('Error fetching predictions:', error);
+        Logger.error('Error fetching predictions:', error);
       }
     }
   };
@@ -85,7 +86,7 @@ export default function LocationFilter({ filters, onLocationChange, onRadiusChan
         }
       }
       catch (error) {
-        console.error('Error geocoding location:', error);
+        Logger.error('Error geocoding location:', error);
       }
     }
     else {
