@@ -102,8 +102,7 @@ async def get_product_list(
                 ItemsOrm.condition,
                 ItemsOrm.latitude,
                 ItemsOrm.longitude,
-                ItemsOrm.address,
-                ItemsOrm.interested_buyers
+                ItemsOrm.address
             )
             .filter(ItemsOrm.deleted_at.is_(None))
         )
@@ -223,12 +222,6 @@ async def get_products_by_lister(
         # Apply filters and get results with caching
         items, total = apply_product_filters_with_cache(query, params, db)
         
-        # Get total count
-        total = query.count()
-
-        # Get paginated results
-        items = query.offset((params.page - 1) * params.limit).limit(params.limit).all()
-
         # Transform items
         product_list = [
             {

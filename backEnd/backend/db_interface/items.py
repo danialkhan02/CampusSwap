@@ -24,6 +24,7 @@ from dotenv import load_dotenv
 from backend.db_models.items import interested_buyers
 from backend.models.user import User
 from backend.models.provider import Provider
+from backend.models.item import ItemCategory, ItemCondition
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -529,7 +530,6 @@ def apply_product_filters_with_cache(
 
     # Apply basic filters
     if params.category:
-        print("category: ", params.category)
         query = query.filter(ItemsOrm.category == params.category)
 
     if params.condition:
