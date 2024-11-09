@@ -84,8 +84,22 @@ export default function ProductList({
   return (
     <>
       <Grid container item xs={12} alignItems='center' spacing={2} sx={{ mb: 2 }}>
-        <Grid item xs={12} sm={4} md={3}>
-          <Box display='flex' flexDirection='column' alignItems='center' gap={2}>
+        <Grid
+          item
+          xs={12}
+          sm={4}
+          md={3}
+          sx={{
+            display: 'flex',
+            justifyContent: 'flex-start',
+          }}
+        >
+          <Box sx={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'flex-start',
+          }}
+          >
             {/* Search Bar */}
             <TextField
               variant='outlined'
@@ -119,7 +133,8 @@ export default function ProductList({
                 },
               }}
               sx={{
-                width: 400,
+                width: '100%',
+                maxWidth: '400px',
                 '& .MuiOutlinedInput-root': {
                   '& fieldset': {
                     border: 'none',
