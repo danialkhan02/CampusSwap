@@ -517,16 +517,6 @@ def apply_product_filters_with_cache(
     """Apply filters, sorting, and caching to product queries"""
     # Try to get filtered count from cache
     total = None
-    price_range = None
-    if params.price_min is not None and params.price_max is not None:
-        price_range = f"{params.price_min}-{params.price_max}"
-    
-    if params.category:
-        total = redis_client.get_filter_count(
-            category=params.category.value if isinstance(params.category, Enum) else params.category,
-            condition=params.condition.value if isinstance(params.condition, Enum) else params.condition,
-            price_range=price_range
-        )
 
     # Apply basic filters
     if params.category:
@@ -554,13 +544,6 @@ def apply_product_filters_with_cache(
     # Get total count if not cached
     if total is None:
         total = query.count()
-        if params.category:
-            redis_client.set_filter_count(
-                total,
-                category=params.category.value if isinstance(params.category, Enum) else params.category,
-                condition=params.condition.value if isinstance(params.condition, Enum) else params.condition,
-                price_range=price_range
-            )
 
     # Get paginated results
     items = query.offset((params.page - 1) * params.limit).limit(params.limit).all()

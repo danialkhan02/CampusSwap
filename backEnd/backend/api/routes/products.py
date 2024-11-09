@@ -488,12 +488,6 @@ async def get_interested_products(
 
         # Apply filters and get results with caching
         items, total = apply_product_filters_with_cache(query, params, db)
-        
-        # Get total count
-        total = query.count()
-
-        # Get paginated results
-        items = query.offset((params.page - 1) * params.limit).limit(params.limit).all()
 
         # Transform items
         product_list = [
