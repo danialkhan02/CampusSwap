@@ -40,6 +40,7 @@ class GenerateDescriptionRequest(BaseModel):
 
 class ProductListQueryParams(BaseModel):
     page: int = Field(default=1, ge=1)
+    search_query: Optional[str] = None
     limit: int = Field(default=20, ge=1, le=100)
     category: Optional[ItemCategory] = None
     condition: Optional[ItemCondition] = None

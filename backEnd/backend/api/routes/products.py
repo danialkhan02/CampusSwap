@@ -11,7 +11,8 @@ from backend.db_interface.items import (
     get_product_details,
     determine_if_user_is_interested,
     apply_product_filters_with_cache,
-    add_first_image_to_items
+    add_first_image_to_items,
+    search_items
 )
 from backend.db_interface.users import handle_get_basic_user_info
 from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile, increment_num_listings, decrement_num_listings
@@ -109,6 +110,10 @@ async def get_product_list(
 
         # Apply filters and get results with caching
         items, total = apply_product_filters_with_cache(query, params, db)
+
+        # Search for items with the search query
+        if params.search_query:
+            items = await search_items(params.search_query, items, db)
 
         # Transform items efficiently
         product_list = [
@@ -221,6 +226,10 @@ async def get_products_by_lister(
 
         # Apply filters and get results with caching
         items, total = apply_product_filters_with_cache(query, params, db)
+
+        # Search for items with the search query
+        if params.search_query:
+            items = await search_items(params.search_query, items, db)
         
         # Transform items
         product_list = [
@@ -488,6 +497,10 @@ async def get_interested_products(
 
         # Apply filters and get results with caching
         items, total = apply_product_filters_with_cache(query, params, db)
+
+        # Search for items with the search query
+        if params.search_query:
+            items = await search_items(params.search_query, items, db)
 
         # Transform items
         product_list = [

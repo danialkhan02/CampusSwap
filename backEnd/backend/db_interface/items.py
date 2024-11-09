@@ -21,7 +21,8 @@ from backend.db_models.users import UsersOrm
 from backend.models.item import Item, ProductListQueryParams
 from sqlalchemy.sql import func
 from dotenv import load_dotenv
-from backend.db_models.items import interested_buyers
+from backend.db_models.items import interested_buyers, ProductEmbeddingsOrm
+from backend.openai_integration.openai_client import OpenAIClient
 from backend.models.user import User
 from backend.models.provider import Provider
 from backend.models.item import ItemCategory, ItemCondition
@@ -549,3 +550,26 @@ def apply_product_filters_with_cache(
     items = query.offset((params.page - 1) * params.limit).limit(params.limit).all()
 
     return items, total
+
+async def search_items(search_query: str, items: List[ItemsOrm], db: Session):
+    # Get all product embeddings from database filtered by the items
+    product_embeddings = db.query(ProductEmbeddingsOrm).filter(
+        ProductEmbeddingsOrm.product_id.in_([item.id for item in items])
+    ).all()
+    
+    # Search products using embeddings
+    search_results = await OpenAIClient.search_products(
+        search_query, 
+        [{"product_id": pe.product_id, **{
+            f"{field}_embedding": getattr(pe, f"{field}_embedding")
+            for field in ["name", "category", "address", "price", "description", "condition"]
+        }} for pe in product_embeddings]
+    )
+    
+    # Get full product details for matches
+    results = []
+    for result in search_results:
+        product = db.query(ItemsOrm).filter(ItemsOrm.id == result["product_id"]).first()
+        results.append(product)
+
+    return results
