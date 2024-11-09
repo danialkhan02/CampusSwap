@@ -8,7 +8,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ProductCard from 'pages/HomePage/components/ProductCard';
 import { useCallback, useState } from 'react';
-import { ILocation, IProduct, useSearchProducts } from 'pages/HomePage/queries';
+import { ILocation, ProductListResponse, useSearchProducts } from 'pages/HomePage/queries';
 import Typography from '@mui/material/Typography';
 import debounce from 'lodash/debounce';
 import {
@@ -26,7 +26,7 @@ import SearchLoadingState from './SearchLoadingState';
 
 
 type TProps = {
-  productsData: TApiResponse<IProduct[]>;
+  productsData: TApiResponse<ProductListResponse>;
   showEditButton?: boolean;
   onFilterChange: (newFilters: IFilters) => void;
   onApplyFilter: () => void;
@@ -108,9 +108,7 @@ export default function ProductList({
     debouncedSearch(newValue);
   };
 
-  const displayedProducts = searchTerm.length >= 2
-    ? searchResults?.data || []
-    : productsData?.data || [];
+  const displayedProducts = productsData?.data.items || [];
 
   return (
     <>
