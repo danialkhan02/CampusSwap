@@ -12,7 +12,7 @@ import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { useMemo, useState } from 'react';
 import { ESort } from 'pages/HomePage/constants';
-import { defaultFilters } from 'pages/HomePage/HomePage';
+import { defaultFilters, useBreakpointLimit } from 'pages/HomePage/HomePage';
 import { Pagination } from '@mui/material';
 
 
@@ -26,12 +26,15 @@ export default function UserListings() {
   const [applyFilter, setApplyFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const currentLimit = useBreakpointLimit();
+
   const queryParams = useMemo(() => {
     if (!applyFilter && !applySort && !applySearch) {
-      return { page: currentPage, limit: 20 };
+      return { page: currentPage, limit: currentLimit };
     }
-    return convertFiltersToQueryParams(activeFilters, currentSort, currentPage, 20, applySearch ? searchKeyword : '');
-  }, [activeFilters, applyFilter, applySearch, applySort, currentPage, currentSort, searchKeyword]);
+    return convertFiltersToQueryParams(activeFilters, currentSort, currentPage, currentLimit, applySearch ? searchKeyword : '');
+  }, [activeFilters, applyFilter, applySearch, applySort,
+    currentLimit, currentPage, currentSort, searchKeyword]);
 
   const queryKey = useMemo(() => ({
     ...listerProductListQueryKey(listerId, listerId),
