@@ -38,7 +38,7 @@ export default function ProductCard({
     event.stopPropagation();
     addWatchlistHook.mutate(undefined, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: productListQueryKey('page=1&limit=20') });
+        queryClient.invalidateQueries({ queryKey: productListQueryKey() });
         queryClient.invalidateQueries({ queryKey: listerWishListQueryKey(buyerId) });
       },
     });

@@ -6,27 +6,34 @@ import Spinner from 'components/Common/Spinner';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import { useMemo, useState } from 'react';
-import { convertFiltersToQueryParams, defaultFilters } from 'pages/HomePage/HomePage';
+import { convertFiltersToQueryParams, defaultFilters } from 'pages/HomePage/utils';
+import { ESort } from 'pages/HomePage/constants';
 
 
 export default function UserListings() {
   const listerId = retrieve(CacheKeys.userId, { parseJson: false });
   const [activeFilters, setActiveFilters] = useState<IFilters>(defaultFilters);
-
+  const [currentSort, setCurrentSort] = useState<ESort | null>(null);
+  const [applySort, setApplySort] = useState(false);
   const [applyFilter, setApplyFilter] = useState(false);
 
   const queryParams = useMemo(() => {
-    if (!applyFilter) {
+    if (!applyFilter && !applySort) {
       return { page: 1, limit: 20 };
     }
-    return convertFiltersToQueryParams(activeFilters);
-  }, [activeFilters, applyFilter]);
+    return convertFiltersToQueryParams(activeFilters, currentSort);
+  }, [activeFilters, applyFilter, applySort, currentSort]);
+
+  const queryKey = useMemo(() => ({
+    ...listerProductListQueryKey(listerId),
+    params: queryParams,
+  }), [listerId, queryParams]);
 
   const {
     data: productsData,
     isLoading: productsListLoading,
-  } = useGetListerProductList(listerId, {
-    queryKey: listerProductListQueryKey(listerId),
+  } = useGetListerProductList(listerId, queryParams, {
+    queryKey,
   });
 
   const handleFilterChange = (newFilters: IFilters) => {
@@ -43,6 +50,20 @@ export default function UserListings() {
     setApplyFilter(false);
   };
 
+  const handleSortChange = (newSort: ESort) => {
+    setCurrentSort(newSort);
+    setApplySort(false);
+  };
+
+  const handleApplySort = () => {
+    setApplySort(true);
+  };
+
+  const handleClearSort = () => {
+    setCurrentSort(null);
+    setApplySort(false);
+  };
+
   if (!productsData || productsListLoading || !productsData.data) {
     return <Spinner />;
   }
@@ -54,9 +75,13 @@ export default function UserListings() {
       <ProductList
         productsData={productsData}
         filters={activeFilters}
+        activeSort={currentSort}
         onFilterChange={handleFilterChange}
         onApplyFilter={handleApplyFilter}
         onClearFilters={handleClearFilters}
+        onSortChange={handleSortChange}
+        onApplySort={handleApplySort}
+        onClearSort={handleClearSort}
         isFiltersApplied={applyFilter}
         showEditButton
       />

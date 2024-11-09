@@ -1,6 +1,6 @@
 import Grid from '@mui/material/Grid';
 import {
-  Button, CircularProgress, Fade, InputAdornment, TextField,
+  Button, CircularProgress, Fade, InputAdornment, ListItemText, Popover, TextField,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import Stack from '@mui/material/Stack';
@@ -11,9 +11,17 @@ import { useCallback, useState } from 'react';
 import { ILocation, IProduct, useSearchProducts } from 'pages/HomePage/queries';
 import Typography from '@mui/material/Typography';
 import debounce from 'lodash/debounce';
-import { ECategory, ECondition } from 'pages/HomePage/constants';
+import {
+  ECategory, ECondition, ESort, sortingParsed,
+} from 'pages/HomePage/constants';
 import FilterDrawer from 'pages/HomePage/components/FilterDrawer';
 import { TApiResponse } from 'utils/apiResponse.type';
+import Box from '@mui/material/Box';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SearchLoadingState from './SearchLoadingState';
 
 
@@ -25,7 +33,10 @@ type TProps = {
   onClearFilters: () => void;
   filters: IFilters;
   isFiltersApplied: boolean;
-
+  onSortChange: (newSort: ESort) => void;
+  onApplySort: () => void;
+  onClearSort: () => void;
+  activeSort: ESort | null;
 }
 
 export interface IFilters {
@@ -42,10 +53,43 @@ export interface IFilters {
 export default function ProductList({
   showEditButton = false,
   productsData, onFilterChange, onApplyFilter, onClearFilters,
-  filters, isFiltersApplied,
+  filters, isFiltersApplied, onSortChange, onApplySort, onClearSort, activeSort,
 }: TProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [tempSort, setTempSort] = useState<ESort | null>(activeSort);
+
+  const handleSortClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleSortClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleSortSelect = (value: ESort | null) => {
+    setTempSort(value);
+  };
+
+  const handleApplySort = () => {
+    if (tempSort === null) {
+      onClearSort();
+    }
+    else {
+      onSortChange(tempSort);
+      onApplySort();
+    }
+    handleSortClose();
+  };
+
+  const handleCancelSort = () => {
+    handleSortClose();
+  };
+
+  const currentSortLabel = activeSort === null ? 'Featured'
+    : sortingParsed.parse(activeSort).title;
+
 
   const { data: searchResults, isLoading: isSearching } = useSearchProducts(searchTerm, {
     enabled: searchTerm.length >= 2,
@@ -102,10 +146,84 @@ export default function ProductList({
               {' '}
               {isFiltersApplied ? '(Applied)' : ''}
             </Button>
-            <Button endIcon={<KeyboardArrowDownIcon />}>Sort By: Featured</Button>
+            <Button
+              endIcon={<KeyboardArrowDownIcon />}
+              onClick={handleSortClick}
+              variant={activeSort !== undefined ? 'contained' : 'outlined'}
+            >
+              Sort By:
+              {' '}
+              {currentSortLabel}
+            </Button>
           </Stack>
         </Grid>
       </Grid>
+
+      {/* Sort Popover */}
+      <Popover
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCancelSort}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
+        <Box sx={{ width: 250 }}>
+          <Box sx={{ p: 2 }}>
+            <Typography variant='subtitle1' gutterBottom>Sort By</Typography>
+            <MenuItem
+              selected={tempSort === null}
+              onClick={() => handleSortSelect(null)}
+              sx={{ minHeight: 40 }}
+            >
+              <ListItemIcon sx={{ minWidth: 'auto', ml: 1, mr: 0 }}>
+                <AutoAwesomeIcon fontSize='small' />
+              </ListItemIcon>
+              <ListItemText primary='Featured' />
+            </MenuItem>
+            {Object.values(ESort).map((option) => (
+              <MenuItem
+                key={option}
+                selected={tempSort === option}
+                onClick={() => handleSortSelect(option)}
+                sx={{ minHeight: 40 }}
+              >
+                <ListItemIcon sx={{ minWidth: 'auto', ml: 1, mr: 0 }}>
+                  {option.includes('asc') ? (
+                    <ArrowDropUpIcon />
+                  ) : (
+                    <ArrowDropDownIcon />
+                  )}
+                </ListItemIcon>
+                <ListItemText primary={sortingParsed.parse(option).title} />
+              </MenuItem>
+            ))}
+          </Box>
+          <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
+            <Stack direction='row' spacing={1}>
+              <Button
+                fullWidth
+                variant='outlined'
+                onClick={handleCancelSort}
+              >
+                Cancel
+              </Button>
+              <Button
+                fullWidth
+                variant='contained'
+                onClick={handleApplySort}
+              >
+                Apply
+              </Button>
+            </Stack>
+          </Box>
+        </Box>
+      </Popover>
 
       {/* Filter Drawer */}
       <FilterDrawer
