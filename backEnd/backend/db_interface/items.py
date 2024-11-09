@@ -16,7 +16,7 @@ from backend.db_models.connection import Session as DefaultSession
 from backend.db_models.items import ItemsOrm
 from backend.db_models.item_images import ItemImagesOrm
 from backend.db_models.users import UsersOrm
-from backend.models.item import Item
+from backend.models.item import Item, ProductListQueryParams
 from sqlalchemy.sql import func
 from dotenv import load_dotenv
 from backend.db_models.items import interested_buyers
@@ -470,3 +470,42 @@ def get_interested_items(user_id: str, db: Session):
     )
     
     return interested_products
+
+def apply_product_filters(query, params: ProductListQueryParams, db: Session):
+    """Apply common filters and sorting to product queries"""
+    # Apply filters
+    if params.category:
+        query = query.filter(ItemsOrm.category == params.category)
+
+    if params.condition:
+        query = query.filter(ItemsOrm.condition == params.condition)
+
+    if params.price_min is not None:
+        query = query.filter(ItemsOrm.price >= params.price_min)
+
+    if params.price_max is not None:
+        query = query.filter(ItemsOrm.price <= params.price_max)
+
+    # Location-based filtering
+    if all(coord is not None for coord in [params.latitude, params.longitude, params.radius]):
+        distance = func.acos(
+            func.sin(func.radians(params.latitude)) * 
+            func.sin(func.radians(ItemsOrm.latitude)) +
+            func.cos(func.radians(params.latitude)) * 
+            func.cos(func.radians(ItemsOrm.latitude)) * 
+            func.cos(func.radians(ItemsOrm.longitude) - 
+            func.radians(params.longitude))
+        ) * 6371
+        query = query.filter(distance <= params.radius)
+
+    # Apply sorting
+    if params.sort:
+        sort_mapping = {
+            "price_asc": ItemsOrm.price.asc(),
+            "price_desc": ItemsOrm.price.desc(),
+            "created_at_asc": ItemsOrm.created_at.asc(),
+            "created_at_desc": ItemsOrm.created_at.desc()
+        }
+        query = query.order_by(sort_mapping[params.sort])
+
+    return query
