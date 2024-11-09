@@ -8,20 +8,44 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ProductCard from 'pages/HomePage/components/ProductCard';
 import { useCallback, useState } from 'react';
-import { IProduct, useSearchProducts } from 'pages/HomePage/queries';
-import { TApiResponse } from 'utils/apiResponse.type';
+import { ILocation, IProduct, useSearchProducts } from 'pages/HomePage/queries';
 import Typography from '@mui/material/Typography';
 import debounce from 'lodash/debounce';
+import { ECategory, ECondition } from 'pages/HomePage/constants';
+import FilterDrawer from 'pages/HomePage/components/FilterDrawer';
+import { TApiResponse } from 'utils/apiResponse.type';
 import SearchLoadingState from './SearchLoadingState';
 
 
 type TProps = {
   productsData: TApiResponse<IProduct[]>;
   showEditButton?: boolean;
+  onFilterChange: (newFilters: IFilters) => void;
+  onApplyFilter: () => void;
+  onClearFilters: () => void;
+  filters: IFilters;
+  isFiltersApplied: boolean;
+
 }
 
-export default function ProductList({ productsData, showEditButton = false }: TProps) {
+export interface IFilters {
+    condition: {
+        [K in ECondition]: boolean;
+    };
+    location: ILocation;
+    radius: number;
+    category: ECategory | null;
+    price: [number, number];
+    seller_rating: number;
+}
+
+export default function ProductList({
+  showEditButton = false,
+  productsData, onFilterChange, onApplyFilter, onClearFilters,
+  filters, isFiltersApplied,
+}: TProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   const { data: searchResults, isLoading: isSearching } = useSearchProducts(searchTerm, {
     enabled: searchTerm.length >= 2,
@@ -42,7 +66,7 @@ export default function ProductList({ productsData, showEditButton = false }: TP
 
   const displayedProducts = searchTerm.length >= 2
     ? searchResults?.data || []
-    : productsData.data;
+    : productsData?.data || [];
 
   return (
     <>
@@ -60,20 +84,38 @@ export default function ProductList({ productsData, showEditButton = false }: TP
                 </InputAdornment>
               ),
               endAdornment: isSearching && (
-                <InputAdornment position='end'>
-                  <CircularProgress size={20} />
-                </InputAdornment>
+              <InputAdornment position='end'>
+                <CircularProgress size={20} />
+              </InputAdornment>
               ),
             }}
           />
         </Grid>
         <Grid item xs={12} sm={8} md={9} display='flex' justifyContent='flex-end'>
           <Stack direction='row' spacing={1}>
-            <Button endIcon={<FilterListIcon />}>Filters</Button>
+            <Button
+              endIcon={<FilterListIcon />}
+              onClick={() => setIsFilterDrawerOpen(true)}
+              variant={isFiltersApplied ? 'contained' : 'outlined'}
+            >
+              Filters
+              {' '}
+              {isFiltersApplied ? '(Applied)' : ''}
+            </Button>
             <Button endIcon={<KeyboardArrowDownIcon />}>Sort By: Featured</Button>
           </Stack>
         </Grid>
       </Grid>
+
+      {/* Filter Drawer */}
+      <FilterDrawer
+        open={isFilterDrawerOpen}
+        onClose={() => setIsFilterDrawerOpen(false)}
+        filters={filters}
+        onFilterChange={onFilterChange}
+        onApply={onApplyFilter}
+        onClear={onClearFilters}
+      />
 
       {/* Searching State */}
       <SearchLoadingState

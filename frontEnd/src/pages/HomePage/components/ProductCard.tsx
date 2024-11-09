@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Box, Card, CardMedia, CardContent, Typography, Button,
+  Box, Button, Card, CardContent, CardMedia, Typography,
 } from '@mui/material';
 import {
   IProduct, listerWishListQueryKey, productListQueryKey, useAddWatchlist,
@@ -38,7 +38,7 @@ export default function ProductCard({
     event.stopPropagation();
     addWatchlistHook.mutate(undefined, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: productListQueryKey() });
+        queryClient.invalidateQueries({ queryKey: productListQueryKey('page=1&limit=20') });
         queryClient.invalidateQueries({ queryKey: listerWishListQueryKey(buyerId) });
       },
     });
