@@ -20,6 +20,7 @@ from backend.db_models.items import ItemsOrm, ProductEmbeddingsOrm, interested_b
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
 from backend.models.item import Item, ProductListQueryParams
+from enum import Enum
 import uuid as uuid_pkg
 from sqlalchemy.sql import func
 from backend.openai_integration.openai_client import OpenAIClient
@@ -83,8 +84,10 @@ async def get_product_list(
         # Check cache first for exact query
         cache_key = generate_cache_key(params)
         cached_response = redis_client.get(cache_key)
+        
         if cached_response:
             print("Cache hit - full response")
+            # Convert cached data to ApiResponse format
             return ApiResponse(**cached_response)
 
         # Build the base query
@@ -112,15 +115,15 @@ async def get_product_list(
                 "id": str(item.id),
                 "name": item.name,
                 "price": item.price,
-                "category": item.category.value,
-                "condition": item.condition.value,
+                "category": item.category.value if isinstance(item.category, Enum) else item.category,
+                "condition": item.condition.value if isinstance(item.condition, Enum) else item.condition,
                 "images": add_first_image_to_items(item, db),
                 "location": {
                     "address": item.address,
                     "latitude": item.latitude,
                     "longitude": item.longitude
                 },
-                "seller": handle_get_basic_user_info(str(item.lister_id))
+                #"seller": handle_get_basic_user_info(str(item.lister_id))
             }
             for item in items
         ]
@@ -144,6 +147,7 @@ async def get_product_list(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
 
 @router.get("/{product_id}", summary="Get a product by ID", response_model=ApiResponse)
 async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
