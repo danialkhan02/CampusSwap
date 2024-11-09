@@ -64,6 +64,7 @@ API Gateway
    brew install redis
    brew services start redis
    ```
+   Note if you want to clear the cache, you can run `redis-cli FLUSHALL`
 
 ### Running the server
 1. Install dependencies: `poetry install --sync`
