@@ -10,7 +10,7 @@ from backend.db_interface.items import (
     add_interested_buyer,
     get_product_details,
     get_interested_items,
-    apply_product_filters
+    apply_product_filters_with_cache
 )
 from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile, increment_num_listings, decrement_num_listings
 from backend.models.seller_profile import SellerProfile
@@ -99,98 +99,8 @@ async def get_product_list(
             .filter(ItemsOrm.deleted_at.is_(None))
         )
 
-        # Try to get filtered count from cache
-        total = None
-        price_range = None
-        if params.price_min is not None and params.price_max is not None:
-            price_range = f"{params.price_min}-{params.price_max}"
-        
-        if params.category:
-            total = redis_client.get_filter_count(
-                category=params.category.value if hasattr(params.category, 'value') else params.category,
-                condition=params.condition.value if hasattr(params.condition, 'value') else params.condition,
-                price_range=price_range
-            )
-
-        # Apply filters
-        if params.category:
-            query = query.filter(ItemsOrm.category == params.category)
-
-        if params.condition:
-            query = query.filter(ItemsOrm.condition == params.condition)
-
-        if params.price_min is not None:
-            query = query.filter(ItemsOrm.price >= params.price_min)
-
-        if params.price_max is not None:
-            query = query.filter(ItemsOrm.price <= params.price_max)
-
-        # Check location cache if location filtering is requested
-        location_results = None
-        if all(coord is not None for coord in [params.latitude, params.longitude, params.radius]):
-            location_results = redis_client.get_location_products(
-                params.latitude, 
-                params.longitude, 
-                params.radius
-            )
-            
-            if not location_results:
-                # Calculate distance if not in cache
-                distance = func.acos(
-                    func.sin(func.radians(params.latitude)) * 
-                    func.sin(func.radians(ItemsOrm.latitude)) +
-                    func.cos(func.radians(params.latitude)) * 
-                    func.cos(func.radians(ItemsOrm.latitude)) * 
-                    func.cos(func.radians(ItemsOrm.longitude) - 
-                    func.radians(params.longitude))
-                ) * 6371
-                query = query.filter(distance <= params.radius)
-                
-                # Cache the location results for future use
-                location_items = query.all()
-                serialized_location_items = [
-                    {
-                        "id": str(item.id),
-                        "name": item.name,
-                        "price": item.price,
-                        "category": item.category.value,
-                        "condition": item.condition.value,
-                        "latitude": item.latitude,
-                        "longitude": item.longitude,
-                    }
-                    for item in location_items
-                ]
-
-                redis_client.set_location_products(
-                    serialized_location_items,
-                    params.latitude,
-                    params.longitude,
-                    params.radius
-                )
-
-        # Apply sorting
-        if params.sort:
-            sort_mapping = {
-                "price_asc": ItemsOrm.price.asc(),
-                "price_desc": ItemsOrm.price.desc(),
-                "created_at_asc": ItemsOrm.created_at.asc(),
-                "created_at_desc": ItemsOrm.created_at.desc()
-            }
-            query = query.order_by(sort_mapping[params.sort])
-
-        # Get total count if not cached
-        if total is None:
-            total = query.count()
-            if params.category:
-                redis_client.set_filter_count(
-                    total,
-                    category=params.category.value if hasattr(params.category, 'value') else params.category,
-                    condition=params.condition.value if hasattr(params.condition, 'value') else params.condition,
-                    price_range=price_range
-                )
-
-        # Get paginated results
-        items = query.offset((params.page - 1) * params.limit).limit(params.limit).all()
+        # Apply filters and get results with caching
+        items, total = apply_product_filters_with_cache(query, params, db)
 
         # Transform items efficiently
         product_list = [
@@ -289,8 +199,8 @@ async def get_products_by_lister(
             )
         )
 
-        # Apply common filters
-        query = apply_product_filters(query, params, db)
+        # Apply filters and get results with caching
+        items, total = apply_product_filters_with_cache(query, params, db)
         
         # Get total count
         total = query.count()
@@ -371,6 +281,9 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
 
         response.status_code = status.HTTP_201_CREATED
         increment_num_listings(lister_uuid, db)
+
+        # Clear all relevant caches except for location
+        redis_client.clear_all_caches_except_location()
         return ApiResponse(data=result)
         
     except ValueError as e:
@@ -417,6 +330,9 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
             db.add(product_embedding)
             
         db.commit()
+
+        # Clear all relevant caches except for location
+        redis_client.clear_all_caches_except_location()
         
         return ApiResponse(data=get_product_details(result, db))
         
@@ -463,6 +379,10 @@ async def delete_product(product_id: str, user_id: str, response: Response, db: 
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product not found"))
         decrement_num_listings(item.lister.id, db)
+
+        # Clear all relevant caches except for location
+        redis_client.clear_all_caches_except_location()
+        
         return ApiResponse(data={"success": True})
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -539,8 +459,8 @@ async def get_interested_products(
             )
         )
 
-        # Apply common filters
-        query = apply_product_filters(query, params, db)
+        # Apply filters and get results with caching
+        items, total = apply_product_filters_with_cache(query, params, db)
         
         # Get total count
         total = query.count()
