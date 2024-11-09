@@ -13,6 +13,7 @@ from backend.db_interface.items import (
     apply_product_filters_with_cache,
     add_first_image_to_items
 )
+from backend.db_interface.users import handle_get_basic_user_info
 from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile, increment_num_listings, decrement_num_listings
 from backend.models.seller_profile import SellerProfile
 from backend.db_models.items import ItemsOrm, ProductEmbeddingsOrm, interested_buyers
@@ -90,12 +91,14 @@ async def get_product_list(
         query = (
             db.query(
                 ItemsOrm.id,
+                ItemsOrm.lister_id,
                 ItemsOrm.name,
                 ItemsOrm.price,
                 ItemsOrm.category,
                 ItemsOrm.condition,
                 ItemsOrm.latitude,
                 ItemsOrm.longitude,
+                ItemsOrm.address,
             )
             .filter(ItemsOrm.deleted_at.is_(None))
         )
@@ -111,7 +114,13 @@ async def get_product_list(
                 "price": item.price,
                 "category": item.category.value,
                 "condition": item.condition.value,
-                "images": add_first_image_to_items(item, db)
+                "images": add_first_image_to_items(item, db),
+                "location": {
+                    "address": item.address,
+                    "latitude": item.latitude,
+                    "longitude": item.longitude
+                },
+                "seller": handle_get_basic_user_info(str(item.lister_id))
             }
             for item in items
         ]
@@ -194,6 +203,8 @@ async def get_products_by_lister(
                 ItemsOrm.condition,
                 ItemsOrm.latitude,
                 ItemsOrm.longitude,
+                ItemsOrm.address,
+                ItemsOrm.lister_id
             )
             .filter(
                 ItemsOrm.lister_id == uuid_pkg.UUID(lister_id),
@@ -218,7 +229,13 @@ async def get_products_by_lister(
                 "price": item.price,
                 "category": item.category.value,
                 "condition": item.condition.value,
-                "images": add_first_image_to_items(item, db)
+                "images": add_first_image_to_items(item, db),
+                "location": {
+                    "address": item.address,
+                    "latitude": item.latitude,
+                    "longitude": item.longitude
+                },
+                "seller": handle_get_basic_user_info(str(item.lister_id))
             }
             for item in items
         ]
@@ -453,6 +470,8 @@ async def get_interested_products(
                 ItemsOrm.condition,
                 ItemsOrm.latitude,
                 ItemsOrm.longitude,
+                ItemsOrm.address,
+                ItemsOrm.lister_id
             )
             .join(interested_buyers)
             .filter(
@@ -479,7 +498,13 @@ async def get_interested_products(
                 "price": item.price,
                 "category": item.category.value,
                 "condition": item.condition.value,
-                "images": add_first_image_to_items(item, db)
+                "images": add_first_image_to_items(item, db),
+                "location": {
+                    "address": item.address,
+                    "latitude": item.latitude,
+                    "longitude": item.longitude
+                },
+                "seller": handle_get_basic_user_info(str(item.lister_id))
             }
             for item in items
         ]
