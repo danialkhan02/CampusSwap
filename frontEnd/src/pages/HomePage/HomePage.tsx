@@ -6,6 +6,8 @@ import { convertFiltersToQueryParams, productListQueryKey, useGetProductList } f
 import { useMemo, useState } from 'react';
 import { ECondition, ESort } from 'pages/HomePage/constants';
 import { Pagination } from '@mui/material';
+import { retrieve } from 'utils/cacheUtils';
+import { CacheKeys } from 'utils/constants';
 
 
 export const defaultFilters: IFilters = {
@@ -26,6 +28,7 @@ export const defaultFilters: IFilters = {
 
 
 export default function HomePage() {
+  const userId = retrieve(CacheKeys.userId, { parseJson: false });
   const [activeFilters, setActiveFilters] = useState<IFilters>(defaultFilters);
   const [currentSort, setCurrentSort] = useState<ESort | null>(null);
   const [applySort, setApplySort] = useState(false);
@@ -35,17 +38,18 @@ export default function HomePage() {
   // Convert filters to query params only when applyFilter is true
   const queryParams = useMemo(() => {
     if (!applyFilter && !applySort) {
-      return { page: currentPage, limit: 1 };
+      return { page: currentPage, limit: 20 };
     }
-    return convertFiltersToQueryParams(activeFilters, currentSort, currentPage, 1);
+    return convertFiltersToQueryParams(activeFilters, currentSort, currentPage, 20);
   }, [activeFilters, applyFilter, applySort, currentPage, currentSort]);
 
   const queryKey = useMemo(() => ({
-    ...productListQueryKey(),
+    ...productListQueryKey(userId),
     params: queryParams,
-  }), [queryParams]);
+  }), [queryParams, userId]);
 
   const { data: productsData, isLoading: productsListLoading } = useGetProductList(
+    userId,
     queryParams,
     {
       queryKey,

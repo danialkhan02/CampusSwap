@@ -23,6 +23,8 @@ import {
   categoryParsed, conditionParsed, ECategory, ECondition,
 } from 'pages/HomePage/constants';
 import Spinner from 'components/Common/Spinner';
+import { retrieve } from 'utils/cacheUtils';
+import { CacheKeys } from 'utils/constants';
 
 
 type TProps = {
@@ -37,6 +39,7 @@ export default function UpdateListingModal({
   currentListing,
 }: TProps) {
   const queryClient = useQueryClient();
+  const userId = retrieve(CacheKeys.userId, { parseJson: false });
   const updateProductHook = useUpdateProduct(currentListing.id || '');
   const { addAlert } = useContext(AppAlertsCtx);
   const { data: productDetailsData, isLoading } = useGetProductDetails(currentListing?.id || '', {
@@ -97,7 +100,7 @@ export default function UpdateListingModal({
         });
         onClose();
         queryClient.invalidateQueries(
-          { queryKey: listerProductListQueryKey(currentListing.seller?.id || '') },
+          { queryKey: listerProductListQueryKey(currentListing.seller?.id || '', userId) },
         );
       },
       onError: () => {

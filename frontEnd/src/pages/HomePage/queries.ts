@@ -22,6 +22,7 @@ export interface IProduct {
     seller?: IUser;
     interested_buyers?: IUser[];
     location: ILocation;
+    interested?: boolean;
 }
 
 export interface ILocation {
@@ -156,16 +157,17 @@ export function useGetProductDetails(
   );
 }
 
-export const productListQueryKey = () => ['product', 'list'];
+export const productListQueryKey = (userId: string) => ['product', 'list', userId];
 
 export function useGetProductList(
+  userId: string,
   filters: IProductListQueryParams,
   options?: UseQueryOptions<TApiResponse<ProductListResponse>, Error>,
 ) {
   return useQuery<TApiResponse<ProductListResponse>, Error>(
     {
-      queryKey: productListQueryKey(),
-      queryFn: () => http.get(`${product.list}?${buildQueryString(filters).toString()}`),
+      queryKey: productListQueryKey(userId),
+      queryFn: () => http.get(`${product.list(userId)}?${buildQueryString(filters).toString()}`),
       retry: false,
       ...options,
     },
@@ -197,17 +199,18 @@ export function useAddWatchlist(
   );
 }
 
-export const listerProductListQueryKey = (listerId: string) => ['product', 'lister', 'list', listerId];
+export const listerProductListQueryKey = (listerId: string, userId: string) => ['product', 'lister', 'list', listerId, userId];
 
 export function useGetListerProductList(
   listerId: string,
+  userId: string,
   filters: IProductListQueryParams,
   options?: UseQueryOptions<TApiResponse<ProductListResponse>, Error>,
 ) {
   return useQuery<TApiResponse<ProductListResponse>, Error>(
     {
-      queryKey: listerProductListQueryKey(listerId),
-      queryFn: () => http.get(`${product.byLister(listerId)}?${buildQueryString(filters).toString()}`),
+      queryKey: listerProductListQueryKey(listerId, userId),
+      queryFn: () => http.get(`${product.byLister(listerId, userId)}?${buildQueryString(filters).toString()}`),
       retry: false,
       ...options,
     },
