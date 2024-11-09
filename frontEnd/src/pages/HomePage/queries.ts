@@ -6,7 +6,6 @@ import {
 } from '@tanstack/react-query';
 import { product } from 'utils/apiUrls';
 import { ECategory, ECondition, ESort } from 'pages/HomePage/constants';
-import { IFilters } from 'pages/HomePage/components/ProductList';
 
 
 export interface IProduct {
@@ -57,6 +56,17 @@ export interface IProductListQueryParams {
     longitude?: number;
     radius?: number;
     search_query?: string;
+}
+
+export interface IFilters {
+    condition: {
+        [K in ECondition]: boolean;
+    };
+    location: ILocation;
+    radius: number;
+    category: ECategory | null;
+    price: [number, number];
+    seller_rating: number;
 }
 
 export function buildQueryString(filters: IProductListQueryParams) {

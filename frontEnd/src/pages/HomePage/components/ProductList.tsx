@@ -8,11 +8,9 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ProductCard from 'pages/HomePage/components/ProductCard';
 import { useState } from 'react';
-import { ILocation, ProductListResponse } from 'pages/HomePage/queries';
+import { IFilters, ProductListResponse } from 'pages/HomePage/queries';
 import Typography from '@mui/material/Typography';
-import {
-  ECategory, ECondition, ESort, sortingParsed,
-} from 'pages/HomePage/constants';
+import { ESort, sortingParsed } from 'pages/HomePage/constants';
 import FilterDrawer from 'pages/HomePage/components/FilterDrawer';
 import { TApiResponse } from 'utils/apiResponse.type';
 import Box from '@mui/material/Box';
@@ -39,17 +37,6 @@ type TProps = {
   onSearchChange: (newKeyword: string) => void;
   onApplySearch: () => void;
   currentSearch: string;
-}
-
-export interface IFilters {
-    condition: {
-        [K in ECondition]: boolean;
-    };
-    location: ILocation;
-    radius: number;
-    category: ECategory | null;
-    price: [number, number];
-    seller_rating: number;
 }
 
 export default function ProductList({

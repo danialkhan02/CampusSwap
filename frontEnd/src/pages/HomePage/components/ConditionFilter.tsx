@@ -2,7 +2,7 @@ import Stack from '@mui/material/Stack';
 import { conditionParsed, ECondition } from 'pages/HomePage/constants';
 import { Checkbox, FormControlLabel } from '@mui/material';
 import Box from '@mui/material/Box';
-import { IFilters } from 'pages/HomePage/components/ProductList';
+import { IFilters } from 'pages/HomePage/queries';
 
 
 type TProps = {

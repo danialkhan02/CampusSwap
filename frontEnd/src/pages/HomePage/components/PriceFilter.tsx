@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import { alpha, InputBase, Slider } from '@mui/material';
 import Stack from '@mui/material/Stack';
 import { inputBaseClasses } from '@mui/material/InputBase';
-import { IFilters } from 'pages/HomePage/components/ProductList';
+import { IFilters } from 'pages/HomePage/queries';
 
 
 type TProps = {

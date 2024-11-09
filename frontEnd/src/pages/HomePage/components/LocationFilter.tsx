@@ -3,8 +3,7 @@ import {
 } from '@mui/material';
 import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
-import { IFilters } from 'pages/HomePage/components/ProductList';
-import { ILocation } from 'pages/HomePage/queries';
+import { IFilters, ILocation } from 'pages/HomePage/queries';
 import { Logger } from 'utils/logger';
 
 

@@ -1,4 +1,3 @@
-import { IFilters } from 'pages/HomePage/components/ProductList';
 import {
   Accordion, AccordionDetails, AccordionSummary, Drawer,
 } from '@mui/material';
@@ -13,7 +12,7 @@ import CategoryFilter from 'pages/HomePage/components/CategoryFilter';
 import PriceFilter from 'pages/HomePage/components/PriceFilter';
 import LocationFilter from 'pages/HomePage/components/LocationFilter';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
-import { ILocation } from 'pages/HomePage/queries';
+import { IFilters, ILocation } from 'pages/HomePage/queries';
 import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';

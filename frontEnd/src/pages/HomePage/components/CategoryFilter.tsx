@@ -2,7 +2,7 @@ import Box from '@mui/material/Box';
 import { alpha, FormControlLabel, Radio } from '@mui/material';
 import Stack from '@mui/material/Stack';
 import { categoryParsed, ECategory } from 'pages/HomePage/constants';
-import { IFilters } from 'pages/HomePage/components/ProductList';
+import { IFilters } from 'pages/HomePage/queries';
 
 
 type TProps = {

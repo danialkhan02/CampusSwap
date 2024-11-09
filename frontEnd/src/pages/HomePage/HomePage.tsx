@@ -1,8 +1,10 @@
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
 import Spinner from 'components/Common/Spinner';
-import ProductList, { IFilters } from 'pages/HomePage/components/ProductList';
-import { convertFiltersToQueryParams, productListQueryKey, useGetProductList } from 'pages/HomePage/queries';
+import ProductList from 'pages/HomePage/components/ProductList';
+import {
+  convertFiltersToQueryParams, IFilters, productListQueryKey, useGetProductList,
+} from 'pages/HomePage/queries';
 import { useMemo, useState } from 'react';
 import { ECondition, ESort } from 'pages/HomePage/constants';
 import { Pagination } from '@mui/material';
