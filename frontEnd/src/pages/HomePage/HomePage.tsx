@@ -31,17 +31,20 @@ export default function HomePage() {
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
   const [activeFilters, setActiveFilters] = useState<IFilters>(defaultFilters);
   const [currentSort, setCurrentSort] = useState<ESort | null>(null);
+  const [searchKeyword, setSearchKeyWord] = useState('');
+  const [applySearch, setApplySearch] = useState(false);
   const [applySort, setApplySort] = useState(false);
   const [applyFilter, setApplyFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Convert filters to query params only when applyFilter is true
   const queryParams = useMemo(() => {
-    if (!applyFilter && !applySort) {
+    if (!applyFilter && !applySort && !applySearch) {
       return { page: currentPage, limit: 20 };
     }
-    return convertFiltersToQueryParams(activeFilters, currentSort, currentPage, 20);
-  }, [activeFilters, applyFilter, applySort, currentPage, currentSort]);
+
+    return convertFiltersToQueryParams(activeFilters, currentSort, currentPage, 20, applySearch ? searchKeyword : '');
+  }, [activeFilters, applyFilter, applySearch, applySort, currentPage, currentSort, searchKeyword]);
 
   const queryKey = useMemo(() => ({
     ...productListQueryKey(userId),
@@ -90,6 +93,17 @@ export default function HomePage() {
     setCurrentPage(1);
   };
 
+  const handleSearchChange = (newSearch: string) => {
+    setSearchKeyWord(newSearch);
+    setApplySearch(false); // Reset applySearch when user modifies the search
+    setCurrentPage(1);
+  };
+
+  const handleApplySearch = () => {
+    setApplySearch(true);
+    setCurrentPage(1);
+  };
+
   const handlePageChange = (_event: React.ChangeEvent<unknown>, page: number) => {
     setCurrentPage(page);
   };
@@ -108,12 +122,15 @@ export default function HomePage() {
       <ProductList
         productsData={productsData}
         filters={activeFilters}
+        currentSearch={searchKeyword}
         onFilterChange={handleFilterChange}
         onApplyFilter={handleApplyFilter}
         onClearFilters={handleClearFilters}
         onSortChange={handleSortChange}
         onApplySort={handleApplySort}
         onClearSort={handleClearSort}
+        onSearchChange={handleSearchChange}
+        onApplySearch={handleApplySearch}
         isFiltersApplied={applyFilter}
         activeSort={currentSort}
       />

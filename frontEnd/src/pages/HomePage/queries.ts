@@ -56,6 +56,7 @@ export interface IProductListQueryParams {
     latitude?: number;
     longitude?: number;
     radius?: number;
+    search_query?: string;
 }
 
 export function buildQueryString(filters: IProductListQueryParams) {
@@ -87,6 +88,9 @@ export function buildQueryString(filters: IProductListQueryParams) {
   if (filters.radius !== undefined) {
     queryParams.set('radius', filters.radius.toString());
   }
+  if (filters.search_query !== undefined) {
+    queryParams.set('search_query', filters.search_query.toString());
+  }
 
   return queryParams;
 }
@@ -96,6 +100,7 @@ export const convertFiltersToQueryParams = (
   sort?: ESort | null,
   page?: number,
   limit?: number,
+  search?: string,
 ): IProductListQueryParams => {
   let finalParams: IProductListQueryParams = {
     page: 1,
@@ -135,6 +140,13 @@ export const convertFiltersToQueryParams = (
     finalParams = {
       ...finalParams,
       sort,
+    };
+  }
+
+  if (search) {
+    finalParams = {
+      ...finalParams,
+      search_query: search,
     };
   }
 

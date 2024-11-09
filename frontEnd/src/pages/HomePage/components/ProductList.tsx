@@ -1,16 +1,15 @@
 import Grid from '@mui/material/Grid';
 import {
-  Button, CircularProgress, Fade, InputAdornment, ListItemText, Popover, TextField,
+  Button, ListItemText, Popover, TextField,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import Stack from '@mui/material/Stack';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ProductCard from 'pages/HomePage/components/ProductCard';
-import { useCallback, useState } from 'react';
-import { ILocation, ProductListResponse, useSearchProducts } from 'pages/HomePage/queries';
+import { useState } from 'react';
+import { ILocation, ProductListResponse } from 'pages/HomePage/queries';
 import Typography from '@mui/material/Typography';
-import debounce from 'lodash/debounce';
 import {
   ECategory, ECondition, ESort, sortingParsed,
 } from 'pages/HomePage/constants';
@@ -22,7 +21,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import ArrowDropUpIcon from '@mui/icons-material/ArrowDropUp';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import SearchLoadingState from './SearchLoadingState';
+import IconButton from '@mui/material/IconButton';
 
 
 type TProps = {
@@ -37,6 +36,9 @@ type TProps = {
   onApplySort: () => void;
   onClearSort: () => void;
   activeSort: ESort | null;
+  onSearchChange: (newKeyword: string) => void;
+  onApplySearch: () => void;
+  currentSearch: string;
 }
 
 export interface IFilters {
@@ -54,8 +56,8 @@ export default function ProductList({
   showEditButton = false,
   productsData, onFilterChange, onApplyFilter, onClearFilters,
   filters, isFiltersApplied, onSortChange, onApplySort, onClearSort, activeSort,
+  onSearchChange, onApplySearch, currentSearch,
 }: TProps) {
-  const [searchTerm, setSearchTerm] = useState('');
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [tempSort, setTempSort] = useState<ESort | null>(activeSort);
@@ -90,48 +92,55 @@ export default function ProductList({
   const currentSortLabel = activeSort === null ? 'Featured'
     : sortingParsed.parse(activeSort).title;
 
-
-  const { data: searchResults, isLoading: isSearching } = useSearchProducts(searchTerm, {
-    enabled: searchTerm.length >= 2,
-    queryKey: ['products', 'search', searchTerm],
-  });
-
-  const debouncedSearch = useCallback((term: string) => {
-    const handleSearch = debounce((value: string) => {
-      setSearchTerm(value);
-    }, 300);
-    handleSearch(term);
-  }, []);
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = event.target.value;
-    debouncedSearch(newValue);
-  };
-
   const displayedProducts = productsData?.data.items || [];
 
   return (
     <>
       <Grid container item xs={12} alignItems='center' spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} sm={4} md={3}>
-          <TextField
-            fullWidth
-            variant='outlined'
-            placeholder='Search...'
-            onChange={handleSearchChange}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position='start'>
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-              endAdornment: isSearching && (
-              <InputAdornment position='end'>
-                <CircularProgress size={20} />
-              </InputAdornment>
-              ),
-            }}
-          />
+          <Box display='flex' flexDirection='column' alignItems='center' gap={2}>
+            {/* Search Bar */}
+            <TextField
+              variant='outlined'
+              placeholder='Search Product Listings'
+              onChange={(e) => onSearchChange(e.target.value)}
+              value={currentSearch}
+              InputProps={{
+                endAdornment: (
+                  <IconButton
+                    onClick={onApplySearch}
+                    sx={{
+                      backgroundColor: currentSearch !== '' ? 'black' : 'inherit',
+                      color: currentSearch !== '' ? 'white' : 'inherit',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '&:hover': {
+                        transform: 'scale(1.05)',
+                        color: currentSearch !== '' ? 'white' : 'inherit',
+                        backgroundColor: currentSearch !== '' ? 'black' : 'inherit',
+                        boxShadow: 6,
+                      },
+                    }}
+                  >
+                    <SearchIcon />
+                  </IconButton>
+                ),
+                style: {
+                  borderRadius: 25,
+                  backgroundColor: '#f0f0f0',
+                  paddingLeft: 10,
+                  paddingRight: 10,
+                },
+              }}
+              sx={{
+                width: 400,
+                '& .MuiOutlinedInput-root': {
+                  '& fieldset': {
+                    border: 'none',
+                  },
+                },
+              }}
+            />
+          </Box>
         </Grid>
         <Grid item xs={12} sm={8} md={9} display='flex' justifyContent='flex-end'>
           <Stack direction='row' spacing={1}>
@@ -233,36 +242,28 @@ export default function ProductList({
         onClear={onClearFilters}
       />
 
-      {/* Searching State */}
-      <SearchLoadingState
-        isSearching={isSearching}
-        searchTerm={searchTerm}
-      />
-
       {/* Product Grid - Hidden while searching */}
-      <Fade in={!isSearching || searchTerm.length < 2} timeout={300}>
-        <Grid
-          container
-          item
-          xs={12}
-          spacing={3}
-          style={{
-            display: (isSearching && searchTerm.length >= 2) ? 'none' : 'flex',
-          }}
-        >
-          {displayedProducts?.length === 0 ? (
-            <Grid item xs={12} style={{ textAlign: 'center', marginTop: '20px' }} data-testid='empty-screen'>
-              <Typography variant='h6'>No listings found</Typography>
+      <Grid
+        container
+        item
+        xs={12}
+        spacing={3}
+        style={{
+          display: 'flex',
+        }}
+      >
+        {displayedProducts?.length === 0 ? (
+          <Grid item xs={12} style={{ textAlign: 'center', marginTop: '20px' }} data-testid='empty-screen'>
+            <Typography variant='h6'>No listings found</Typography>
+          </Grid>
+        ) : (
+          displayedProducts.map((product) => (
+            <Grid item xs={12} sm={6} md={4} lg={3} key={product.id} data-testid='product-card'>
+              <ProductCard product={product} showEditButton={showEditButton} />
             </Grid>
-          ) : (
-            displayedProducts.map((product) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={product.id} data-testid='product-card'>
-                <ProductCard product={product} showEditButton={showEditButton} />
-              </Grid>
-            ))
-          )}
-        </Grid>
-      </Fade>
+          ))
+        )}
+      </Grid>
     </>
   );
 }
