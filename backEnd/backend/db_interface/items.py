@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 
 from PIL import Image
 import base64
@@ -9,6 +9,7 @@ import uuid as uuid_pkg
 import logging
 
 import boto3
+from backend.cache.redis_client import redis_client
 from botocore.exceptions import ClientError
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -471,9 +472,26 @@ def get_interested_items(user_id: str, db: Session):
     
     return interested_products
 
-def apply_product_filters(query, params: ProductListQueryParams, db: Session):
-    """Apply common filters and sorting to product queries"""
-    # Apply filters
+def apply_product_filters_with_cache(
+    query, 
+    params: ProductListQueryParams, 
+    db: Session
+) -> tuple[list, int]:
+    """Apply filters, sorting, and caching to product queries"""
+    # Try to get filtered count from cache
+    total = None
+    price_range = None
+    if params.price_min is not None and params.price_max is not None:
+        price_range = f"{params.price_min}-{params.price_max}"
+    
+    if params.category:
+        total = redis_client.get_filter_count(
+            category=params.category.value if hasattr(params.category, 'value') else params.category,
+            condition=params.condition.value if hasattr(params.condition, 'value') else params.condition,
+            price_range=price_range
+        )
+
+    # Apply basic filters
     if params.category:
         query = query.filter(ItemsOrm.category == params.category)
 
@@ -486,8 +504,19 @@ def apply_product_filters(query, params: ProductListQueryParams, db: Session):
     if params.price_max is not None:
         query = query.filter(ItemsOrm.price <= params.price_max)
 
-    # Location-based filtering
+    # Location-based filtering with caching
     if all(coord is not None for coord in [params.latitude, params.longitude, params.radius]):
+        location_results = redis_client.get_location_products(
+            params.latitude, 
+            params.longitude, 
+            params.radius
+        )
+        
+        if location_results:
+            # Convert cached dictionaries back to list format if necessary
+            return [ItemsOrm(**item) for item in location_results], len(location_results)
+
+        # Calculate distance if not in cache
         distance = func.acos(
             func.sin(func.radians(params.latitude)) * 
             func.sin(func.radians(ItemsOrm.latitude)) +
@@ -508,4 +537,40 @@ def apply_product_filters(query, params: ProductListQueryParams, db: Session):
         }
         query = query.order_by(sort_mapping[params.sort])
 
-    return query
+    # Get total count if not cached
+    if total is None:
+        total = query.count()
+        if params.category:
+            redis_client.set_filter_count(
+                total,
+                category=params.category.value if hasattr(params.category, 'value') else params.category,
+                condition=params.condition.value if hasattr(params.condition, 'value') else params.condition,
+                price_range=price_range
+            )
+
+    # Get paginated results
+    items = query.offset((params.page - 1) * params.limit).limit(params.limit).all()
+
+    # Cache location results if applicable
+    if all(coord is not None for coord in [params.latitude, params.longitude, params.radius]):
+        serialized_items = [
+            {
+                "id": str(item.id),
+                "name": item.name,
+                "price": item.price,
+                "category": item.category.value,
+                "condition": item.condition.value,
+                "latitude": item.latitude,
+                "longitude": item.longitude,
+            }
+            for item in items
+        ]
+        redis_client.set_location_products(
+            serialized_items,
+            params.latitude,
+            params.longitude,
+            params.radius
+        )
+        return items, total  # Keep ORM objects for further handling
+
+    return items, total
