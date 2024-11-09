@@ -16,8 +16,9 @@ from backend.models.seller_profile import SellerProfile
 from backend.db_models.items import ItemsOrm, ProductEmbeddingsOrm
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
-from backend.models.item import Item
+from backend.models.item import Item, ProductListQueryParams
 import uuid as uuid_pkg
+from sqlalchemy.sql import func
 from backend.openai_integration.openai_client import OpenAIClient
 from backend.models.item import GenerateDescriptionRequest
 
@@ -61,72 +62,104 @@ async def search_products(
             detail=str(e)
         )
 
-@router.get("/list", summary="List all products", response_model=ApiResponse)
-async def get_product_list(response: Response, db: Session = Depends(get_db)):
+@router.get("/list", summary="List filtered products", response_model=ApiResponse)
+async def get_product_list(
+    response: Response,
+    db: Session = Depends(get_db),
+    params: ProductListQueryParams = Depends()
+):
     """
-    Get a list of all available products in the marketplace.
+    Get a filtered list of products with pagination.
 
-    This endpoint retrieves all products currently listed in the marketplace. 
-    It returns a comprehensive list of product details, including information 
-    about the seller, interested buyers, location, images, and other relevant 
-    attributes. The response is structured to facilitate easy consumption by 
-    clients, providing all necessary data in a single request.
+    This endpoint retrieves products based on the provided filters and pagination parameters.
+    It returns a list of products matching the specified criteria.
+
+    Parameters are provided through query parameters, validated by ProductListQueryParams.
 
     Responses:
-    - **200 OK**: Returns a list of products with their details.
+    - **200 OK**: Returns a list of filtered products.
+    - **400 Bad Request**: If the input parameters are invalid.
     - **500 Internal Server Error**: If an unexpected error occurs during processing.
-
-    Example Response:
-    {
-        "data": [
-            {
-                "id": "product_id_1",
-                "name": "Product Name",
-                "price": 10.99,
-                "images": ["image_data_1", "image_data_2"],
-                "status": "STATUS_NEW",
-                "condition": "CONDITION_NEW",
-                "seller": {
-                    "id": "seller_id",
-                    "first_name": "Seller First Name",
-                    "last_name": "Seller Last Name",
-                    "email": "seller@example.com"
-                },
-                "interested_buyers": [
-                    {
-                        "id": "buyer_id",
-                        "first_name": "Buyer First Name",
-                        "last_name": "Buyer Last Name",
-                        "email": "buyer@example.com"
-                    }
-                ],
-                "location": {
-                    "latitude": 43.6532,
-                    "longitude": -79.3832,
-                    "address": "123 Test St"
-                },
-                "category": "TEXTBOOKS",
-                "description": "Product Description"
-            },
-            ...
-        ]
-    }
     """
     try:
-        with DefaultSession() as session:
-            items = list_items(session)
-            
-            # Transform items into the required response format
-            product_list = []
-            for item in items:
-                product_details = get_product_details(item, session)
-                product_list.append(product_details)
+        # Build the base query once
+        query = (
+            db.query(
+                ItemsOrm.id,
+                ItemsOrm.name,
+                ItemsOrm.price,
+                ItemsOrm.category,
+                ItemsOrm.condition,
+                ItemsOrm.latitude,
+                ItemsOrm.longitude,
+            )
+            .filter(ItemsOrm.deleted_at.is_(None))
+        )
 
-            return ApiResponse(data=product_list)
-            
+        # Apply filters
+        print("Reached part 1")
+        if params.category:
+            query = query.filter(ItemsOrm.category == params.category)
+        print("Reached part 2")
+        if params.condition:
+            query = query.filter(ItemsOrm.condition == params.condition)
+        print("Reached part 3")
+        if params.price_min is not None:
+            query = query.filter(ItemsOrm.price >= params.price_min)
+        print("Reached part 4")
+        if params.price_max is not None:
+            query = query.filter(ItemsOrm.price <= params.price_max)
+        print("Reached part 5")
+        # Location-based filtering
+        if all(coord is not None for coord in [params.latitude, params.longitude, params.radius]):
+            distance = func.acos(
+                func.sin(func.radians(params.latitude)) * 
+                func.sin(func.radians(ItemsOrm.latitude)) +
+                func.cos(func.radians(params.latitude)) * 
+                func.cos(func.radians(ItemsOrm.latitude)) * 
+                func.cos(func.radians(ItemsOrm.longitude) - 
+                func.radians(params.longitude))
+            ) * 6371
+            query = query.filter(distance <= params.radius)
+        print("Reached part 6")
+        # Apply sorting
+        if params.sort:
+            sort_mapping = {
+                "price_asc": ItemsOrm.price.asc(),
+                "price_desc": ItemsOrm.price.desc(),
+                "created_at_asc": ItemsOrm.created_at.asc(),
+                "created_at_desc": ItemsOrm.created_at.desc()
+            }
+            query = query.order_by(sort_mapping[params.sort])
+        print("Reached part 7")
+        # Get total count and paginated results in a single transaction
+        total = query.count()
+        items = query.offset((params.page - 1) * params.limit).limit(params.limit).all()
+        print("Reached part 8")
+        # Transform items efficiently
+        product_list = [
+            {
+                "id": str(item.id),
+                "name": item.name,
+                "price": item.price,
+                "category": item.category.value,
+                "condition": item.condition.value,
+            }
+            for item in items
+        ]
+        print("Reached part 9")
+        return ApiResponse(data={
+            "items": product_list,
+            "total": total,
+            "page": params.page,
+            "limit": params.limit
+        })
+
     except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ApiResponse(error=ErrMessage(message=str(e)))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 @router.get("/{product_id}", summary="Get a product by ID", response_model=ApiResponse)
 async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
