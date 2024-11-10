@@ -15,8 +15,8 @@ def seed_database(num_listings: int):
     try:
         # Get existing users
         users = session.query(UsersOrm).all()
-        if len(users) < 6:
-            raise ValueError("Database must have at least 6 users before seeding")
+        if len(users) < 2:
+            raise ValueError("Database must have at least 2 users before seeding")
         
         # 1. Create initial seller profiles
         sellers = seed_seller_profiles(session, users)

@@ -12,7 +12,7 @@ def seed_items(session: Session, sellers: list[UsersOrm], num_listings: int) -> 
     listings_per_seller = num_listings // len(sellers)
     item_ids = []
     
-    for seller in sellers:
+    for seller_id in [s.id for s in sellers]:  # Store only seller IDs
         for _ in range(listings_per_seller):
             # Get location with matching coordinates
             loc_data = get_location_with_coordinates()
@@ -28,7 +28,7 @@ def seed_items(session: Session, sellers: list[UsersOrm], num_listings: int) -> 
                 name=fake.catch_phrase(),
                 description=fake.paragraph(),
                 images=images,
-                lister_id=seller.id,
+                lister_id=seller_id,
                 price=round(random.uniform(10.0, 1000.0), 2),
                 location=location,
                 category=random.choice(list(ItemCategory)),
@@ -39,6 +39,6 @@ def seed_items(session: Session, sellers: list[UsersOrm], num_listings: int) -> 
             result = create_item(item, session)
             item_id = uuid.UUID(result["item_id"])
             item_ids.append(item_id)
-            logger.info(f"Created item {item_id} for seller {seller.id}")
+            logger.info(f"Created item {item_id} for seller {seller_id}")
     
     return item_ids
