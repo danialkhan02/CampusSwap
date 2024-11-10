@@ -73,6 +73,7 @@ API Gateway
 
 ### Seeding the database
 Ensure you are in the `backEnd/scripts` directory:
+Ensure that you run `brew install chromedriver`
 1. Run `poetry run python -m data_seeder.main <number_of_listings>`
 
 ### Cleanup the database

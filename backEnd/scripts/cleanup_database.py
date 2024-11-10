@@ -7,12 +7,11 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 
 # Import all models to ensure proper initialization
-from backend.db_models.base import BaseDbModel
-from backend.db_models.users import UsersOrm
 from backend.db_models.items import ProductEmbeddingsOrm, interested_buyers, ItemsOrm
 from backend.db_models.item_images import ItemImagesOrm
 from backend.db_models.seller_feedbacks import SellerFeedbackOrm
 from backend.db_models.seller_profiles import SellerProfileOrm
+from backend.db_interface.items import cleanup_s3_images
 from backend.db_models.connection import Session as DefaultSession
 
 logger = logging.getLogger(__name__)
@@ -20,7 +19,19 @@ logger = logging.getLogger(__name__)
 def cleanup_database(session: Session = None):
     """Delete all entries from all tables except users"""
     session = session or DefaultSession()
+
     try:
+        # First, get all image URLs from the database
+        image_records = session.query(ItemImagesOrm).all()
+        
+        # Delete each image from S3
+        for image_record in image_records:
+            try:
+                cleanup_s3_images([image_record.image_data])
+                logger.info(f"Deleted S3 image: {image_record.image_data}")
+            except Exception as e:
+                logger.error(f"Error deleting S3 image: {e}")
+
         # Order matters due to foreign key constraints
         # 1. Delete product embeddings
         session.query(ProductEmbeddingsOrm).delete()

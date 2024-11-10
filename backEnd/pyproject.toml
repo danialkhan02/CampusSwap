@@ -41,6 +41,9 @@ redis = "^5.2.0"
 pytest-asyncio = "^0.24.0"
 faker = "^30.8.2"
 geopy = "^2.4.1"
+selenium = "^4.26.1"
+beautifulsoup4 = "^4.12.3"
+requests = "^2.32.3"
 [tool.black]
 line-length = 100
 
