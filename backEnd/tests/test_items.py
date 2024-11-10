@@ -1,10 +1,12 @@
 import pytest
 import uuid as uuid_pkg
 from unittest.mock import Mock, patch
-from backend.models.item import Item, Location
+from backend.models.item import Item, Location, ProductListQueryParams
 from backend.enums import ItemCategory, ItemStatus, ItemCondition
-from backend.db_models.items import ItemsOrm, interested_buyers
+from backend.db_models.items import ItemsOrm, ProductEmbeddingsOrm
 from backend.db_models.item_images import ItemImagesOrm
+from backend.db_interface.items import add_first_image_to_items, apply_product_filters_with_cache, search_items
+from backend.models.item import ProductListQueryParams
 
 @pytest.fixture
 def mock_db_session():
@@ -152,3 +154,47 @@ def test_list_items(mock_db_session):
     
     mock_db_session.query.assert_called_once_with(ItemsOrm)
     assert result == mock_items
+
+def test_add_first_image_to_items(mock_db_session):
+    item_id = uuid_pkg.uuid4()
+    mock_item = Mock(spec=ItemsOrm)
+    mock_item.id = item_id
+
+    # Mock the first image
+    mock_image = Mock(spec=ItemImagesOrm)
+    mock_image.image_data = "data:image/png;base64,valid_image_data"
+    mock_db_session.query.return_value.filter.return_value.first.return_value = mock_image
+
+    result = add_first_image_to_items(mock_item, mock_db_session)
+
+    assert result == ["data:image/png;base64,valid_image_data"]
+    mock_db_session.query.assert_called_once_with(ItemImagesOrm)
+
+def test_apply_product_filters_with_cache(mock_db_session):
+    params = ProductListQueryParams(
+        category=ItemCategory.ELECTRONICS,
+        condition=ItemCondition.CONDITION_NEW,
+        price_min=100,
+        price_max=500,
+        sort="price_asc",
+        page=1,
+        limit=10
+    )
+
+    mock_query = Mock()
+    mock_query.count.return_value = 5
+    mock_query.all.return_value = [Mock(spec=ItemsOrm)]
+
+    # Mock filter, order_by, offset, and limit to return the same mock_query object
+    mock_query.filter.return_value = mock_query
+    mock_query.order_by.return_value = mock_query
+    mock_query.offset.return_value = mock_query
+    mock_query.limit.return_value = mock_query
+
+    items, total = apply_product_filters_with_cache(mock_query, params, mock_db_session)
+
+    assert total == 5
+    assert len(items) == 1
+    mock_query.filter.assert_called()
+    mock_query.offset.assert_called_once_with(0)
+    mock_query.limit.assert_called_once_with(10)
