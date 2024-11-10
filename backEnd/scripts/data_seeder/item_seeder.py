@@ -23,21 +23,13 @@ def seed_items(session: Session, sellers: list[UsersOrm], total_listings: int) -
             for listing_data in listings:
                 seller_id = seller_ids[len(item_ids) % len(seller_ids)]
                 
-                # Get location with matching coordinates
-                loc_data = get_location_with_coordinates()
-                location = Location(
-                    latitude=loc_data['latitude'],
-                    longitude=loc_data['longitude'],
-                    address=loc_data['address']
-                )
-                
                 item = Item(
                     name=listing_data["name"],
                     description=listing_data["description"],
                     images=[listing_data["image"]],
                     lister_id=seller_id,
                     price=listing_data["price"],
-                    location=location,
+                    location=listing_data["location"],
                     category=listing_data["category"],
                     status=listing_data["status"],
                     condition=listing_data["condition"]

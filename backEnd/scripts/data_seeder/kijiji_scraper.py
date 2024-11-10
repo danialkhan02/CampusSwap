@@ -9,6 +9,9 @@ import logging
 from backend.enums import ItemCategory, ItemStatus, ItemCondition
 import io
 from PIL import Image
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderUnavailable
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +32,12 @@ class KijijiScraper:
         }
         self.TEST_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/8h9CEYAAAAASUVORK5CYII="
         self.TEST_IMAGE_BYTES = base64.b64decode(self.TEST_IMAGE.split(',')[1])
+        self.geolocator = Nominatim(user_agent="unimarket_scraper")
+        self.default_location = {
+            'address': 'Toronto, ON, Canada',
+            'latitude': 43.6532,
+            'longitude': -79.3832
+        }
         
     def get_processed_image(self, image_url: str) -> bytes:
         """Helper method to process images with proper error handling"""
@@ -66,6 +75,37 @@ class KijijiScraper:
         except Exception as e:
             logger.warning(f"Image download failed: {e}, using test image")
             return self.TEST_IMAGE_BYTES
+
+    def get_location_data(self, location_text: str) -> dict:
+        """Helper method to get coordinates and formatted address"""
+        try:
+            # Append 'Ontario, Canada' to improve geocoding accuracy
+            search_text = f"{location_text}, Ontario, Canada"
+            
+            # Add retry mechanism
+            max_attempts = 3
+            for attempt in range(max_attempts):
+                try:
+                    location = self.geolocator.geocode(search_text)
+                    if location:
+                        return {
+                            'address': location.address,
+                            'latitude': location.latitude,
+                            'longitude': location.longitude
+                        }
+                    time.sleep(1)  # Respect rate limits
+                except (GeocoderTimedOut, GeocoderUnavailable) as e:
+                    if attempt == max_attempts - 1:  # Last attempt
+                        logger.warning(f"Geocoding failed for {location_text}: {e}")
+                        break
+                    time.sleep(2)  # Wait before retry
+                    
+            logger.warning(f"Could not geocode location: {location_text}, using default")
+            return self.default_location
+            
+        except Exception as e:
+            logger.error(f"Error geocoding location {location_text}: {e}")
+            return self.default_location
 
     def scrape_listings(self, category: ItemCategory, num_listings: int = 10) -> List[Dict]:
         listings = []
@@ -105,8 +145,14 @@ class KijijiScraper:
                         # Get price
                         price_elem = item.select_one('[data-testid="listing-price"]')
                         price_text = price_elem.text.strip() if price_elem else "0"
-                        price = float(price_text.replace("$", "").replace(",", "")) if price_text.replace("$", "").replace(",", "").strip().isdigit() else 0.0
-                        
+                        logger.info(f"Price text: {price_text}")
+                        # Remove non-numeric characters except decimal point
+                        price_text = ''.join(c for c in price_text if c.isdigit() or c == '.')
+                        try:
+                            price = float(price_text) if price_text else 0.0
+                        except ValueError:
+                            price = 0.0
+                                                
                         # Get image with improved error handling
                         image_elem = item.select_one('[data-testid="listing-card-image"]')
                         image_url = image_elem.get('src') if image_elem else None
@@ -119,6 +165,15 @@ class KijijiScraper:
                         description_elem = item.select_one('[data-testid="listing-description"]')
                         description = description_elem.text.strip() if description_elem else f"Listed on Kijiji - {name}"
                         
+                        # Get location
+                        location_elem = item.select_one('[data-testid="listing-location"]')
+                        location_text = location_elem.text.strip() if location_elem else "Toronto"
+                        logger.info(f"Location text: {location_text}")
+                        
+                        # Get location data with coordinates
+                        location_data = self.get_location_data(location_text)
+                        logger.info(f"Geocoded location: {location_data}")
+
                         # Create listing object
                         listing = {
                             "name": name,
@@ -127,7 +182,8 @@ class KijijiScraper:
                             "image": image_data,
                             "category": category,
                             "status": ItemStatus.STATUS_NEW,
-                            "condition": random.choice(list(ItemCondition))
+                            "condition": random.choice(list(ItemCondition)),
+                            "location": location_data
                         }
                         
                         listings.append(listing)
