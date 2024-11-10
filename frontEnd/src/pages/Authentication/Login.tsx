@@ -1,7 +1,7 @@
 import { useStytch, useStytchSession } from '@stytch/react';
 import { auth, homepage } from 'utils/spaUrls';
 import {
-  Button, Grid, Typography,
+  Button, Grid, Typography, Alert,
 } from '@mui/material';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -18,12 +18,17 @@ export default function Login() {
   const navigate = useNavigate();
   const REDIRECT_URL = `${window.location.origin}${auth.landingPad}`;
 
+  const [errorMessage, setErrorMessage] = React.useState(sessionStorage.getItem('auth_error'));
+
   React.useEffect(() => {
     if (session) {
       navigate(homepage);
     }
     else {
       localStorage.clear();
+      if (errorMessage) {
+        sessionStorage.removeItem('auth_error');
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -53,6 +58,35 @@ export default function Login() {
 
       <Grid item xs={12} md={6} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Box width='80%' maxWidth={400} textAlign='center'>
+          {errorMessage && (
+            <Alert
+              severity='warning'
+              sx={{
+                mb: 2,
+                textAlign: 'left',
+                borderRadius: 2,
+                backgroundColor: '#fff4e5',
+                '& .MuiAlert-message': {
+                  width: '100%',
+                },
+                '& .MuiAlert-icon': {
+                  alignItems: 'center',
+                  color: '#ff9800',
+                },
+                border: '1px solid #ffb74d',
+              }}
+              onClose={() => setErrorMessage(null)}
+            >
+              <Typography
+                variant='body2'
+                fontWeight={500}
+                sx={{ color: '#663c00' }}
+              >
+                {errorMessage}
+              </Typography>
+            </Alert>
+          )}
+
           <Grid container alignItems='center' spacing={1} sx={{ mb: 4 }}>
             <Grid item xs={12}>
               <Stack direction='row' alignItems='center' spacing={2}>
