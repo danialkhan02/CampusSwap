@@ -18,6 +18,7 @@ type TProps = {
 };
 
 const MAX_IMAGES = 5;
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
   'image/jpg',
@@ -46,49 +47,83 @@ export default function ImageButton({
     }, 3000);
   }, []);
 
-  const validateAndUpload = useCallback((files: File[]) => {
+  const validateFiles = useCallback((files: File[]): { valid: boolean; error?: string } => {
     if (files.length > MAX_IMAGES) {
-      showError(`You can only upload up to ${MAX_IMAGES} images`);
-      return false;
+      return { valid: false, error: `You can only upload up to ${MAX_IMAGES} images` };
     }
 
-    const imageFiles = Array.from(files).filter((file) => ALLOWED_IMAGE_TYPES.includes(file.type));
+    // Check file types
+    const invalidTypeFiles = files.filter((file) => !ALLOWED_IMAGE_TYPES.includes(file.type));
+    if (invalidTypeFiles.length > 0) {
+      return { valid: false, error: 'Only JPG, PNG, GIF and WebP images are allowed' };
+    }
 
-    if (imageFiles.length !== files.length) {
-      showError('Only JPG, PNG, GIF and WebP images are allowed');
+    // Check file sizes
+    const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
+      const filesWord = oversizedFiles.length === 1 ? 'file' : 'files';
+      return {
+        valid: false,
+        error: `${oversizedFiles.length} ${filesWord} exceed the 5MB size limit: ${
+          oversizedFiles.map((f) => f.name).join(', ')
+        }`,
+      };
+    }
+
+    return { valid: true };
+  }, []);
+
+  const validateAndUpload = useCallback((files: File[]) => {
+    const validation = validateFiles(files);
+
+    if (!validation.valid) {
+      showError(validation.error || 'Invalid files');
       return false;
     }
 
     const fakeEvent = {
       target: {
-        files: imageFiles,
+        files,
       },
     } as unknown as React.ChangeEvent<HTMLInputElement>;
 
     handleImageUpload(fakeEvent);
     return true;
-  }, [handleImageUpload, showError]);
+  }, [handleImageUpload, showError, validateFiles]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     const items = Array.from(e.dataTransfer.items);
+    const files = Array.from(e.dataTransfer.files);
 
     setIsDragging(true);
 
-    // Check invalid types first
+    // Check number of files
+    if (items.length > MAX_IMAGES) {
+      setIsDragError(true);
+      setErrorMessage(`You can only upload up to ${MAX_IMAGES} images`);
+      return;
+    }
+
+    // Check file types
     if (items.some((item) => !ALLOWED_IMAGE_TYPES.includes(item.type))) {
       setIsDragError(true);
       setErrorMessage('Only JPG, PNG, GIF and WebP images are allowed');
+      return;
     }
-    else if (items.length > MAX_IMAGES) {
+
+    // Check file sizes
+    const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
       setIsDragError(true);
-      setErrorMessage(`You can only upload up to ${MAX_IMAGES} images`);
+      const filesWord = oversizedFiles.length === 1 ? 'file' : 'files';
+      setErrorMessage(`${oversizedFiles.length} ${filesWord} exceed the 5MB size limit`);
+      return;
     }
-    else {
-      setIsDragError(false);
-      setErrorMessage(null);
-    }
+
+    setIsDragError(false);
+    setErrorMessage(null);
   }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
@@ -296,7 +331,7 @@ export default function ImageButton({
                 {' '}
                 {MAX_IMAGES}
                 {' '}
-                images
+                images (max 5MB each)
               </Typography>
               <Typography variant='caption' color='textSecondary'>
                 Supported formats: JPG, PNG, GIF, WebP
