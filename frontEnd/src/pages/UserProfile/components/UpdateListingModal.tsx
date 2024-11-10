@@ -1,12 +1,13 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import {
-  Box, Dialog, FormControl, Grid, InputLabel, Select, TextField, Typography,
+  Box, Button, Dialog, FormControl, Grid, InputLabel, Select, TextField, Typography,
 } from '@mui/material';
 import ListingPreview from 'pages/UserProfile/components/ListingPreview';
 import {
   IProduct,
   listerProductListQueryKey,
-  useGenerateProductDescription,
+  productDetailsQueryKey,
+  useGetProductDetails,
   useUpdateProduct,
 } from 'pages/HomePage/queries';
 import LocationAutocomplete from 'pages/UserProfile/components/GoogleMapTextField';
@@ -21,14 +22,15 @@ import MenuItem from '@mui/material/MenuItem';
 import {
   categoryParsed, conditionParsed, ECategory, ECondition,
 } from 'pages/HomePage/constants';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import ImageButton from 'pages/UserProfile/components/ImageButton';
+import Spinner from 'components/Common/Spinner';
+import { retrieve } from 'utils/cacheUtils';
+import { CacheKeys } from 'utils/constants';
 
 
 type TProps = {
-    isOpen: boolean;
-    onClose: () => void;
-    currentListing: IProduct;
+  isOpen: boolean;
+  onClose: () => void;
+  currentListing: IProduct;
 }
 
 export default function UpdateListingModal({
@@ -37,56 +39,60 @@ export default function UpdateListingModal({
   currentListing,
 }: TProps) {
   const queryClient = useQueryClient();
+  const userId = retrieve(CacheKeys.userId, { parseJson: false });
   const updateProductHook = useUpdateProduct(currentListing.id || '');
   const { addAlert } = useContext(AppAlertsCtx);
-  const generateDescriptionHook = useGenerateProductDescription();
-  const [Listing, setListing] = useState<IProduct>({
-    ...currentListing,
-    lister_id: currentListing.seller?.id || '',
+  const { data: productDetailsData, isLoading } = useGetProductDetails(currentListing?.id || '', {
+    enabled: !!currentListing.id,
+    queryKey: productDetailsQueryKey(currentListing.id || ''),
   });
 
-  const handleListingInputChange = (field: keyof IProduct, value: string) => {
-    setListing((prevListing) => ({
-      ...prevListing,
-      [field]: field === 'price' ? parseFloat(value) || 0 : value, // Ensure price is a number
-    }));
-  };
+  const [listing, setListing] = useState<IProduct | null>(null);
 
-  const handleLocationChange = (address: string, latitude?: number, longitude?: number) => {
-    setListing((prevListing) => ({
-      ...prevListing,
-      location: {
-        ...prevListing.location,
-        address,
-        latitude: latitude ?? prevListing.location.latitude,
-        longitude: longitude ?? prevListing.location.longitude,
-      },
-    }));
-  };
-
-  const handleAIGeneration = () => {
-    if (Listing.images.length === 0 || Listing.name === 'Placeholder Text' || Listing.name === '' || !Listing.category) {
-      addAlert({
-        type: 'error',
-        message: 'Please include product images, title, category, and condition',
-      });
-    }
-    else {
-      generateDescriptionHook.mutate({
-        name: Listing.name,
-        images: Listing.images,
-        category: Listing.category,
-        condition: Listing.condition || ECondition.CONDITION_NEW,
-      }, {
-        onSuccess: (descriptionData) => {
-          handleListingInputChange('description', descriptionData?.data.description || '');
+  // Update listing state when productDetailsData changes
+  useEffect(() => {
+    if (productDetailsData?.data) {
+      setListing({
+        ...productDetailsData.data,
+        lister_id: currentListing.seller?.id || '',
+        images: productDetailsData.data.images || [], // Ensure images array exists
+        location: {
+          ...productDetailsData.data.location,
+          address: productDetailsData.data.location?.address || '',
+          latitude: productDetailsData.data.location?.latitude || 0,
+          longitude: productDetailsData.data.location?.longitude || 0,
         },
       });
     }
+  }, [productDetailsData, currentListing.seller?.id]);
+
+  const handleListingInputChange = (field: keyof IProduct, value: string) => {
+    if (!listing) return;
+
+    setListing({
+      ...listing,
+      [field]: field === 'price' ? parseFloat(value) || 0 : value,
+    });
+  };
+
+  const handleLocationChange = (address: string, latitude?: number, longitude?: number) => {
+    if (!listing) return;
+
+    setListing({
+      ...listing,
+      location: {
+        ...listing.location,
+        address,
+        latitude: latitude ?? listing.location.latitude,
+        longitude: longitude ?? listing.location.longitude,
+      },
+    });
   };
 
   const handlePublish = () => {
-    updateProductHook.mutate(Listing, {
+    if (!listing) return;
+
+    updateProductHook.mutate(listing, {
       onSuccess: () => {
         addAlert({
           type: 'success',
@@ -94,7 +100,7 @@ export default function UpdateListingModal({
         });
         onClose();
         queryClient.invalidateQueries(
-          { queryKey: listerProductListQueryKey(currentListing.seller?.id || '') },
+          { queryKey: listerProductListQueryKey(currentListing.seller?.id || '', userId) },
         );
       },
       onError: () => {
@@ -107,6 +113,8 @@ export default function UpdateListingModal({
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!listing) return;
+
     const files = event.target.files ? Array.from(
       event.target.files,
     ).slice(0, 5) : [];
@@ -133,10 +141,10 @@ export default function UpdateListingModal({
         base64Images.push(base64String);
       }
 
-      setListing((prevListing) => ({
-        ...prevListing,
+      setListing({
+        ...listing,
         images: base64Images,
-      }));
+      });
     }
     catch (error) {
       addAlert({
@@ -147,12 +155,17 @@ export default function UpdateListingModal({
   };
 
   const handleRemoveImage = (index: number) => {
-    setListing((prevListing) => ({
-      ...prevListing,
-      images: prevListing.images.filter((_, i) => i !== index),
-    }));
+    if (!listing) return;
+
+    setListing({
+      ...listing,
+      images: listing.images.filter((_, i) => i !== index),
+    });
   };
 
+  if (!productDetailsData || !productDetailsData.data || isLoading || !listing) {
+    return <Spinner />;
+  }
 
   return (
     <Dialog
@@ -181,7 +194,7 @@ export default function UpdateListingModal({
                 fullWidth
                 size='medium'
                 label='Item Name'
-                value={Listing?.name || ''}
+                value={listing.name || ''}
                 onChange={(event) => handleListingInputChange('name', event.target.value)}
               />
             </Grid>
@@ -191,7 +204,7 @@ export default function UpdateListingModal({
                 size='medium'
                 label='Price'
                 type='number'
-                value={Listing.price || 0}
+                value={listing.price || 0}
                 onChange={(event) => handleListingInputChange('price', event.target.value)}
               />
             </Grid>
@@ -202,7 +215,7 @@ export default function UpdateListingModal({
                   fullWidth
                   size='medium'
                   label='Condition'
-                  value={Listing.condition}
+                  value={listing.condition || ''}
                   onChange={(event) => handleListingInputChange('condition', event.target.value)}
                   displayEmpty
                 >
@@ -216,13 +229,22 @@ export default function UpdateListingModal({
               </FormControl>
             </Grid>
             <Grid item xs={12}>
+              <TextField
+                fullWidth
+                size='medium'
+                label='Description'
+                value={listing.description || ''}
+                onChange={(event) => handleListingInputChange('description', event.target.value)}
+              />
+            </Grid>
+            <Grid item xs={12}>
               <FormControl fullWidth>
                 <InputLabel>Category</InputLabel>
                 <Select
                   fullWidth
                   size='medium'
                   label='Category'
-                  value={Listing.category}
+                  value={listing.category || ''}
                   onChange={(event) => handleListingInputChange('category', event.target.value)}
                   displayEmpty
                 >
@@ -237,63 +259,48 @@ export default function UpdateListingModal({
             </Grid>
             <Grid item xs={12}>
               <LocationAutocomplete
-                input={Listing?.location.address || ''}
+                input={listing.location.address || ''}
                 setInput={handleLocationChange}
               />
             </Grid>
-            <Grid container spacing={2} item xs={12}>
-              <Grid item xs={12}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant='body1'>Description</Typography>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <SpinnerButton
-                      variant='contained'
-                      size='small'
-                      isLoading={generateDescriptionHook.isPending}
-                      startIcon={<AutoAwesomeIcon />}
-                      onClick={handleAIGeneration}
-                    >
-                      Generate with AI
-                    </SpinnerButton>
-                  </Grid>
-                </Grid>
-              </Grid>
-              <Grid item xs={12}>
-                <Box
-                  sx={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    position: 'relative',
-                  }}
-                >
-                  <TextField
-                    variant='standard'
-                    placeholder='Enter your item description here...'
-                    fullWidth
-                    multiline
-                    InputProps={{ disableUnderline: true }}
-                    value={Listing?.description || ''}
-                    onChange={(event) => handleListingInputChange('description', event.target.value)}
-                    sx={{
-                      '& .MuiInputBase-input': {
-                        padding: 0,
-                        fontSize: '16px',
-                        color: '#757575',
-                      },
-                    }}
-                  />
-                </Box>
-              </Grid>
+            <Grid item xs={12}>
+              <Button variant='contained' component='label'>
+                Upload Images
+                <input
+                  type='file'
+                  accept='image/*'
+                  multiple
+                  hidden
+                  onChange={handleImageUpload}
+                />
+              </Button>
             </Grid>
             <Grid item xs={12}>
-              <ImageButton
-                images={Listing.images}
-                handleImageUpload={handleImageUpload}
-                handleRemoveImage={handleRemoveImage}
-              />
+              <Box display='flex' flexWrap='wrap' gap={2}>
+                {listing.images.map((image, index) => (
+                  <Box key={image} position='relative' width='70px' height='70px'>
+                    <img
+                      src={image}
+                      alt={`Preview ${index}`}
+                      style={{
+                        width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4,
+                      }}
+                    />
+                    <IconButton
+                      size='small'
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                      }}
+                      onClick={() => handleRemoveImage(index)}
+                    >
+                      <CloseIcon fontSize='small' />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Box>
             </Grid>
           </Grid>
         </Box>
@@ -316,7 +323,7 @@ export default function UpdateListingModal({
               </Box>
             </Grid>
             <Grid item xs={12}>
-              <ListingPreview listing={Listing} />
+              <ListingPreview listing={listing} />
             </Grid>
           </Grid>
         </Box>

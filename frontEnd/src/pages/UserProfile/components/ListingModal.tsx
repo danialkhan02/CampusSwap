@@ -1,6 +1,14 @@
-import React, { useContext, useState } from 'react';
+import React, { useCallback, useContext, useState } from 'react';
 import {
-  Box, Dialog, FormControl, Grid, InputLabel, Select, TextField, Typography,
+  Box,
+  Dialog,
+  FormControl,
+  FormHelperText,
+  Grid,
+  InputLabel,
+  Select,
+  TextField,
+  Typography,
 } from '@mui/material';
 import ListingPreview from 'pages/UserProfile/components/ListingPreview';
 import {
@@ -32,6 +40,32 @@ type TProps = {
   onClose: () => void;
 }
 
+type ValidatedFields = {
+  name: string;
+  price: string;
+  condition: string;
+  category: string;
+  location: string;
+  description: string;
+  images: string;
+};
+
+const defaultListing = {
+  name: 'Placeholder Text',
+  title: '',
+  price: 10.99,
+  images: [],
+  category: ECategory.CATEGORY_OTHER,
+  description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut.',
+  lister_id: retrieve(CacheKeys.userId, { parseJson: false }),
+  condition: ECondition.CONDITION_NEW,
+  location: {
+    latitude: 0,
+    longitude: 0,
+    address: '',
+  },
+};
+
 export default function ListingModal({
   isOpen,
   onClose,
@@ -41,23 +75,176 @@ export default function ListingModal({
   const createProductHook = useCreateProduct();
   const { addAlert } = useContext(AppAlertsCtx);
   const generateDescriptionHook = useGenerateProductDescription();
-  const [Listing, setListing] = useState<IProduct>({
-    name: 'Placeholder Text',
-    title: '',
-    price: 10.99,
-    images: [],
-    category: ECategory.CATEGORY_OTHER,
-    description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut.',
-    lister_id: retrieve(CacheKeys.userId, { parseJson: false }),
-    condition: ECondition.CONDITION_NEW,
-    location: {
-      latitude: 0,
-      longitude: 0,
-      address: '',
-    },
+  const [Listing, setListing] = useState<IProduct>(defaultListing);
+
+  const [errors, setErrors] = useState<ValidatedFields>({
+    name: '',
+    price: '',
+    condition: '',
+    category: '',
+    location: '',
+    description: '',
+    images: '',
   });
 
-  const handleAIGeneration = () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const validateField = useCallback((field: keyof ValidatedFields, value: any): string => {
+    switch (field) {
+      case 'name':
+        return !value || value === defaultListing.name ? 'Item name is required' : '';
+      case 'price':
+        if (!value) return 'Price is required';
+        if (value <= 0) return 'Price must be greater than 0';
+        return '';
+      case 'condition':
+        return !value ? 'Condition is required' : '';
+      case 'category':
+        return !value ? 'Category is required' : '';
+      case 'location':
+        return !value ? 'Location is required' : '';
+      case 'description':
+        return !value || value === defaultListing.description ? 'Description is required' : '';
+      case 'images':
+        return value.length === 0 ? 'At least one image is required' : '';
+      default:
+        return '';
+    }
+  }, []);
+
+  const validateForm = useCallback(() => {
+    const newErrors = {
+      name: validateField('name', Listing.name),
+      price: validateField('price', Listing.price),
+      condition: validateField('condition', Listing.condition),
+      category: validateField('category', Listing.category),
+      location: validateField('location', Listing.location.address),
+      description: validateField('description', Listing.description),
+      images: validateField('images', Listing.images),
+    };
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some((error) => error !== '');
+  }, [Listing, validateField]);
+
+  const handleListingInputChange = useCallback((field: keyof IProduct, value: string) => {
+    setListing((prevListing) => {
+      const newListing = {
+        ...prevListing,
+        [field]: field === 'price' ? parseFloat(value) || 0 : value,
+      };
+
+      // Only validate if there are any existing errors and if the field is a validated field
+      if (Object.values(errors).some((error) => error !== '') && field in errors) {
+        const errorValue = field === 'price' ? parseFloat(value) || 0 : value;
+        setErrors((prev) => ({
+          ...prev,
+          [field]: validateField(field as keyof ValidatedFields, errorValue),
+        }));
+      }
+
+      return newListing;
+    });
+  }, [errors, validateField]);
+
+  const handleLocationChange = useCallback((
+    address: string,
+    latitude?: number,
+    longitude?: number,
+  ) => {
+    setListing((prevListing) => {
+      const newListing = {
+        ...prevListing,
+        location: {
+          ...prevListing.location,
+          address,
+          latitude: latitude ?? prevListing.location.latitude,
+          longitude: longitude ?? prevListing.location.longitude,
+        },
+      };
+
+      // Only validate if there are any existing errors
+      if (Object.values(errors).some((error) => error !== '')) {
+        setErrors((prev) => ({
+          ...prev,
+          location: validateField('location', address),
+        }));
+      }
+
+      return newListing;
+    });
+  }, [errors, validateField]);
+
+  const readFileAsBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result);
+      }
+      else {
+        reject(new Error('Failed to convert file to base64'));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files ? Array.from(event.target.files).slice(0, 5) : [];
+    const base64Images: string[] = [];
+
+    try {
+      for (const file of files) {
+        // eslint-disable-next-line no-await-in-loop
+        const base64String = await readFileAsBase64(file);
+        base64Images.push(base64String);
+      }
+
+      setListing((prevListing) => {
+        const newListing = {
+          ...prevListing,
+          images: base64Images,
+        };
+
+        // Only validate if there are any existing errors
+        if (Object.values(errors).some((error) => error !== '')) {
+          setErrors((prev) => ({
+            ...prev,
+            images: validateField('images', base64Images),
+          }));
+        }
+
+        return newListing;
+      });
+    }
+    catch (error) {
+      addAlert({
+        type: 'error',
+        message: 'Error Uploading Images. Cannot upload more than 5 images',
+      });
+    }
+  }, [errors, validateField, addAlert]);
+
+  const handleRemoveImage = useCallback((index: number) => {
+    setListing((prevListing) => {
+      const newImages = prevListing.images.filter((_, i) => i !== index);
+      const newListing = {
+        ...prevListing,
+        images: newImages,
+      };
+
+      // Only validate if there are any existing errors
+      if (Object.values(errors).some((error) => error !== '')) {
+        setErrors((prev) => ({
+          ...prev,
+          images: validateField('images', newImages),
+        }));
+      }
+
+      return newListing;
+    });
+  }, [errors, validateField]);
+
+  const handleAIGeneration = useCallback(() => {
     if (Listing.images.length === 0 || Listing.name === 'Placeholder Text' || Listing.name === '' || !Listing.category) {
       addAlert({
         type: 'error',
@@ -74,92 +261,32 @@ export default function ListingModal({
         onSuccess: (descriptionData) => {
           handleListingInputChange('description', descriptionData?.data.description || '');
         },
+        onError: () => {
+          addAlert({
+            type: 'error',
+            message: 'AI failed to generate description',
+          });
+        },
       });
     }
-  };
+  }, [Listing, generateDescriptionHook, handleListingInputChange, addAlert]);
 
-
-  const handleListingInputChange = (field: keyof IProduct, value: string) => {
-    setListing((prevListing) => ({
-      ...prevListing,
-      [field]: field === 'price' ? parseFloat(value) || 0 : value, // Ensure price is a number
-    }));
-  };
-
-  const handleLocationChange = (address: string, latitude?: number, longitude?: number) => {
-    setListing((prevListing) => ({
-      ...prevListing,
-      location: {
-        ...prevListing.location,
-        address,
-        latitude: latitude ?? prevListing.location.latitude,
-        longitude: longitude ?? prevListing.location.longitude,
-      },
-    }));
-  };
-
-  const handlePublish = () => {
-    createProductHook.mutate(Listing, {
-      onSuccess: () => {
-        addAlert({
-          type: 'success',
-          message: 'Listing published successfully',
-        });
-        onClose();
-        queryClient.invalidateQueries(
-          { queryKey: listerProductListQueryKey(userId || '') },
-        );
-      },
-    });
-  };
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files ? Array.from(
-      event.target.files,
-    ).slice(0, 5) : [];
-    const base64Images: string[] = [];
-
-    const readFileAsBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result);
-        }
-        else {
-          reject(new Error('Failed to convert file to base64'));
-        }
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-    try {
-      for (const file of files) {
-        // eslint-disable-next-line no-await-in-loop
-        const base64String = await readFileAsBase64(file);
-        base64Images.push(base64String);
-      }
-
-      setListing((prevListing) => ({
-        ...prevListing,
-        images: base64Images,
-      }));
-    }
-    catch (error) {
-      addAlert({
-        type: 'error',
-        message: 'Error Uploading Images. Cannot upload more than 5 images',
+  const handlePublish = useCallback(() => {
+    if (validateForm()) {
+      createProductHook.mutate(Listing, {
+        onSuccess: () => {
+          addAlert({
+            type: 'success',
+            message: 'Listing published successfully',
+          });
+          onClose();
+          queryClient.invalidateQueries(
+            { queryKey: listerProductListQueryKey(userId || '', userId || '') },
+          );
+        },
       });
     }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setListing((prevListing) => ({
-      ...prevListing,
-      images: prevListing.images.filter((_, i) => i !== index),
-    }));
-  };
-
+  }, [validateForm, createProductHook, Listing, addAlert, onClose, queryClient, userId]);
 
   return (
     <Dialog
@@ -190,6 +317,8 @@ export default function ListingModal({
                 label='Item Name'
                 value={Listing?.name || ''}
                 onChange={(event) => handleListingInputChange('name', event.target.value)}
+                error={!!errors.name}
+                helperText={errors.name}
               />
             </Grid>
             <Grid item xs={12}>
@@ -200,10 +329,12 @@ export default function ListingModal({
                 type='number'
                 value={Listing.price || 0}
                 onChange={(event) => handleListingInputChange('price', event.target.value)}
+                error={!!errors.price}
+                helperText={errors.price}
               />
             </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!errors.condition}>
                 <InputLabel>Condition</InputLabel>
                 <Select
                   fullWidth
@@ -220,10 +351,11 @@ export default function ListingModal({
                     </MenuItem>
                   ))}
                 </Select>
+                {errors.condition && <FormHelperText>{errors.condition}</FormHelperText>}
               </FormControl>
             </Grid>
             <Grid item xs={12}>
-              <FormControl fullWidth>
+              <FormControl fullWidth error={!!errors.category}>
                 <InputLabel>Category</InputLabel>
                 <Select
                   fullWidth
@@ -240,12 +372,15 @@ export default function ListingModal({
                     </MenuItem>
                   ))}
                 </Select>
+                {errors.category && <FormHelperText>{errors.category}</FormHelperText>}
               </FormControl>
             </Grid>
             <Grid item xs={12}>
               <LocationAutocomplete
                 input={Listing?.location.address || ''}
                 setInput={handleLocationChange}
+                error={!!errors.location}
+                helperText={errors.location}
               />
             </Grid>
             <Grid container spacing={2} item xs={12}>
@@ -270,7 +405,7 @@ export default function ListingModal({
               <Grid item xs={12}>
                 <Box
                   sx={{
-                    border: '1px solid #e0e0e0',
+                    border: errors.description ? '1px solid #d32f2f' : '1px solid #e0e0e0',
                     borderRadius: '8px',
                     padding: '8px 12px',
                     position: 'relative',
@@ -284,6 +419,7 @@ export default function ListingModal({
                     InputProps={{ disableUnderline: true }}
                     value={Listing?.description || ''}
                     onChange={(event) => handleListingInputChange('description', event.target.value)}
+                    error={!!errors.description}
                     sx={{
                       '& .MuiInputBase-input': {
                         padding: 0,
@@ -292,6 +428,9 @@ export default function ListingModal({
                       },
                     }}
                   />
+                  {errors.description && (
+                    <FormHelperText error>{errors.description}</FormHelperText>
+                  )}
                 </Box>
               </Grid>
             </Grid>
@@ -300,6 +439,8 @@ export default function ListingModal({
                 images={Listing.images}
                 handleImageUpload={handleImageUpload}
                 handleRemoveImage={handleRemoveImage}
+                error={!!errors.images}
+                helperText={errors.images}
               />
             </Grid>
           </Grid>
@@ -315,10 +456,13 @@ export default function ListingModal({
                     startIcon={<PublishIcon />}
                     sx={{ alignSelf: 'flex-end' }}
                     onClick={handlePublish}
+                    isLoading={createProductHook.isPending}
                   >
                     Publish Listing
                   </SpinnerButton>
-                  <IconButton onClick={onClose}><CloseIcon /></IconButton>
+                  <IconButton onClick={onClose}>
+                    <CloseIcon />
+                  </IconButton>
                 </Stack>
               </Box>
             </Grid>

@@ -1,7 +1,6 @@
 import os
 from http import HTTPStatus
 import json
-import rollbar
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 from fastapi.requests import Request
@@ -23,9 +22,10 @@ async def logger(request: Request, call_next):
         if response.headers.get("content-type") == "application/json":
             response_json = json.loads(response_body[0].decode())
             if response_json.get("error") is not None:
-                rollbar.report_message(response_json.get("error"), "error", response_json)
+                print(response_json.get("error"))
+
     except Exception as e:
         # Log the error but don't break the response
-        rollbar.report_message(f"Error in logging middleware: {str(e)}", "error")
+        print(f"Error in logging middleware: {str(e)}")
     
     return response

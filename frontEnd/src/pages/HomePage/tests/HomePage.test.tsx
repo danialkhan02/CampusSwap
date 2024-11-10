@@ -9,6 +9,7 @@ import { useGetProductDetails, useGetProductList } from 'pages/HomePage/queries'
 import mockProductsData from 'pages/HomePage/tests/mocks/mockProduct';
 import mockSingleProductData from 'pages/HomePage/tests/mocks/mockProductData';
 import ProductDetails from 'pages/HomePage/ProductDetails';
+import React from 'react';
 
 
 jest.mock('pages/HomePage/queries', () => ({
@@ -92,14 +93,45 @@ describe('HomePage Component', () => {
     expect(searchInput).toHaveValue('sneakers');
   });
 
-  it('should open filters and sort options on button click', () => {
+  it('should open filters on button click', async () => {
     renderHomePage();
 
     const filterButton = screen.getByRole('button', { name: /filters/i });
-    const sortButton = screen.getByRole('button', { name: /sort by: featured/i });
 
     userEvent.click(filterButton);
-    userEvent.click(sortButton);
+
+    expect(await screen.findByText('Condition')).toBeInTheDocument();
+    expect(await screen.findByText('New')).toBeInTheDocument();
+    expect(await screen.findByText('Used')).toBeInTheDocument();
+
+    expect(await screen.findByText('Category')).toBeInTheDocument();
+    expect(await screen.findByText('Textbook')).toBeInTheDocument();
+    expect(await screen.findByText('Clothing')).toBeInTheDocument();
+    expect(await screen.findByText('Musical Instruments')).toBeInTheDocument();
+
+    expect(await screen.findByText('Price')).toBeInTheDocument();
+    expect(await screen.findByText('$0')).toBeInTheDocument();
+    expect(await screen.findByText('200')).toBeInTheDocument();
+
+    expect(await screen.findByText('Location')).toBeInTheDocument();
+
+    expect(await screen.findByText('Cancel')).toBeInTheDocument();
+    expect(await screen.findByText('Apply Filters')).toBeInTheDocument();
+  });
+
+  it('should open sort by dropdown on user click', async () => {
+    renderHomePage();
+
+    const sortByButton = screen.getByRole('button', { name: /Sort By: Featured/i });
+
+    userEvent.click(sortByButton);
+
+    expect(await screen.findAllByText('Featured')).toHaveLength(1);
+    expect(await screen.findAllByText('Price')).toHaveLength(2);
+    expect(await screen.findAllByText('Date Posted')).toHaveLength(2);
+
+    expect(await screen.findByText('Cancel')).toBeInTheDocument();
+    expect(await screen.findByText('Apply')).toBeInTheDocument();
   });
 
   it('should navigate to product details page on card click', async () => {

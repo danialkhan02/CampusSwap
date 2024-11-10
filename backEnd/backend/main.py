@@ -1,7 +1,6 @@
 import os
 import traceback
 from fastapi import FastAPI, status, Response, HTTPException
-import rollbar
 from fastapi.requests import Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
@@ -15,13 +14,6 @@ from backend.api.main import api_router
 from backend.middleware.api_auth import stytch_authentication
 from backend.api_responses import ApiResponse, ErrMessage
 
-# Initialize rollbar for error tracking
-rollbar.init(
-    os.getenv("ROLLBAR_SERVER_ACCESS_TOKEN"),
-    environment=logging_env(),
-    handler="async",
-    enabled=(os.getenv("LOGGING_ENABLED", False) == "True")
-)
 
 # Configure the main FastAPI application
 api_app = FastAPI(

@@ -19,11 +19,11 @@ const chat = {
 };
 
 const product = {
-  list: `${baseUrl}/api/v1/products/list`,
+  list: (userId: string) => `${baseUrl}/api/v1/products/list/${userId}`,
   create: `${baseUrl}/api/v1/products/create`,
   generate: `${baseUrl}/api/v1/products/generate-description`,
   details: (id: string) => `${baseUrl}/api/v1/products/${id}`,
-  byLister: (id: string) => `${baseUrl}/api/v1/products/lister/${id}`,
+  byLister: (id: string, userId: string) => `${baseUrl}/api/v1/products/lister/${id}/user/${userId}`,
   update: (id: string) => `${baseUrl}/api/v1/products/${id}`,
   delete: (id: string) => `${baseUrl}/api/v1/products/${id}`,
   wishlist: (userId: string) => `${baseUrl}/api/v1/products/interested/${userId}`,
