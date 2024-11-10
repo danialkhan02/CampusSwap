@@ -6,14 +6,18 @@ from backend.db_interface.items import create_item
 from backend.enums import ItemCategory, ItemStatus, ItemCondition
 from backend.db_models.users import UsersOrm
 from .utils import fake, logger, generate_random_image, get_location_with_coordinates
+from itertools import cycle
 
-def seed_items(session: Session, sellers: list[UsersOrm], num_listings: int) -> list[uuid.UUID]:
-    """Create items divided among sellers"""
-    listings_per_seller = num_listings // len(sellers)
+def seed_items(session: Session, sellers: list[UsersOrm], total_listings: int) -> list[uuid.UUID]:
     item_ids = []
+    # Store just the IDs instead of the full objects
+    seller_ids = [seller.id for seller in sellers]
     
-    for seller_id in [s.id for s in sellers]:  # Store only seller IDs
-        for _ in range(listings_per_seller):
+    for category in ItemCategory:
+        for i in range(total_listings // len(ItemCategory)):
+            # Get seller ID using modulo
+            seller_id = seller_ids[i % len(seller_ids)]
+            
             # Get location with matching coordinates
             loc_data = get_location_with_coordinates()
             location = Location(
@@ -28,17 +32,17 @@ def seed_items(session: Session, sellers: list[UsersOrm], num_listings: int) -> 
                 name=fake.catch_phrase(),
                 description=fake.paragraph(),
                 images=images,
-                lister_id=seller_id,
+                lister_id=seller_id,  # Use the ID directly
                 price=round(random.uniform(10.0, 1000.0), 2),
                 location=location,
-                category=random.choice(list(ItemCategory)),
-                status=ItemStatus.STATUS_NEW,
+                category=category,
+                status=random.choice(list(ItemStatus)),
                 condition=random.choice(list(ItemCondition))
             )
             
             result = create_item(item, session)
             item_id = uuid.UUID(result["item_id"])
             item_ids.append(item_id)
-            logger.info(f"Created item {item_id} for seller {seller_id}")
-    
+            logger.info(f"Created {category.value} item {item_id} for seller {seller_id}")
+
     return item_ids
