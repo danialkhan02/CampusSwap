@@ -18,6 +18,7 @@ import { CacheKeys } from 'utils/constants';
 import Spinner from 'components/Common/Spinner';
 import ProfileCard from 'pages/UserProfile/components/ProfileCard';
 import ProfileBanner from 'pages/UserProfile/components/ProfileBanner';
+import UserItemHistory from './components/UserItemHistory';
 
 
 export default function UserProfile() {
@@ -71,6 +72,7 @@ export default function UserProfile() {
                   <Tab icon={<FavoriteIcon />} label='Wishlist' />
                   <Tab icon={<ReviewsIcon />} label='Reviews' />
                   <Tab icon={<CollectionsIcon />} label='Listings' />
+                  <Tab icon={<CollectionsIcon />} label='Item History' />
                 </Tabs>
               </Box>
             </Grid>
@@ -85,6 +87,9 @@ export default function UserProfile() {
       )}
       {selectedTab === 3 && (
       <UserListings />
+      )}
+      {selectedTab === 4 && (
+      <UserItemHistory />
       )}
       {modalOpen && (
       <LoadGoogleMaps>

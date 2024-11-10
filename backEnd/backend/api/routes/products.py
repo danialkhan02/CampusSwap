@@ -9,7 +9,8 @@ from backend.db_interface.items import (
     list_items,
     add_interested_buyer,
     get_product_details,
-    get_interested_items
+    get_interested_items,
+    get_purchased_items
 )
 from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile, increment_num_listings, decrement_num_listings
 from backend.models.seller_profile import SellerProfile
@@ -396,6 +397,35 @@ async def get_interested_products(user_id: str, response: Response, db: Session 
     """
     try:
         result = get_interested_items(user_id, db)
+
+        product_list = []
+        for item in result:
+            product_details = get_product_details(item, db)
+            product_list.append(product_details)
+
+        return ApiResponse(data=product_list)
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    
+@router.get("/itemHistory/{user_id}", summary="Get all products a user is interested in", response_model=ApiResponse)
+async def get_purchased_products(user_id: str, response: Response, db: Session = Depends(get_db)):
+    """
+    Retrieve all products that a user has purchased.
+
+    This endpoint allows clients to fetch a list of products that a specific user 
+    has purchased. The response includes detailed information about each 
+    product, such as the product's name, description, price, seller information, 
+    interested buyers, location, images, and category. 
+
+    Parameters:
+    - **user_id**: The unique identifier of the user whose interested products are being retrieved.
+
+    Responses:
+    - **500 Internal Server Error**: If an unexpected error occurs during processing.
+    """
+    try:
+        result = get_purchased_items(user_id, db)
 
         product_list = []
         for item in result:

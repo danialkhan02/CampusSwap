@@ -27,6 +27,7 @@ const product = {
   update: (id: string) => `${baseUrl}/api/v1/products/${id}`,
   delete: (id: string) => `${baseUrl}/api/v1/products/${id}`,
   wishlist: (userId: string) => `${baseUrl}/api/v1/products/interested/${userId}`,
+  historyList: (userId: string) => `${baseUrl}/api/v1/products/itemHistory/${userId}`,
   addInterest: (productId: string, buyerId: string) => `${baseUrl}/api/v1/products/${productId}/interested/${buyerId}`,
   search: `${baseUrl}/api/v1/products/search`,
 };

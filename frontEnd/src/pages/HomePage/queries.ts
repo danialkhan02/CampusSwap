@@ -136,6 +136,39 @@ export function useGetListerWishList(
   );
 }
 
+export const listerProductHistoryListQueryKey = (userId: string) => ['product', 'lister', 'list', userId];
+
+export function useGetListerProductHistoryList(
+  userId: string,
+  options?: UseQueryOptions<TApiResponse<IProduct[]>, Error>,
+) {
+  return useQuery<TApiResponse<IProduct[]>, Error>(
+    {
+      queryKey: listerProductHistoryListQueryKey(userId),
+      queryFn: () => http.get(product.historyList(userId)),
+      retry: false,
+      ...options,
+    },
+  );
+}
+
+// export const listerProductHistoryListQueryKey =
+// (userId: string) => ['product', 'lister', 'historyList', userId];
+
+// export function useGetListerProductHistoryList(
+//   userId: string,
+//   options?: UseQueryOptions<TApiResponse<IProduct[]>, Error>,
+// ) {
+//   return useQuery<TApiResponse<IProduct[]>, Error>(
+//     {
+//       queryKey: listerProductHistoryListQueryKey(userId),
+//       queryFn: () => http.get(product.wishlist(userId)),
+//       retry: false,
+//       ...options,
+//     },
+//   );
+// }
+
 export interface IGenerateResponse {
     description: string,
 }

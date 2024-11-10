@@ -9,6 +9,7 @@ from backend.db_models.users import UsersOrm
 from backend.models.item import Item
 from sqlalchemy.sql import func
 from backend.db_models.items import interested_buyers
+from backend.db_models.items import purchased_items
 from backend.models.user import User
 from backend.models.provider import Provider
 logger = logging.getLogger(__name__)
@@ -354,3 +355,34 @@ def get_interested_items(user_id: str, db: Session):
     )
     
     return interested_products
+
+def get_purchased_items(user_id: str, db: Session):
+    """
+    Retrieve all products that a user purchased
+
+    This function fetches all products that the specified user has purchased.
+
+    Parameters:
+    - user_id: The unique identifier of the user whose interested products are being retrieved.
+    - db: The database session to use for the query.
+
+    Returns:
+    A list of products that the user has purchased.
+    """
+    try:
+        user_uuid = uuid_pkg.UUID(user_id)  # Convert user_id to UUID
+    except ValueError:
+        raise ValueError("Invalid user ID format")
+
+    purchased_products = (
+        db.query(ItemsOrm)
+        .join(purchased_items)
+        .filter(
+            purchased_items.c.user_id == user_uuid,  # Use the UUID here
+            ItemsOrm.deleted_at.is_(None),  # Ensure the product is not deleted
+            purchased_items.c.deleted_at.is_(None)  # Ensure interested_buyers is not deleted
+        )
+        .all()
+    )
+    
+    return purchased_products
