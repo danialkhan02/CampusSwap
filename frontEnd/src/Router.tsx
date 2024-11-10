@@ -12,6 +12,7 @@ import * as spaUrls from 'utils/spaUrls';
 import ProductDetails from 'pages/HomePage/ProductDetails';
 import UserProfile from 'pages/UserProfile/UserProfile';
 import ChatPage from 'pages/Chats/ChatPage';
+import SellerProfile from 'pages/SellerProfile/SellerProfile';
 
 
 export default function Router() {
@@ -31,6 +32,10 @@ export default function Router() {
         <Route
           path={spaUrls.product.details}
           element={<PrivateRoute outlet={<ProductDetails />} />}
+        />
+        <Route
+          path={spaUrls.seller.profile}
+          element={<PrivateRoute outlet={<SellerProfile />} />}
         />
         <Route
           path={spaUrls.user.profile}

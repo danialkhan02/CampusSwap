@@ -25,6 +25,7 @@ export interface ISellerProfile {
     total_transactions: number;
     average_rating: number;
     num_listings: number;
+    total_reviews: number;
 }
 
 export enum OauthAuthenticationType {
