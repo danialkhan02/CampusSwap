@@ -2,8 +2,55 @@ import pytest
 import uuid as uuid_pkg
 from unittest.mock import Mock, patch
 from backend.models.user import User, UpdateUser
+from fastapi import Response
 from backend.models.provider import Provider
 from backend.db_interface.users import UsersOrm
+from backend.api_responses import ApiResponse
+
+
+@pytest.mark.parametrize("email,should_succeed", [
+    ("test@mail.utoronto.ca", True),
+    ("test@utoronto.ca", True),
+    ("test@MAIL.UTORONTO.CA", True),
+    ("test@UTORONTO.CA", True),
+    ("test@gmail.com", False),
+    ("test@yahoo.com", False),
+    ("test@fake.utoronto.ca", False),
+    ("test@utoronto.ca", True),
+])
+@pytest.mark.asyncio
+async def test_email_domain_validation(mock_db_session, email, should_succeed):
+    # Mock Stytch client
+    mock_stytch_response = Mock()
+    mock_stytch_response.status_code = 200
+    mock_response = Response()  # Create FastAPI Response object
+
+    with patch('backend.api.routes.users.StytchClient.users.update', return_value=mock_stytch_response), \
+            patch('backend.api.routes.users.handle_insert_user') as mock_insert, \
+            patch('backend.api.routes.users.handle_get_user') as mock_get:
+
+        mock_insert.return_value = {"user_id": "test-id"}
+        mock_get.return_value = Mock(as_dict=lambda: {})
+
+        user = User(
+            email=email,
+            first_name="Test",
+            last_name="User",
+            provider=Provider.OAUTH_AUTHENTICATION_TYPE_MICROSOFT,
+            stytch_id="test_stytch_id",
+            oauth_id="test_oauth_id"
+        )
+
+        from backend.api.routes.users import add_user
+        result = await add_user(user, mock_response)
+
+        if should_succeed:
+            assert mock_response.status_code != 403
+            assert result.error is None
+        else:
+            assert mock_response.status_code == 403
+            assert result.error.message == "Only University of Toronto email addresses are allowed"
+
 
 @pytest.fixture
 def mock_db_session():
