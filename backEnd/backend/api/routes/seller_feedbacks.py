@@ -150,3 +150,26 @@ async def list_seller_feedback(seller_id: str, response: Response, db: Session =
     except Exception as e:
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e))) 
+    
+@router.get("/buyer/{buyer_id}", summary="List all feedbacks made by a buyer", response_model=ApiResponse)
+async def list_buyer_feedback(buyer_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
+    """
+    Retrieve all feedbacks made by a specific buyer.
+
+    Parameters:
+    - **buyer_id**: The unique identifier of the buyer
+
+    Responses:
+    - **200 OK**: Returns list of feedbacks
+    - **400 Bad Request**: If the buyer_id is invalid
+    - **500 Internal Server Error**: If an unexpected error occurs
+    """
+    try:
+        feedbacks = list_seller_feedbacks_by_buyer(buyer_id, db)
+        return ApiResponse(data=[feedback.as_dict() for feedback in feedbacks])
+    except ValueError as e:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return ApiResponse(error=ErrMessage(message=str(e)))
+    except Exception as e:
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ApiResponse(error=ErrMessage(message=str(e)))
