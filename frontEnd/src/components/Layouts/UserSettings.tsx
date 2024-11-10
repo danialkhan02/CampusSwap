@@ -12,8 +12,6 @@ import { useGetUser } from 'pages/Authentication/queries';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import userImage from 'assets/avatar-25.webp';
-import { ListItemText } from '@mui/material';
-import Stack from '@mui/material/Stack';
 
 
 export default function UserSettings() {
@@ -52,10 +50,8 @@ export default function UserSettings() {
             return (
               <MenuItem key={item.name}>
                 <Link color='inherit' component={RouterLink} to={item.spaUrl} underline='none'>
-                  <Stack direction='row'>
-                    <ListItemIcon sx={{ mr: 0 }}><Icon fontSize='small' /></ListItemIcon>
-                    <ListItemText>{item.name}</ListItemText>
-                  </Stack>
+                  <ListItemIcon><Icon fontSize='small' /></ListItemIcon>
+                  {item.name}
                 </Link>
               </MenuItem>
             );

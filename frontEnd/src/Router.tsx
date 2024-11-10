@@ -2,6 +2,7 @@ import PrivateRoute from 'components/Common/PrivateRoute';
 import Borders from 'components/Layouts/Borders';
 import { trackPageView } from 'instrumentation/analytics';
 import AuthRouter from 'pages/Authentication/Router';
+import ConnectionRouter from 'pages/Connections/Router';
 import PageNotFound from 'pages/Exceptions/PageNotFound';
 import HomePage from 'pages/HomePage/HomePage';
 import React from 'react';
@@ -23,6 +24,7 @@ export default function Router() {
     <Borders>
       <Routes>
         <Route path='/auth/*' element={<AuthRouter />} />
+        <Route path='/connections/*' element={<ConnectionRouter />} />
         <Route path='/' element={<Navigate to={spaUrls.auth.login} replace />} />
         <Route
           path={spaUrls.homepage}

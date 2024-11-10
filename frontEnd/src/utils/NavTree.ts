@@ -42,6 +42,7 @@ export const NavTree: TNavTreeModel = [
 ];
 
 export const UserMenuTree: TNavTreeModel = [
+  allItems.connectionsList,
   allItems.logout,
 ];
 
