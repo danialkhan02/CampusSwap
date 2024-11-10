@@ -1,6 +1,4 @@
-import {
-  Card, Tab, Tabs,
-} from '@mui/material';
+import { Card, Tab, Tabs } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -8,7 +6,6 @@ import CollectionsIcon from '@mui/icons-material/Collections';
 import ReviewsIcon from '@mui/icons-material/Reviews';
 import Box from '@mui/material/Box';
 import { useState } from 'react';
-import ListingModal from 'pages/UserProfile/components/ListingModal';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import UserListings from 'pages/UserProfile/components/UserListings';
 import UserWishlist from 'pages/UserProfile/components/UserWishlist';
@@ -18,6 +15,7 @@ import { CacheKeys } from 'utils/constants';
 import Spinner from 'components/Common/Spinner';
 import ProfileCard from 'pages/UserProfile/components/ProfileCard';
 import ProfileBanner from 'pages/UserProfile/components/ProfileBanner';
+import CreateListingModal from 'pages/UserProfile/components/ListingModal';
 
 
 export default function UserProfile() {
@@ -88,7 +86,7 @@ export default function UserProfile() {
       )}
       {modalOpen && (
       <LoadGoogleMaps>
-        <ListingModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+        <CreateListingModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
       </LoadGoogleMaps>
       )}
     </Grid>
