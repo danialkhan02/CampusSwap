@@ -544,59 +544,6 @@ async def get_interested_products(
             detail=str(e)
         )
 
-@router.get("/{product_id}/generate-description", summary="Generate product description using AI", response_model=ApiResponse)
-async def generate_product_description(product_id: str, response: Response, db: Session = Depends(get_db)):
-    """
-    Generate an AI-powered product description based on the product's images and details.
-
-    This endpoint uses OpenAI's GPT-4o-mini model to analyze product images and information
-    to generate a detailed, compelling product description.
-
-    Parameters:
-    - **product_id**: The unique identifier of the product
-
-    Responses:
-    - **200 OK**: Returns the generated product description
-    - **404 Not Found**: If the product with the specified ID does not exist
-    - **500 Internal Server Error**: If an error occurs during description generation
-    """
-    try:
-        item = get_item(product_id, db)
-        if not item:
-            response.status_code = status.HTTP_404_NOT_FOUND
-            return ApiResponse(error=ErrMessage(message="Product not found"))
-
-        # Get all images for the product
-        images = [img.image_data for img in item.item_images]
-
-        # Temporarily upload images to S3
-        temp_images = []
-        for i, img in enumerate(images):
-            temp_images.append(upload_to_s3(img, product_id, i))
-        
-        if not images:
-            raise ValueError("Product must have at least one image")
-
-        print(temp_images)
-        # Generate description using OpenAI
-        description = await OpenAIClient.generate_product_description(
-            name=item.name,
-            images=temp_images,
-            category=item.category.value,
-            condition=item.condition.value
-        )
-
-        # Delete temporary images from S3
-        cleanup_s3_images(temp_images)
-
-        return ApiResponse(data={"description": description})
-    except ValueError as e:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return ApiResponse(error=ErrMessage(message=str(e)))
-    except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ApiResponse(error=ErrMessage(message=str(e)))
-
 @router.post("/generate-description", summary="Generate product description using AI", response_model=ApiResponse)
 async def generate_description(request: GenerateDescriptionRequest, response: Response):
     """
