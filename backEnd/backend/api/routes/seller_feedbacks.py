@@ -143,7 +143,14 @@ async def list_seller_feedback(seller_id: str, response: Response, db: Session =
     """
     try:
         feedbacks = list_seller_feedbacks(seller_id, db)
-        return ApiResponse(data=[feedback.as_dict() for feedback in feedbacks])
+
+        # Add number of feedbacks to response
+        num_feedbacks = len(feedbacks)
+        response_data = {
+            "feedbacks": [feedback.as_dict() for feedback in feedbacks],
+            "num_feedbacks": num_feedbacks
+        }
+        return ApiResponse(data=response_data)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
@@ -166,7 +173,14 @@ async def list_buyer_feedback(buyer_id: str, response: Response, db: Session = D
     """
     try:
         feedbacks = list_seller_feedbacks_by_buyer(buyer_id, db)
-        return ApiResponse(data=[feedback.as_dict() for feedback in feedbacks])
+
+        # Add number of feedbacks to response
+        num_feedbacks = len(feedbacks)
+        response_data = {
+            "feedbacks": [feedback.as_dict() for feedback in feedbacks],
+            "num_feedbacks": num_feedbacks
+        }
+        return ApiResponse(data=response_data)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
