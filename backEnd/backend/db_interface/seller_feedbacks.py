@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from backend.db_models.connection import Session as DefaultSession
 from backend.db_models.seller_feedbacks import SellerFeedbackOrm
-from backend.models.seller_feedback import SellerFeedback, SellerFeedbackInDB
+from backend.models.seller_feedback import SellerFeedback
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ def get_seller_feedback(feedback_id: str, db: Session = None):
     session = db or DefaultSession()
     try:
         uuid_obj = uuid_pkg.UUID(feedback_id)
-        feedback = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.id == uuid_obj).first()
+        feedback = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.id == uuid_obj, SellerFeedbackOrm.deleted_at == None).first()
         if not feedback:
             logger.warning(f"Seller feedback not found: {feedback_id}")
         return feedback
@@ -67,7 +68,7 @@ def update_seller_feedback(feedback_id: str, updated_feedback: SellerFeedback, d
     session = db or DefaultSession()
     try:
         uuid_obj = uuid_pkg.UUID(feedback_id)
-        feedback = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.id == uuid_obj).first()
+        feedback = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.id == uuid_obj, SellerFeedbackOrm.deleted_at == None).first()
         if feedback:
             for key, value in updated_feedback.model_dump(exclude_unset=True).items():
                 setattr(feedback, key, value)
@@ -96,9 +97,9 @@ def delete_seller_feedback(feedback_id: str, db: Session = None):
     session = db or DefaultSession()
     try:
         uuid_obj = uuid_pkg.UUID(feedback_id)
-        feedback = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.id == uuid_obj).first()
+        feedback = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.id == uuid_obj, SellerFeedbackOrm.deleted_at == None).first()
         if feedback:
-            session.delete(feedback)
+            feedback.deleted_at = datetime.now()
             session.commit()
             logger.info(f"Seller feedback deleted successfully: {feedback_id}")
             return True
@@ -124,7 +125,7 @@ def list_seller_feedbacks(seller_id: str, db: Session = None):
     session = db or DefaultSession()
     try:
         uuid_obj = uuid_pkg.UUID(seller_id)
-        feedbacks = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.seller_id == uuid_obj).all()
+        feedbacks = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.seller_id == uuid_obj, SellerFeedbackOrm.deleted_at == None).all()
         logger.info(f"Retrieved {len(feedbacks)} feedbacks for seller {seller_id}")
         return feedbacks
     except ValueError:
@@ -145,7 +146,7 @@ def list_seller_feedbacks_by_buyer(buyer_id: str, db: Session = None):
     session = db or DefaultSession()
     try:
         uuid_obj = uuid_pkg.UUID(buyer_id)
-        feedbacks = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.buyer_id == uuid_obj).all()
+        feedbacks = session.query(SellerFeedbackOrm).filter(SellerFeedbackOrm.buyer_id == uuid_obj, SellerFeedbackOrm.deleted_at == None).all()
         logger.info(f"Retrieved {len(feedbacks)} feedbacks for buyer {buyer_id}")
         return feedbacks
     except ValueError:

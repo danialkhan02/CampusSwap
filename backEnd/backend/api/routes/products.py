@@ -30,7 +30,6 @@ from backend.cache.redis_client import redis_client
 import hashlib
 import json
 
-
 router = APIRouter()
 
 def generate_cache_key(params: ProductListQueryParams) -> str:
