@@ -71,6 +71,18 @@ API Gateway
 2. Run migrations: `poetry run alembic upgrade head`
 3. Start the server: `poetry run start`
 
+### Seeding the database
+Ensure you are in the `backEnd/scripts` directory:
+1. Run `poetry run python -m data_seeder.main <number_of_listings>`
+
+### Cleanup the database
+Ensure you are in the `backEnd/scripts` directory:
+Hard delete all data from the database:
+Run `poetry run python -m scripts.cleanup_database`
+Soft delete all data from the database:
+Run `poetry run python -m scripts.cleanup_database --soft`
+
+
 ### Running Tests
 1. Ensure you have all dependencies installed: `poetry install --sync`
 2. Run the tests using pytest: `poetry run pytest`
