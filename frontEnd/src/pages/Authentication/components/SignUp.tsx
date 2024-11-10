@@ -10,7 +10,6 @@ import { identifyUser } from 'instrumentation/analytics';
 import { OAuthAuthenticateResponse } from '@stytch/vanilla-js';
 
 
-// NEW: Add allowed domains constant
 const ALLOWED_DOMAINS = ['mail.utoronto.ca', 'utoronto.ca'];
 
 type TProps = {
@@ -49,7 +48,6 @@ export default function SignUp({ stytchResponse }: TProps) {
           throw new Error(`Graph API error: ${userData.error.message}`);
         }
 
-        // NEW: Add email domain verification
         const email = userData?.mail || '';
         const domain = email.split('@')[1]?.toLowerCase();
         if (!domain || !ALLOWED_DOMAINS.includes(domain)) {
