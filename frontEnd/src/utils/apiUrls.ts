@@ -11,6 +11,7 @@ const user = {
 
 const seller = {
   details: (sellerId: string) => `${baseUrl}/api/v1/seller_profiles/${sellerId}`,
+  review: (sellerId: string) => `${baseUrl}/api/v1/seller_feedbacks/seller/${sellerId}`,
 };
 
 const chat = {

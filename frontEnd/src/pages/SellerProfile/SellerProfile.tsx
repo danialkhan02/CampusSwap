@@ -13,6 +13,7 @@ import Spinner from 'components/Common/Spinner';
 import ProfileCard from 'pages/UserProfile/components/ProfileCard';
 import ProfileBanner from 'pages/UserProfile/components/ProfileBanner';
 import { useParams } from 'react-router-dom';
+import UserReviews from 'pages/SellerProfile/components/UserReviews';
 
 
 export default function SellerProfile() {
@@ -26,6 +27,14 @@ export default function SellerProfile() {
     queryKey: userQueryKey(sellerId || ''),
     enabled: Boolean(sellerId),
   });
+
+  const ratingDistribution1 = {
+    5: 50,
+    4: 30,
+    3: 15,
+    2: 4,
+    1: 1,
+  };
 
   if (!userData || isLoading || !userData.data) {
     return <Spinner />;
@@ -76,6 +85,9 @@ export default function SellerProfile() {
       </Grid>
       {selectedTab === 0 && (
         <ProfileCard profile={userData.data} sellerView />
+      )}
+      {selectedTab === 1 && (
+      <UserReviews sellerId={sellerId || ''} ratingDistribution={ratingDistribution1} />
       )}
       {selectedTab === 2 && (
         <UserListings listerId={sellerId || ''} />
