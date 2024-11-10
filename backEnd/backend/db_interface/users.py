@@ -157,3 +157,23 @@ def handle_get_user(user_id: str):
     with DefaultSession() as session:
         db_user = session.query(UsersOrm).filter(UsersOrm.id == user_id).first()
     return db_user
+
+def handle_get_basic_user_info(user_id: str):
+    with DefaultSession() as session:
+        db_user = session.query(
+            UsersOrm.id,
+            UsersOrm.first_name,
+            UsersOrm.last_name,
+            UsersOrm.profile_image_url
+        ).filter(UsersOrm.id == user_id).first()
+
+        if db_user:
+            # Convert the Row object to a dictionary
+            return {
+                "id": str(db_user.id),
+                "first_name": db_user.first_name,
+                "last_name": db_user.last_name,
+                "profile_image_url": db_user.profile_image_url
+            }
+        else:
+            return None

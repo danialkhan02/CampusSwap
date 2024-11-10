@@ -1,4 +1,7 @@
 // eslint-disable-next-line max-classes-per-file
+import { KeyboardArrowDown, KeyboardArrowUp, SvgIconComponent } from '@mui/icons-material';
+
+
 export enum ECategory {
     CATEGORY_TEXTBOOKS = 'TEXTBOOKS',
     CATEGORY_ELECTRONICS = 'ELECTRONICS',
@@ -15,9 +18,17 @@ export enum ECondition {
     CONDITION_USED = 'CONDITION_USED',
 }
 
+export enum ESort {
+  priceAscending= 'price_asc',
+  priceDescending = 'price_desc',
+  createdAtAscending = 'created_at_asc',
+  createdAtDescending = 'created_at_desc',
+}
+
 export interface IStatus<T> {
     key: T;
     title: string;
+    icon?: SvgIconComponent;
 }
 
 class CategoryParser {
@@ -124,3 +135,46 @@ class ConditionParser {
 }
 
 export const conditionParsed = new ConditionParser();
+
+class SortParser {
+  public readonly createdAtAscending: IStatus<ESort> = {
+    key: ESort.createdAtAscending,
+    title: 'Date Posted',
+    icon: KeyboardArrowUp,
+  };
+
+  public readonly createdAtDescending: IStatus<ESort> = {
+    key: ESort.createdAtDescending,
+    title: 'Date Posted',
+    icon: KeyboardArrowDown,
+  };
+
+  public readonly priceAscending: IStatus<ESort> = {
+    key: ESort.priceAscending,
+    title: 'Price',
+    icon: KeyboardArrowUp,
+  };
+
+  public readonly priceDescending: IStatus<ESort> = {
+    key: ESort.priceDescending,
+    title: 'Price',
+    icon: KeyboardArrowDown,
+  };
+
+  public readonly parse = (status: ESort): IStatus<ESort> => {
+    switch (status) {
+      case ESort.createdAtAscending:
+        return this.createdAtAscending;
+      case ESort.createdAtDescending:
+        return this.createdAtDescending;
+      case ESort.priceAscending:
+        return this.priceAscending;
+      case ESort.priceDescending:
+        return this.priceAscending;
+      default:
+        return this.createdAtDescending;
+    }
+  };
+}
+
+export const sortingParsed = new SortParser();

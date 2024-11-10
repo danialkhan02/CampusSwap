@@ -107,7 +107,7 @@ export default function ListingModal({
         });
         onClose();
         queryClient.invalidateQueries(
-          { queryKey: listerProductListQueryKey(userId || '') },
+          { queryKey: listerProductListQueryKey(userId || '', userId || '') },
         );
       },
     });

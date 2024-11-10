@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Box, Card, CardMedia, CardContent, Typography, Button,
+  Box, Button, Card, CardContent, CardMedia, Typography,
 } from '@mui/material';
 import {
   IProduct, listerWishListQueryKey, productListQueryKey, useAddWatchlist,
@@ -28,9 +28,7 @@ export default function ProductCard({
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const buyerId = retrieve(CacheKeys.userId, { parseJson: false });
-  const isLiked = product.interested_buyers?.some(
-    (buyer) => buyer.id === buyerId,
-  );
+  const isLiked = product?.interested;
   const addWatchlistHook = useAddWatchlist(product?.id || '', buyerId);
 
   const handleLikeToggle = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -38,7 +36,7 @@ export default function ProductCard({
     event.stopPropagation();
     addWatchlistHook.mutate(undefined, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: productListQueryKey() });
+        queryClient.invalidateQueries({ queryKey: productListQueryKey(buyerId) });
         queryClient.invalidateQueries({ queryKey: listerWishListQueryKey(buyerId) });
       },
     });

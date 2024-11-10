@@ -9,20 +9,35 @@ from backend.db_interface.items import (
     list_items,
     add_interested_buyer,
     get_product_details,
-    get_interested_items
+    determine_if_user_is_interested,
+    apply_product_filters_with_cache,
+    add_first_image_to_items,
+    search_items
 )
+from backend.db_interface.users import handle_get_basic_user_info
 from backend.db_interface.seller_profiles import get_seller_profile, create_seller_profile, increment_num_listings, decrement_num_listings
 from backend.models.seller_profile import SellerProfile
-from backend.db_models.items import ItemsOrm, ProductEmbeddingsOrm
+from backend.db_models.items import ItemsOrm, ProductEmbeddingsOrm, interested_buyers
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
-from backend.models.item import Item
+from backend.models.item import Item, ProductListQueryParams
+from enum import Enum
 import uuid as uuid_pkg
+from sqlalchemy.sql import func
 from backend.openai_integration.openai_client import OpenAIClient
 from backend.models.item import GenerateDescriptionRequest
+from backend.cache.redis_client import redis_client
+import hashlib
+import json
 
 
 router = APIRouter()
+
+def generate_cache_key(params: ProductListQueryParams) -> str:
+    # Create a unique cache key based on all query parameters
+    param_dict = params.dict()
+    param_str = json.dumps(param_dict, sort_keys=True)
+    return f"product_list:{hashlib.md5(param_str.encode()).hexdigest()}"
 
 @router.get("/search", summary="Search products with AI enhancement", response_model=ApiResponse)
 async def search_products(
@@ -61,72 +76,85 @@ async def search_products(
             detail=str(e)
         )
 
-@router.get("/list", summary="List all products", response_model=ApiResponse)
-async def get_product_list(response: Response, db: Session = Depends(get_db)):
-    """
-    Get a list of all available products in the marketplace.
-
-    This endpoint retrieves all products currently listed in the marketplace. 
-    It returns a comprehensive list of product details, including information 
-    about the seller, interested buyers, location, images, and other relevant 
-    attributes. The response is structured to facilitate easy consumption by 
-    clients, providing all necessary data in a single request.
-
-    Responses:
-    - **200 OK**: Returns a list of products with their details.
-    - **500 Internal Server Error**: If an unexpected error occurs during processing.
-
-    Example Response:
-    {
-        "data": [
-            {
-                "id": "product_id_1",
-                "name": "Product Name",
-                "price": 10.99,
-                "images": ["image_data_1", "image_data_2"],
-                "status": "STATUS_NEW",
-                "condition": "CONDITION_NEW",
-                "seller": {
-                    "id": "seller_id",
-                    "first_name": "Seller First Name",
-                    "last_name": "Seller Last Name",
-                    "email": "seller@example.com"
-                },
-                "interested_buyers": [
-                    {
-                        "id": "buyer_id",
-                        "first_name": "Buyer First Name",
-                        "last_name": "Buyer Last Name",
-                        "email": "buyer@example.com"
-                    }
-                ],
-                "location": {
-                    "latitude": 43.6532,
-                    "longitude": -79.3832,
-                    "address": "123 Test St"
-                },
-                "category": "TEXTBOOKS",
-                "description": "Product Description"
-            },
-            ...
-        ]
-    }
-    """
+@router.get("/list/{user_id}", summary="List filtered products", response_model=ApiResponse)
+async def get_product_list(
+    user_id: str,
+    params: ProductListQueryParams = Depends(),
+    db: Session = Depends(get_db)
+):
     try:
-        with DefaultSession() as session:
-            items = list_items(session)
-            
-            # Transform items into the required response format
-            product_list = []
-            for item in items:
-                product_details = get_product_details(item, session)
-                product_list.append(product_details)
+        # Check cache first for exact query
+        cache_key = generate_cache_key(params)
+        cached_response = redis_client.get(cache_key)
+        
+        if cached_response:
+            print("Cache hit - full response")
+            # Convert cached data to ApiResponse format
+            return ApiResponse(**cached_response)
 
-            return ApiResponse(data=product_list)
-            
+        # Build the base query
+        query = (
+            db.query(
+                ItemsOrm.id,
+                ItemsOrm.lister_id,
+                ItemsOrm.name,
+                ItemsOrm.price,
+                ItemsOrm.category,
+                ItemsOrm.condition,
+                ItemsOrm.latitude,
+                ItemsOrm.longitude,
+                ItemsOrm.address
+            )
+            .filter(ItemsOrm.deleted_at.is_(None))
+        )
+
+        # Apply filters and get results with caching
+        items, total = apply_product_filters_with_cache(query, params, db)
+
+        # Search for items with the search query
+        if params.search_query:
+            items = await search_items(params.search_query, items, db)
+
+        # Transform items efficiently
+        product_list = [
+            {
+                "id": str(item.id),
+                "name": item.name,
+                "price": item.price,
+                "category": item.category.value if isinstance(item.category, Enum) else item.category,
+                "condition": item.condition.value if isinstance(item.condition, Enum) else item.condition,
+                "images": add_first_image_to_items(item, db),
+                "location": {
+                    "address": item.address,
+                    "latitude": item.latitude,
+                    "longitude": item.longitude
+                },
+                "seller": handle_get_basic_user_info(str(item.lister_id)),
+                "interested": determine_if_user_is_interested(str(item.id), str(user_id), db)
+            }
+            for item in items
+        ]
+
+        response_data = {
+            "data": {
+                "items": product_list,
+                "total": total,
+                "page": params.page,
+                "limit": params.limit
+            }
+        }
+
+        # Cache the full response
+        redis_client.set(cache_key, response_data)
+
+        return ApiResponse(**response_data)
+
     except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ApiResponse(error=ErrMessage(message=str(e)))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
 
 @router.get("/{product_id}", summary="Get a product by ID", response_model=ApiResponse)
 async def get_product(product_id: str, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
@@ -163,43 +191,85 @@ async def get_product(product_id: str, response: Response, db: Session = Depends
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ApiResponse(error=ErrMessage(message=str(e)))    
 
-@router.get("/lister/{lister_id}", summary="Get a product by lister ID", response_model=ApiResponse)
-async def get_products_by_lister(lister_id: str, response: Response, db: Session = Depends(get_db)):
-    """
-    Retrieve all products listed by a specific user.
-
-    This endpoint allows clients to fetch a list of products that have been 
-    created by a particular lister identified by their unique lister ID. 
-    The response includes detailed information about each product, such as 
-    the product's name, description, price, seller information, interested buyers, 
-    location, images, and category. 
-
-    Parameters:
-    - **lister_id**: The unique identifier of the user who listed the products.
-
-    Responses:
-    - **200 OK**: Returns a list of products associated with the specified lister.
-    - **400 Bad Request**: If the input parameters are invalid or the lister ID format is incorrect.
-    - **500 Internal Server Error**: If an unexpected error occurs during processing.
-    """
+@router.get("/lister/{lister_id}/user/{user_id}", summary="Get a product by lister ID", response_model=ApiResponse)
+async def get_products_by_lister(
+    lister_id: str,
+    user_id: str,
+    params: ProductListQueryParams = Depends(),
+    db: Session = Depends(get_db)
+):
     try:
-        with DefaultSession() as session:
-            items = get_item_by_lister(lister_id, session)
-            
-            # Transform items into the required response format
-            product_list = []
-            for item in items:
-                product_details = get_product_details(item, session)
-                product_list.append(product_details)
+        # Check cache first
+        cache_key = f"lister:{lister_id}:{generate_cache_key(params)}"
+        cached_response = redis_client.get(cache_key)
+        if cached_response:
+            return ApiResponse(**cached_response)
 
-            return ApiResponse(data=product_list)
-            
-    except ValueError as e:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return ApiResponse(error=ErrMessage(message=str(e)))
+        # Build base query
+        query = (
+            db.query(
+                ItemsOrm.id,
+                ItemsOrm.name,
+                ItemsOrm.price,
+                ItemsOrm.category,
+                ItemsOrm.condition,
+                ItemsOrm.latitude,
+                ItemsOrm.longitude,
+                ItemsOrm.address,
+                ItemsOrm.lister_id
+            )
+            .filter(
+                ItemsOrm.lister_id == uuid_pkg.UUID(lister_id),
+                ItemsOrm.deleted_at.is_(None)
+            )
+        )
+
+        # Apply filters and get results with caching
+        items, total = apply_product_filters_with_cache(query, params, db)
+
+        # Search for items with the search query
+        if params.search_query:
+            items = await search_items(params.search_query, items, db)
+        
+        # Transform items
+        product_list = [
+            {
+                "id": str(item.id),
+                "name": item.name,
+                "price": item.price,
+                "category": item.category.value,
+                "condition": item.condition.value,
+                "images": add_first_image_to_items(item, db),
+                "location": {
+                    "address": item.address,
+                    "latitude": item.latitude,
+                    "longitude": item.longitude
+                },
+                "seller": handle_get_basic_user_info(str(item.lister_id)),
+                "interested": determine_if_user_is_interested(str(item.id), str(user_id), db)
+            }
+            for item in items
+        ]
+
+        response_data = {
+            "data": {
+                "items": product_list,
+                "total": total,
+                "page": params.page,
+                "limit": params.limit
+            }
+        }
+
+        # Cache the response
+        redis_client.set(cache_key, response_data)
+
+        return ApiResponse(**response_data)
+
     except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ApiResponse(error=ErrMessage(message=str(e)))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 @router.post("/create", summary="Create a new product", response_model=ApiResponse)
 async def create_product(item: Item, response: Response, db: Session = Depends(get_db)):
@@ -242,6 +312,9 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
 
         response.status_code = status.HTTP_201_CREATED
         increment_num_listings(lister_uuid, db)
+
+        # Clear all relevant caches
+        redis_client.clear_all_caches()
         return ApiResponse(data=result)
         
     except ValueError as e:
@@ -288,6 +361,9 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
             db.add(product_embedding)
             
         db.commit()
+
+        # Clear all relevant caches
+        redis_client.clear_all_caches()
         
         return ApiResponse(data=get_product_details(result, db))
         
@@ -334,6 +410,10 @@ async def delete_product(product_id: str, user_id: str, response: Response, db: 
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product not found"))
         decrement_num_listings(item.lister.id, db)
+
+        # Clear all relevant caches
+        redis_client.clear_all_caches()
+        
         return ApiResponse(data={"success": True})
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -369,6 +449,9 @@ async def add_buyer_interest(product_id: str, buyer_id: str, response: Response,
         if result is None:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Product or buyer not found"))
+        
+        # Clear all relevant caches
+        redis_client.clear_all_caches()
         return ApiResponse(data={"interested": result})
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
@@ -378,34 +461,86 @@ async def add_buyer_interest(product_id: str, buyer_id: str, response: Response,
         return ApiResponse(error=ErrMessage(message=str(e)))
     
 @router.get("/interested/{user_id}", summary="Get all products a user is interested in", response_model=ApiResponse)
-async def get_interested_products(user_id: str, response: Response, db: Session = Depends(get_db)):
-    """
-    Retrieve all products that a user is interested in.
-
-    This endpoint allows clients to fetch a list of products that a specific user 
-    has expressed interest in. The response includes detailed information about each 
-    product, such as the product's name, description, price, seller information, 
-    interested buyers, location, images, and category. 
-
-    Parameters:
-    - **user_id**: The unique identifier of the user whose interested products are being retrieved.
-
-    Responses:
-    - **200 OK**: Returns a list of products that the user is interested in.
-    - **500 Internal Server Error**: If an unexpected error occurs during processing.
-    """
+async def get_interested_products(
+    user_id: str,
+    params: ProductListQueryParams = Depends(),
+    db: Session = Depends(get_db)
+):
     try:
-        result = get_interested_items(user_id, db)
+        # Check cache first
+        cache_key = f"interested:{user_id}:{generate_cache_key(params)}"
+        cached_response = redis_client.get(cache_key)
+        if cached_response:
+            print("Cache hit - full response")
+            return ApiResponse(**cached_response)
 
-        product_list = []
-        for item in result:
-            product_details = get_product_details(item, db)
-            product_list.append(product_details)
+        # Build base query
+        query = (
+            db.query(
+                ItemsOrm.id,
+                ItemsOrm.name,
+                ItemsOrm.price,
+                ItemsOrm.category,
+                ItemsOrm.condition,
+                ItemsOrm.latitude,
+                ItemsOrm.longitude,
+                ItemsOrm.address,
+                ItemsOrm.lister_id
+            )
+            .join(interested_buyers)
+            .filter(
+                interested_buyers.c.user_id == uuid_pkg.UUID(user_id),
+                ItemsOrm.deleted_at.is_(None),
+                interested_buyers.c.deleted_at.is_(None)
+            )
+        )
 
-        return ApiResponse(data=product_list)
+        # Apply filters and get results with caching
+        items, total = apply_product_filters_with_cache(query, params, db)
+
+        # Search for items with the search query
+        if params.search_query:
+            items = await search_items(params.search_query, items, db)
+
+        # Transform items
+        product_list = [
+            {
+                "id": str(item.id),
+                "name": item.name,
+                "price": item.price,
+                "category": item.category.value,
+                "condition": item.condition.value,
+                "images": add_first_image_to_items(item, db),
+                "location": {
+                    "address": item.address,
+                    "latitude": item.latitude,
+                    "longitude": item.longitude
+                },
+                "seller": handle_get_basic_user_info(str(item.lister_id)),
+                "interested": determine_if_user_is_interested(str(item.id), str(user_id), db)
+            }
+            for item in items
+        ]
+
+        response_data = {
+            "data": {
+                "items": product_list,
+                "total": total,
+                "page": params.page,
+                "limit": params.limit
+            }
+        }
+
+        # Cache the response
+        redis_client.set(cache_key, response_data)
+
+        return ApiResponse(**response_data)
+
     except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ApiResponse(error=ErrMessage(message=str(e)))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 @router.get("/{product_id}/generate-description", summary="Generate product description using AI", response_model=ApiResponse)
 async def generate_product_description(product_id: str, response: Response, db: Session = Depends(get_db)):

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 
 from PIL import Image
 import base64
@@ -9,6 +9,8 @@ import uuid as uuid_pkg
 import logging
 
 import boto3
+from enum import Enum
+from backend.cache.redis_client import redis_client
 from botocore.exceptions import ClientError
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,12 +18,14 @@ from backend.db_models.connection import Session as DefaultSession
 from backend.db_models.items import ItemsOrm
 from backend.db_models.item_images import ItemImagesOrm
 from backend.db_models.users import UsersOrm
-from backend.models.item import Item
+from backend.models.item import Item, ProductListQueryParams
 from sqlalchemy.sql import func
 from dotenv import load_dotenv
-from backend.db_models.items import interested_buyers
+from backend.db_models.items import interested_buyers, ProductEmbeddingsOrm
+from backend.openai_integration.openai_client import OpenAIClient
 from backend.models.user import User
 from backend.models.provider import Provider
+from backend.models.item import ItemCategory, ItemCondition
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -213,14 +217,13 @@ def get_item_by_lister(user_id: str, db: Session = None):
             session.close()
 
 def update_item(item_id: str, updated_item: Item, db: Session):
-    existing_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(item_id) and 
-                                              ItemsOrm.lister_id == updated_item.lister_id and 
+    existing_item = db.query(ItemsOrm).filter(ItemsOrm.id == uuid_pkg.UUID(item_id) and
+                                              ItemsOrm.lister_id == updated_item.lister_id and
                                               ItemsOrm.deleted_at.is_(None)).first()
     if not existing_item:
         raise ValueError("Item not found")
 
-    old_image_urls = [img.image_data for img in existing_item.item_images]
-
+    # Update basic item information
     existing_item.name = updated_item.name
     existing_item.description = updated_item.description
     existing_item.price = updated_item.price
@@ -231,34 +234,55 @@ def update_item(item_id: str, updated_item: Item, db: Session):
     existing_item.status = updated_item.status
     existing_item.condition = updated_item.condition
 
-    # Clear existing images
-    existing_item.item_images.clear()
+    # Check if new images are provided and are in base64 format
+    has_new_images = any(
+        isinstance(img, str) and img.startswith('data:image')
+        for img in updated_item.images
+    ) if updated_item.images else False
 
-    # Add updated images
-    new_image_urls = []
-    try:
-        for index, image_data in enumerate(updated_item.images):
-            # Upload new image to S3
-            image_url = upload_to_s3(image_data, str(existing_item.id), index)
-            new_image_urls.append(image_url)
+    if has_new_images:
+        # Store old image URLs for cleanup
+        old_image_urls = [img.image_data for img in existing_item.item_images]
 
-            # Create new image record
-            new_image = ItemImagesOrm(
-                item_id=existing_item.id,
-                image_data=image_url
-            )
-            existing_item.item_images.append(new_image)
+        # Clear existing images
+        existing_item.item_images.clear()
 
-        # Commit database changes
-        db.commit()
+        # Add updated images
+        new_image_urls = []
+        try:
+            for index, image_data in enumerate(updated_item.images):
+                if isinstance(image_data, str) and image_data.startswith('data:image'):
+                    # Upload new image to S3
+                    image_url = upload_to_s3(image_data, str(existing_item.id), index)
+                    new_image_urls.append(image_url)
 
-        # After successful commit, delete old images from S3
-        cleanup_s3_images(old_image_urls)
-        return existing_item
+                    # Create new image record
+                    new_image = ItemImagesOrm(
+                        item_id=existing_item.id,
+                        image_data=image_url
+                    )
+                    existing_item.item_images.append(new_image)
 
-    except Exception as e:
-        cleanup_s3_images(new_image_urls)
-        raise e
+            # Commit database changes
+            db.commit()
+
+            # After successful commit, delete old images from S3
+            cleanup_s3_images(old_image_urls)
+            return existing_item
+
+        except Exception as e:
+            # Clean up any newly uploaded images if there's an error
+            cleanup_s3_images(new_image_urls)
+            db.rollback()
+            raise e
+    else:
+        # If no new images, just commit the basic information updates
+        try:
+            db.commit()
+            return existing_item
+        except Exception as e:
+            db.rollback()
+            raise e
 
 def delete_item(item_id: str, db: Session = None):
     if not item_id:
@@ -381,6 +405,15 @@ def add_interested_buyer(item_id: str, user_id: str, db: Session = None):
         if not db:
             session.close()
 
+def determine_if_user_is_interested(item_id: str, user_id: str, db: Session = None):
+    # Iterate through the interested buyers table to see if the user is interested
+    count = db.query(interested_buyers).filter(
+        interested_buyers.c.item_id == item_id,
+        interested_buyers.c.user_id == user_id,
+        interested_buyers.c.deleted_at.is_(None)
+    ).count()
+    return count > 0
+
 def get_product_details(item, db: Session) -> dict:
     seller = User(
         id=str(item.lister.id),
@@ -470,3 +503,73 @@ def get_interested_items(user_id: str, db: Session):
     )
     
     return interested_products
+
+def add_first_image_to_items(item: ItemsOrm, db: Session):
+    """Add the first image to each item."""
+    first_image = db.query(ItemImagesOrm).filter(ItemImagesOrm.item_id == item.id).first()
+    first_image = [first_image.image_data] if first_image else []
+    return first_image
+
+def apply_product_filters_with_cache(
+    query, 
+    params: ProductListQueryParams, 
+    db: Session
+) -> tuple[list, int]:
+    """Apply filters, sorting, and caching to product queries"""
+    # Try to get filtered count from cache
+    total = None
+
+    # Apply basic filters
+    if params.category:
+        query = query.filter(ItemsOrm.category == params.category)
+
+    if params.condition:
+        query = query.filter(ItemsOrm.condition == params.condition)
+
+    if params.price_min is not None:
+        query = query.filter(ItemsOrm.price >= params.price_min)
+
+    if params.price_max is not None:
+        query = query.filter(ItemsOrm.price <= params.price_max)
+
+    # Apply sorting
+    if params.sort:
+        sort_mapping = {
+            "price_asc": ItemsOrm.price.asc(),
+            "price_desc": ItemsOrm.price.desc(),
+            "created_at_asc": ItemsOrm.created_at.asc(),
+            "created_at_desc": ItemsOrm.created_at.desc()
+        }
+        query = query.order_by(sort_mapping[params.sort])
+
+    # Get total count if not cached
+    if total is None:
+        total = query.count()
+
+    # Get paginated results
+    items = query.offset((params.page - 1) * params.limit).limit(params.limit).all()
+
+    return items, total
+
+async def search_items(search_query: str, items: List[ItemsOrm], db: Session):
+    # Get all product embeddings from database filtered by the items
+    product_embeddings = db.query(ProductEmbeddingsOrm).filter(
+        ProductEmbeddingsOrm.product_id.in_([item.id for item in items])
+    ).all()
+    
+    # Search products using embeddings
+    search_results = await OpenAIClient.search_products(
+        search_query, 
+        [{"product_id": pe.product_id, **{
+            f"{field}_embedding": getattr(pe, f"{field}_embedding")
+            for field in ["name", "category", "address", "price", "description", "condition"]
+        }} for pe in product_embeddings]
+    )
+    
+    # Get full product details for matches
+    results = []
+    for result in search_results:
+        product = db.query(ItemsOrm).filter(ItemsOrm.id == result["product_id"]).first()
+        results.append(product)
+
+    return results
