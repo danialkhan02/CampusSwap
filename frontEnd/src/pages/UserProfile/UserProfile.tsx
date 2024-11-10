@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import { useState } from 'react';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import UserListings from 'pages/UserProfile/components/UserListings';
+import ListingModal from 'pages/UserProfile/components/ListingModal';
 import UserWishlist from 'pages/UserProfile/components/UserWishlist';
 import { useGetUser } from 'pages/Authentication/queries';
 import { retrieve } from 'utils/cacheUtils';
@@ -15,7 +16,6 @@ import { CacheKeys } from 'utils/constants';
 import Spinner from 'components/Common/Spinner';
 import ProfileCard from 'pages/UserProfile/components/ProfileCard';
 import ProfileBanner from 'pages/UserProfile/components/ProfileBanner';
-import CreateListingModal from 'pages/UserProfile/components/ListingModal';
 
 
 export default function UserProfile() {
@@ -86,7 +86,7 @@ export default function UserProfile() {
       )}
       {modalOpen && (
       <LoadGoogleMaps>
-        <CreateListingModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+        <ListingModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
       </LoadGoogleMaps>
       )}
     </Grid>

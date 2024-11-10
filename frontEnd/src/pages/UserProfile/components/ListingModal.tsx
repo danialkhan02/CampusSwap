@@ -11,7 +11,7 @@ import {
 import { ECategory, ECondition } from 'pages/HomePage/constants';
 
 
-export default function CreateListingModal({
+export default function ListingModal({
   isOpen,
   onClose,
 }: { isOpen: boolean; onClose: () => void }) {
