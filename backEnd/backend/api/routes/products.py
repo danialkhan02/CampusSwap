@@ -313,7 +313,7 @@ async def create_product(item: Item, response: Response, db: Session = Depends(g
         response.status_code = status.HTTP_201_CREATED
         increment_num_listings(lister_uuid, db)
 
-        # Clear all relevant caches except for location
+        # Clear all relevant caches
         redis_client.clear_all_caches()
         return ApiResponse(data=result)
         
@@ -362,7 +362,7 @@ async def update_product(product_id: str, item: Item, response: Response, db: Se
             
         db.commit()
 
-        # Clear all relevant caches except for location
+        # Clear all relevant caches
         redis_client.clear_all_caches()
         
         return ApiResponse(data=get_product_details(result, db))
