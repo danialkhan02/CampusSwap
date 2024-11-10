@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { TextField, Autocomplete, CircularProgress } from '@mui/material';
+import {
+  Autocomplete, CircularProgress, FormHelperText, TextField,
+} from '@mui/material';
 
 
 type Prediction = {
@@ -14,9 +16,13 @@ type Prediction = {
 type TProps = {
     input: string;
     setInput: (address: string, lat?: number, lng?: number) => void;
+    error?: boolean;
+    helperText?: string;
 };
 
-export default function LocationAutocomplete({ input, setInput }: TProps) {
+export default function LocationAutocomplete({
+  input, setInput, error = false, helperText,
+}: TProps) {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
   const autocompleteServiceRef = React.useRef<google.maps.places.AutocompleteService | null>(null);
@@ -89,32 +95,40 @@ export default function LocationAutocomplete({ input, setInput }: TProps) {
   };
 
   return (
-    <Autocomplete
-      freeSolo
-      options={predictions}
-      getOptionLabel={(option) => (typeof option === 'string' ? option : option.description)}
-      inputValue={input}
-      onInputChange={handleInputChange}
-      onChange={handleSelect}
-      loading={loading}
-      renderInput={(params) => (
-        <TextField
+    <div>
+      <Autocomplete
+        freeSolo
+        options={predictions}
+        getOptionLabel={(option) => (typeof option === 'string' ? option : option.description)}
+        inputValue={input}
+        onInputChange={handleInputChange}
+        onChange={handleSelect}
+        loading={loading}
+        renderInput={(params) => (
+          <TextField
           /* eslint-disable-next-line react/jsx-props-no-spreading */
-          {...params}
-          label='Enter a location'
-          variant='outlined'
-          fullWidth
-          InputProps={{
-            ...params.InputProps,
-            endAdornment: (
-              <>
-                {loading ? <CircularProgress color='inherit' size={20} /> : null}
-                {params.InputProps.endAdornment}
-              </>
-            ),
-          }}
-        />
+            {...params}
+            label='Enter a location'
+            variant='outlined'
+            fullWidth
+            error={error}
+            InputProps={{
+              ...params.InputProps,
+              endAdornment: (
+                <>
+                  {loading ? <CircularProgress color='inherit' size={20} /> : null}
+                  {params.InputProps.endAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
+      />
+      {helperText && (
+      <FormHelperText error={error} sx={{ ml: 1.75 }}>
+        {helperText}
+      </FormHelperText>
       )}
-    />
+    </div>
   );
 }
