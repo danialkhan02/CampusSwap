@@ -8,7 +8,7 @@ from backend.constants import BACKEND_ID_STYTCH_KEY
 
 async def stytch_authentication(request: Request, call_next):
     # Allow access to documentation endpoints without authentication
-    if request.url.path in ["/docs", "/redoc", "/openapi.json", "/api/v1/products/generate-description", "/api/v1/seller_profiles/92d797ff-5f1a-4107-8468-dc2787ed5a82", "/api/v1/seller_profiles" , "/api/v1/users", "/api/v1/products/fee7afbe-c3bb-4a5b-a16b-dc60d192e2ad/interested/92d797ff-5f1a-4107-8468-dc2787ed5a82","/api/v1/products/lister/92d797ff-5f1a-4107-8468-dc2787ed5a82",  "/api/v1/products/create", "/api/v1/products/fee7afbe-c3bb-4a5b-a16b-dc60d192e2ad", "/api/v1/products/86732b1a-8fff-40e2-95b5-60a497875329"]:
+    if request.url.path in ["/docs", "/redoc", "/openapi.json", "/api/v1/products/generate-description", "/api/v1/seller_profiles/92d797ff-5f1a-4107-8468-dc2787ed5a82", "/api/v1/seller_profiles" , "/api/v1/users", "/api/v1/products/fee7afbe-c3bb-4a5b-a16b-dc60d192e2ad/interested/92d797ff-5f1a-4107-8468-dc2787ed5a82","/api/v1/products/lister/92d797ff-5f1a-4107-8468-dc2787ed5a82",  "/api/v1/products/create", "/api/v1/products/fee7afbe-c3bb-4a5b-a16b-dc60d192e2ad", "/api/v1/products/86732b1a-8fff-40e2-95b5-60a497875329", "/api/v1/auth/test-token", "/api/v1/products/list", "/api/v1/products/search"]:
         return await call_next(request)
 
     try:

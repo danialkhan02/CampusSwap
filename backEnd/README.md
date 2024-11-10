@@ -142,6 +142,27 @@ All API responses should use the `ApiResponse` model:
 - Success: `ApiResponse(data=your_data)`
 - Error: `ApiResponse(error=ErrMessage(message="error message"))`
 
+### Load Testing
+
+- Make sure the backend is running for at http://localhost:6050 
+- In `backEnd` Run: `poetry run locust -f load_tests/locustfile.py --host=http://localhost:6050 --web-host=127.0.0.1 --web-port=8090`
+
+1. Open the Locust web interface:
+   - Visit http://127.0.0.1:8090
+   - Set number of users
+   - Set spawn rate (users/second)
+   - Start the test
+
+2. Monitor Results:
+   - RPS (Requests per second)
+   - Response times
+   - Error rates
+   - Download reports in CSV format
+
+Note: Some endpoints are whitelisted for testing in `api_auth.py`:
+- `/api/v1/products/search` since it doesn't need parameters
+Product search is also the request that will most likely be performed simultaneously by multiple users
+
 ### Authentication
 - All endpoints are automatically protected by Stytch authentication
 - To bypass auth for specific endpoints, add them to the whitelist in `api_auth.py`
