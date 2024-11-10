@@ -21,7 +21,6 @@ import uuid as uuid_pkg
 from backend.openai_integration.openai_client import OpenAIClient
 from backend.models.item import GenerateDescriptionRequest
 
-
 router = APIRouter()
 
 @router.get("/search", summary="Search products with AI enhancement", response_model=ApiResponse)

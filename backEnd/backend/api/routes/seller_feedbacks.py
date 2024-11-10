@@ -10,20 +10,9 @@ from backend.db_interface.seller_feedbacks import (
 )
 from backend.models.seller_feedback import SellerFeedback
 from backend.api_responses import ApiResponse, ErrMessage
-from backend.db_models.connection import Session as DefaultSession
-import uuid as uuid_pkg
+from backend.db_models.connection import Session as DefaultSession, get_db
 
-router = APIRouter(
-    tags=["seller_feedbacks"],
-    responses={404: {"description": "Not found"}}
-)
-
-def get_db():
-    db = DefaultSession()
-    try:
-        yield db
-    finally:
-        db.close()
+router = APIRouter()
 
 @router.post("", summary="Create a new seller feedback", response_model=ApiResponse)
 async def create_feedback(feedback: SellerFeedback, response: Response, db: Session = Depends(get_db)) -> ApiResponse:
@@ -76,7 +65,7 @@ async def get_feedback(feedback_id: str, response: Response, db: Session = Depen
         if not feedback:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Feedback not found"))
-        return ApiResponse(data=feedback)
+        return ApiResponse(data=feedback.as_dict())
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
@@ -104,7 +93,7 @@ async def update_feedback(feedback_id: str, feedback: SellerFeedback, response: 
         if not updated:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Feedback not found"))
-        return ApiResponse(data=updated)
+        return ApiResponse(data=updated.as_dict())
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
@@ -154,7 +143,7 @@ async def list_seller_feedback(seller_id: str, response: Response, db: Session =
     """
     try:
         feedbacks = list_seller_feedbacks(seller_id, db)
-        return ApiResponse(data=feedbacks)
+        return ApiResponse(data=[feedback.as_dict() for feedback in feedbacks])
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
