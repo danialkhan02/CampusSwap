@@ -1,6 +1,4 @@
-import {
-  Card, Tab, Tabs,
-} from '@mui/material';
+import { Card, Tab, Tabs } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -8,9 +6,9 @@ import CollectionsIcon from '@mui/icons-material/Collections';
 import ReviewsIcon from '@mui/icons-material/Reviews';
 import Box from '@mui/material/Box';
 import { useState } from 'react';
-import ListingModal from 'pages/UserProfile/components/ListingModal';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import UserListings from 'pages/UserProfile/components/UserListings';
+import ListingModal from 'pages/UserProfile/components/ListingModal';
 import UserWishlist from 'pages/UserProfile/components/UserWishlist';
 import { useGetUser } from 'pages/Authentication/queries';
 import { retrieve } from 'utils/cacheUtils';

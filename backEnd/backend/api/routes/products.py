@@ -607,11 +607,14 @@ async def generate_description(request: GenerateDescriptionRequest, response: Re
     try:
         if not request.images:
             raise ValueError("At least one image must be provided")
+        limited_images = request.images
+        if len(request.images) > 1:
+            limited_images = request.images[:1]
 
         # Generate description using OpenAI
         description = await OpenAIClient.generate_product_description(
             name=request.name,
-            images=request.images,
+            images=limited_images,
             category=request.category,
             condition=request.condition
         )
