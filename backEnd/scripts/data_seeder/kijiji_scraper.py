@@ -32,12 +32,50 @@ class KijijiScraper:
         }
         self.TEST_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/wcAAwAB/8h9CEYAAAAASUVORK5CYII="
         self.TEST_IMAGE_BYTES = base64.b64decode(self.TEST_IMAGE.split(',')[1])
-        self.geolocator = Nominatim(user_agent="unimarket_scraper")
-        self.default_location = {
-            'address': 'Toronto, ON, Canada',
-            'latitude': 43.6532,
-            'longitude': -79.3832
-        }
+        self.ontario_locations = [
+            {
+                'address': 'Toronto, ON, Canada',
+                'latitude': 43.6532,
+                'longitude': -79.3832
+            },
+            {
+                'address': 'Mississauga, ON, Canada',
+                'latitude': 43.5890,
+                'longitude': -79.6441
+            },
+            {
+                'address': 'Ottawa, ON, Canada',
+                'latitude': 45.4215,
+                'longitude': -75.6972
+            },
+            {
+                'address': 'Hamilton, ON, Canada',
+                'latitude': 43.2557,
+                'longitude': -79.8711
+            },
+            {
+                'address': 'London, ON, Canada',
+                'latitude': 42.9849,
+                'longitude': -81.2453
+            },
+            {
+                'address': 'Waterloo, ON, Canada',
+                'latitude': 43.4643,
+                'longitude': -80.5204
+            },
+            {
+                'address': 'Guelph, ON, Canada',
+                'latitude': 43.5449,
+                'longitude': -80.2482
+            },
+            {
+                'address': 'Kingston, ON, Canada',
+                'latitude': 44.2312,
+                'longitude': -76.4860
+            }
+        ]
+        self.default_location = self.ontario_locations[0]  # Toronto as default
+
         
     def get_processed_image(self, image_url: str) -> bytes:
         """Helper method to process images with proper error handling"""
@@ -76,36 +114,9 @@ class KijijiScraper:
             logger.warning(f"Image download failed: {e}, using test image")
             return self.TEST_IMAGE_BYTES
 
-    def get_location_data(self, location_text: str) -> dict:
-        """Helper method to get coordinates and formatted address"""
-        try:
-            # Append 'Ontario, Canada' to improve geocoding accuracy
-            search_text = f"{location_text}, Ontario, Canada"
-            
-            # Add retry mechanism
-            max_attempts = 3
-            for attempt in range(max_attempts):
-                try:
-                    location = self.geolocator.geocode(search_text)
-                    if location:
-                        return {
-                            'address': location.address,
-                            'latitude': location.latitude,
-                            'longitude': location.longitude
-                        }
-                    time.sleep(1)  # Respect rate limits
-                except (GeocoderTimedOut, GeocoderUnavailable) as e:
-                    if attempt == max_attempts - 1:  # Last attempt
-                        logger.warning(f"Geocoding failed for {location_text}: {e}")
-                        break
-                    time.sleep(2)  # Wait before retry
-                    
-            logger.warning(f"Could not geocode location: {location_text}, using default")
-            return self.default_location
-            
-        except Exception as e:
-            logger.error(f"Error geocoding location {location_text}: {e}")
-            return self.default_location
+    def get_location_data(self) -> dict:
+        """Helper method to get random location from Ontario locations"""
+        return random.choice(self.ontario_locations)
 
     def scrape_listings(self, category: ItemCategory, num_listings: int = 10) -> List[Dict]:
         listings = []
@@ -165,18 +176,8 @@ class KijijiScraper:
                         description_elem = item.select_one('[data-testid="listing-description"]')
                         description = description_elem.text.strip() if description_elem else f"Listed on Kijiji - {name}"
                         
-                        # Get location
-                        # location_elem = item.select_one('[data-testid="listing-location"]')
-                        # location_text = location_elem.text.strip() if location_elem else "Toronto"
-                        # logger.info(f"Location text: {location_text}")
-                        
                         # Get location data with coordinates
-                        # location_data = self.get_location_data(location_text)
-                        location_data = {
-                            'address': 'Toronto, ON, Canada',
-                            'latitude': 43.6532,
-                            'longitude': -79.3832
-                        }
+                        location_data = self.get_location_data()
 
                         # Create listing object
                         listing = {
