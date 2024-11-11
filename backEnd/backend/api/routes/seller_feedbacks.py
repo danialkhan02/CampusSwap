@@ -11,6 +11,7 @@ from backend.db_interface.seller_feedbacks import (
 from backend.models.seller_feedback import SellerFeedback
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession, get_db
+from backend.db_interface.users import get_user_summary
 
 router = APIRouter()
 
@@ -65,7 +66,28 @@ async def get_feedback(feedback_id: str, response: Response, db: Session = Depen
         if not feedback:
             response.status_code = status.HTTP_404_NOT_FOUND
             return ApiResponse(error=ErrMessage(message="Feedback not found"))
-        return ApiResponse(data=feedback.as_dict())
+        
+        # Get user summaries
+        seller = get_user_summary(str(feedback.seller_id))
+        buyer = get_user_summary(str(feedback.buyer_id))
+        
+        if not seller or not buyer:
+            response.status_code = status.HTTP_404_NOT_FOUND
+            return ApiResponse(error=ErrMessage(message="Associated user not found"))
+        
+        # Create a SellerFeedback object from the feedback
+        feedback_obj = {
+            "id": str(feedback.id),
+            "seller": seller,
+            "buyer": buyer,
+            "rating": feedback.rating,
+            "feedback_message": feedback.feedback_message,
+            "verified_purchase": feedback.verified_purchase,
+            "seller_response": feedback.seller_response,
+            "timestamp": feedback.timestamp.isoformat() if feedback.timestamp else None
+        }
+
+        return ApiResponse(data=feedback_obj)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
@@ -143,7 +165,15 @@ async def list_seller_feedback(seller_id: str, response: Response, db: Session =
     """
     try:
         feedbacks = list_seller_feedbacks(seller_id, db)
-        return ApiResponse(data=[feedback.as_dict() for feedback in feedbacks])
+
+        # Create a list of SellerFeedback objects
+        feedback_list = []
+        for feedback in feedbacks:
+            seller = get_user_summary(str(feedback.seller_id))
+            buyer = get_user_summary(str(feedback.buyer_id))
+            feedback_list.append(SellerFeedback(seller=seller, buyer=buyer, **feedback.as_dict()))
+
+        return ApiResponse(data=feedback_list)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
@@ -166,7 +196,15 @@ async def list_buyer_feedback(buyer_id: str, response: Response, db: Session = D
     """
     try:
         feedbacks = list_seller_feedbacks_by_buyer(buyer_id, db)
-        return ApiResponse(data=[feedback.as_dict() for feedback in feedbacks])
+
+        # Create a list of SellerFeedback objects
+        feedback_list = []
+        for feedback in feedbacks:
+            seller = get_user_summary(str(feedback.seller_id))
+            buyer = get_user_summary(str(feedback.buyer_id))
+            feedback_list.append(SellerFeedback(seller=seller, buyer=buyer, **feedback.as_dict()))
+
+        return ApiResponse(data=feedback_list)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))
