@@ -35,10 +35,10 @@ jobs:
         run: echo "TAG=v$(cat frontEnd/package.json | grep '"version":' | awk -F'"' '{print $4; exit;}')" >> $GITHUB_ENV
 
       - name: Create Tag
-        run: git tag frontEnd-$TAG
+        run: git tag $TAG
 
       - name: Push Tag
-        run: git push origin frontEnd-$TAG
+        run: git push origin $TAG
 
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/main'
@@ -53,10 +53,10 @@ jobs:
 
       - name: Build & Push Frontend Docker Image
         if: github.ref == 'refs/heads/main'
-        working-directory: ./frontEnd
+        working-directory: .
         run: |
           docker buildx create --name frontend --use
           DOCKER_BUILDKIT=1 docker buildx build --platform linux/amd64,linux/arm64 \
             -t "ghcr.io/${{ github.repository_owner }}/swapsquad-frontend:latest" \
             -t "ghcr.io/${{ github.repository_owner }}/swapsquad-frontend:${TAG}" \
-            --push ./frontEnd
+            --push .
