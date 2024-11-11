@@ -5,6 +5,7 @@ from backend.db_interface.seller_profiles import (
     update_seller_profile,
     delete_seller_profile
 )
+from backend.db_interface.seller_feedbacks import get_number_of_ratings
 from backend.models.seller_profile import SellerProfile
 from backend.api_responses import ApiResponse, ErrMessage
 from backend.db_models.connection import Session as DefaultSession
@@ -53,6 +54,7 @@ async def get_profile(seller_id: str, response: Response, db: Session = Depends(
             "num_listings": profile.num_listings,
             "total_transactions": profile.total_transactions,
             "average_rating": profile.average_rating,
+            "ratings_count": get_number_of_ratings(seller_id, db)
         }
         return ApiResponse(data=return_profile)
     except ValueError as e:
@@ -99,7 +101,7 @@ async def update_profile(seller_id: str, profile: SellerProfile, response: Respo
             "total_transactions": updated_profile.total_transactions,
             "average_rating": updated_profile.average_rating,
         }
-        return ApiResponse(data=return_profile)  # Convert to dictionary
+        return ApiResponse(data=return_profile)
     except ValueError as e:
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ApiResponse(error=ErrMessage(message=str(e)))

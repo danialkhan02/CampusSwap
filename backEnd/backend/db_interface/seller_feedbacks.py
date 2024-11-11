@@ -60,6 +60,35 @@ def get_seller_feedback(feedback_id: str, db: Session = None):
         if not db:
             session.close()
 
+def get_number_of_ratings(seller_id: str, db: Session = None):
+    session = db or DefaultSession()
+    try:
+        ratings_count = {
+            5: 0,
+            4: 0,
+            3: 0,
+            2: 0,
+            1: 0
+        }
+        
+        feedbacks = session.query(SellerFeedbackOrm).filter(
+            SellerFeedbackOrm.seller_id == seller_id,
+            SellerFeedbackOrm.deleted_at == None
+        ).all()
+        
+        for feedback in feedbacks:
+            if feedback.rating in ratings_count:
+                ratings_count[feedback.rating] += 1
+        
+        logger.info(f"Retrieved ratings count for seller {seller_id}")
+        return ratings_count
+    except SQLAlchemyError as e:
+        logger.error(f"Database error while getting ratings count for seller {seller_id}: {str(e)}")
+        raise
+    finally:
+        if not db:
+            session.close()
+
 def update_seller_feedback(feedback_id: str, updated_feedback: SellerFeedback, db: Session = None):
     if not feedback_id:
         logger.error("Invalid input: feedback_id is missing")
