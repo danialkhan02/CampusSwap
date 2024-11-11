@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 from backend.db_interface.items import cleanup_s3_images
 from backend.db_models.connection import Session as DefaultSession
 from backend.db_models.users import UsersOrm
-from backend.models.user import User, UpdateUser
+from backend.models.user import User, UpdateUser, UserSummary
 import uuid as uuid_pkg
 
 load_dotenv()
@@ -177,3 +177,13 @@ def handle_get_basic_user_info(user_id: str):
             }
         else:
             return None
+
+def get_user_summary(user_id: str):
+    with DefaultSession() as session:
+        db_user = session.query(UsersOrm).filter(UsersOrm.id == user_id).first()
+        return UserSummary(
+            id=str(db_user.id),
+            first_name=db_user.first_name,
+            last_name=db_user.last_name,
+            profile_image_url=db_user.profile_image_url
+        )

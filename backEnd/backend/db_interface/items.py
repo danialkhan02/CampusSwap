@@ -38,7 +38,7 @@ s3_client = boto3.client(
 )
 BUCKET_NAME = os.getenv('AWS_BUCKET_NAME')
 
-def upload_to_s3(image_data: str, product_id: str, index: int) -> str:
+def upload_to_s3(image_data: str, unique_id: str, index: int) -> str:
     """
     Upload an image to S3 and return its URL.
     """
@@ -63,7 +63,7 @@ def upload_to_s3(image_data: str, product_id: str, index: int) -> str:
         img.save(jpeg_buffer, format='JPEG', quality=85, optimize=True)
         jpeg_bytes = jpeg_buffer.getvalue()
 
-        file_name = f'products/{product_id}/image_{index}.jpg'
+        file_name = f'products/{unique_id}/image_{index}.jpg'
 
         s3_client.put_object(
             Bucket=BUCKET_NAME,
@@ -87,6 +87,7 @@ def cleanup_s3_images(image_urls: List[str]):
         try:
             key = url.split('.amazonaws.com/')[-1]
             s3_client.delete_object(Bucket=BUCKET_NAME, Key=key)
+            print(f"Deleted image from S3: {url}")
         except Exception as del_err:
             logger.error(f"Error cleaning up S3 image: {str(del_err)}")
 
@@ -563,7 +564,8 @@ async def search_items(search_query: str, items: List[ItemsOrm], db: Session):
         [{"product_id": pe.product_id, **{
             f"{field}_embedding": getattr(pe, f"{field}_embedding")
             for field in ["name", "category", "address", "price", "description", "condition"]
-        }} for pe in product_embeddings]
+        }} for pe in product_embeddings],
+        db
     )
     
     # Get full product details for matches
@@ -572,4 +574,4 @@ async def search_items(search_query: str, items: List[ItemsOrm], db: Session):
         product = db.query(ItemsOrm).filter(ItemsOrm.id == result["product_id"]).first()
         results.append(product)
 
-    return results
+    return results, len(results)
