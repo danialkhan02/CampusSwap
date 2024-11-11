@@ -9,6 +9,9 @@ from backend.db_interface.items import (
     list_items,
     add_interested_buyer,
     get_product_details,
+    get_interested_items,
+    upload_to_s3,
+    cleanup_s3_images,
     determine_if_user_is_interested,
     apply_product_filters_with_cache,
     add_first_image_to_items,
@@ -504,50 +507,6 @@ async def get_interested_products(
             detail=str(e)
         )
 
-@router.get("/{product_id}/generate-description", summary="Generate product description using AI", response_model=ApiResponse)
-async def generate_product_description(product_id: str, response: Response, db: Session = Depends(get_db)):
-    """
-    Generate an AI-powered product description based on the product's images and details.
-
-    This endpoint uses OpenAI's GPT-4o-mini model to analyze product images and information
-    to generate a detailed, compelling product description.
-
-    Parameters:
-    - **product_id**: The unique identifier of the product
-
-    Responses:
-    - **200 OK**: Returns the generated product description
-    - **404 Not Found**: If the product with the specified ID does not exist
-    - **500 Internal Server Error**: If an error occurs during description generation
-    """
-    try:
-        item = get_item(product_id, db)
-        if not item:
-            response.status_code = status.HTTP_404_NOT_FOUND
-            return ApiResponse(error=ErrMessage(message="Product not found"))
-
-        # Get all images for the product
-        images = [img.image_data for img in item.item_images]
-        
-        if not images:
-            raise ValueError("Product must have at least one image")
-
-        # Generate description using OpenAI
-        description = await OpenAIClient.generate_product_description(
-            name=item.name,
-            images=images,
-            category=item.category.value,
-            condition=item.condition.value
-        )
-
-        return ApiResponse(data={"description": description})
-    except ValueError as e:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return ApiResponse(error=ErrMessage(message=str(e)))
-    except Exception as e:
-        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-        return ApiResponse(error=ErrMessage(message=str(e)))
-
 @router.post("/generate-description", summary="Generate product description using AI", response_model=ApiResponse)
 async def generate_description(request: GenerateDescriptionRequest, response: Response):
     """
@@ -570,17 +529,23 @@ async def generate_description(request: GenerateDescriptionRequest, response: Re
     try:
         if not request.images:
             raise ValueError("At least one image must be provided")
-        limited_images = request.images
-        if len(request.images) > 1:
-            limited_images = request.images[:1]
+
+        # Temporarily upload images to S3
+        temp_images = []
+        unique_id = str(uuid_pkg.uuid4())
+        for i, img in enumerate(request.images):
+            temp_images.append(upload_to_s3(img, unique_id, i))
 
         # Generate description using OpenAI
         description = await OpenAIClient.generate_product_description(
             name=request.name,
-            images=limited_images,
+            images=temp_images,
             category=request.category,
             condition=request.condition
         )
+
+        # Delete temporary images from S3
+        cleanup_s3_images(temp_images)
 
         return ApiResponse(data={"description": description})
     except ValueError as e:
