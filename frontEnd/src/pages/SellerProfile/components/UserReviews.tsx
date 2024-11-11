@@ -206,7 +206,7 @@ export default function UserReviews({
                       variant='body2'
                       color='text.secondary'
                       sx={{
-                        maxHeight: 80,
+                        height: 80,
                         overflowY: 'auto',
                         '&::-webkit-scrollbar': {
                           width: '8px',
