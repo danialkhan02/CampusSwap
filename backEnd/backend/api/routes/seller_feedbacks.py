@@ -171,7 +171,16 @@ async def list_seller_feedback(seller_id: str, response: Response, db: Session =
         for feedback in feedbacks:
             seller = get_user_summary(str(feedback.seller_id))
             buyer = get_user_summary(str(feedback.buyer_id))
-            feedback_list.append(SellerFeedback(seller=seller, buyer=buyer, **feedback.as_dict()))
+            feedback_list.append({
+                "id": str(feedback.id),
+                "seller": seller,
+                "buyer": buyer,
+                "rating": feedback.rating,
+                "feedback_message": feedback.feedback_message,
+                "verified_purchase": feedback.verified_purchase,
+                "seller_response": feedback.seller_response,
+                "timestamp": feedback.timestamp.isoformat() if feedback.timestamp else None
+            })
 
         return ApiResponse(data=feedback_list)
     except ValueError as e:
@@ -202,7 +211,16 @@ async def list_buyer_feedback(buyer_id: str, response: Response, db: Session = D
         for feedback in feedbacks:
             seller = get_user_summary(str(feedback.seller_id))
             buyer = get_user_summary(str(feedback.buyer_id))
-            feedback_list.append(SellerFeedback(seller=seller, buyer=buyer, **feedback.as_dict()))
+            feedback_list.append({
+                "id": str(feedback.id),
+                "seller": seller,
+                "buyer": buyer,
+                "rating": feedback.rating,
+                "feedback_message": feedback.feedback_message,
+                "verified_purchase": feedback.verified_purchase,
+                "seller_response": feedback.seller_response,
+                "timestamp": feedback.timestamp.isoformat() if feedback.timestamp else None
+            })
 
         return ApiResponse(data=feedback_list)
     except ValueError as e:

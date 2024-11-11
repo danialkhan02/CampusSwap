@@ -1,11 +1,11 @@
-from backend.base_api_model import BaseApiModel
+from pydantic import BaseModel
 import uuid as uuid_pkg
 from typing import Optional
 from backend.models.user import UserSummary
 
-class SellerFeedback(BaseApiModel):
-    seller: UserSummary
-    buyer: UserSummary
+class SellerFeedback(BaseModel):
+    seller_id: uuid_pkg.UUID
+    buyer_id: uuid_pkg.UUID
     rating: int
     feedback_message: str
     verified_purchase: bool
