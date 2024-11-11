@@ -11,13 +11,12 @@ class OpenAIClientWrapper:
         self.client = OpenAI(api_key=os.getenv(api_key_env))
 
     async def generate_product_description(self, name: str, images: list[str], category: str, condition: str) -> str:
-        image_content = [{"type": "image_url", "image_url": {"url": img}} for img in images]
+        image_content = [{"type": "image_url", "image_url": {"url": img_url}} for img_url in images]
         
         prompt = f"""Generate a detailed product description for the following item:
         Name: {name}
         Category: {category}
         Condition: {condition}
-        Images: {image_content}
         
         Please analyze the provided images and create a compelling, detailed description with a maximum of 50 words that 
         highlights the key features and benefits of the product. Keep the tone professional and informative.
@@ -28,6 +27,7 @@ class OpenAIClientWrapper:
                 "role": "user",
                 "content": [
                     {"type": "text", "text": prompt},
+                    *image_content
                 ]
             }
         ]
