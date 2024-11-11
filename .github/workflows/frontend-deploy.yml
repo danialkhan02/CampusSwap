@@ -1,0 +1,62 @@
+name: Frontend Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontEnd/**'
+
+jobs:
+  build:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Use Node.js 18.9.1
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18.9.1
+          cache: 'npm'
+          cache-dependency-path: ./frontEnd/package-lock.json
+
+      - name: Install Node Dependencies
+        working-directory: ./frontEnd
+        run: npm install
+
+      - name: Run Tests
+        working-directory: ./frontEnd
+        run: npm run ci
+
+      - name: Set Version Tag
+        run: echo "TAG=v$(cat frontEnd/package.json | grep '"version":' | awk -F'"' '{print $4; exit;}')" >> $GITHUB_ENV
+
+      - name: Create Tag
+        run: git tag frontEnd-$TAG
+
+      - name: Push Tag
+        run: git push origin frontEnd-$TAG
+
+      - name: Login to GitHub Container Registry
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build & Push Frontend Docker Image
+        if: github.ref == 'refs/heads/main'
+        working-directory: ./frontEnd
+        run: |
+          docker buildx create --name frontend --use
+          DOCKER_BUILDKIT=1 docker buildx build --platform linux/amd64,linux/arm64 \
+            -t "ghcr.io/${{ github.repository_owner }}/swapsquad-frontend:latest" \
+            -t "ghcr.io/${{ github.repository_owner }}/swapsquad-frontend:${TAG}" \
+            --push ./frontEnd
