@@ -53,10 +53,9 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git config --global user.name "github-actions[bot]"
 
-      - name: Create and Push Tag
-        run: |
-          git tag backend-v${TAG}
-          git push https://${{ github.actor }}:${{ secrets.PAT_TOKEN }}@github.com/${{ github.repository }} backend-v${TAG}
+      - name: Set Version Tag
+        working-directory: ./backEnd
+        run: echo "TAG=$(cat pyproject.toml | grep 'version = ' | awk -F'"' '{print $2}')" >> $GITHUB_ENV
 
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/main'
