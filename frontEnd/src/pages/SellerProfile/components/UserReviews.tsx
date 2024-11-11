@@ -1,21 +1,21 @@
 import {
-  Avatar, Button, Grid, LinearProgress, Rating, Stack, Typography,
+  Avatar, Button, Card, CardContent, Grid, Rating, Stack, Typography,
 } from '@mui/material';
 import { useState } from 'react';
 import { IReview, useGetSellerReviews } from 'pages/SellerProfile/queries';
-import { TApiResponse } from 'utils/apiResponse.type';
-import userImage from 'assets/avatar-25.webp';
 import Box from '@mui/material/Box';
-import { Edit } from '@mui/icons-material';
+import { Edit, ThumbUp } from '@mui/icons-material';
+import CreateFeedbackModal from 'pages/SellerProfile/components/CreateFeedbackModal';
+import Spinner from 'components/Common/Spinner';
+import userImage from 'assets/avatar-25.webp';
+import RatingLines from 'pages/SellerProfile/components/RatingLines';
 
 
 type Props = {
   sellerId: string;
-  ratingDistribution: Record<number, number>;
 };
 
 export default function UserReviews({
-  ratingDistribution,
   sellerId,
 }: Props) {
   const [modalOpen, setModalOpen] = useState(false);
@@ -24,43 +24,22 @@ export default function UserReviews({
     setModalOpen(true);
   };
 
-  const sellerReviewsDatas: TApiResponse<IReview[]> = {
-    data: [
-      {
-        id: '1',
-        userName: 'John Doe',
-        rating: 3,
-        comment: 'He is a great guy! He is very adjusting.',
-        date: '2024/01/01',
-        avatarUrl: userImage,
-      },
-      {
-        id: '2',
-        userName: 'John Doe',
-        rating: 3,
-        comment: 'He is a great guy! He is very adjusting.',
-        date: '2024/01/01',
-        avatarUrl: userImage,
-      },
-      {
-        id: '3',
-        userName: 'John Doe',
-        rating: 3,
-        comment: 'He is a great guy! He is very adjusting.',
-        date: '2024/01/01',
-        avatarUrl: userImage,
-      },
-      {
-        id: '4',
-        userName: 'John Doe',
-        rating: 3,
-        comment: 'He is a great guy! He is very adjusting.',
-        date: '2024/01/01',
-        avatarUrl: userImage,
-      },
-    ],
-    error: null,
+  const calculateAverageRating = (reviews: IReview[]) => {
+    if (!reviews || reviews.length === 0) return 0;
+
+    const sum = reviews.reduce((acc, review) => {
+      // Handle null/undefined ratings
+      const rating = review.rating || 0;
+      return acc + rating;
+    }, 0);
+
+    const average = sum / reviews.length;
+    return Number(average.toFixed(1)); // Rounds to 1 decimal place
   };
+
+  if (!sellerReviewsData || !sellerReviewsData.data || isLoading) {
+    return <Spinner />;
+  }
 
   return (
     <Grid item xs={12}>
@@ -105,7 +84,7 @@ export default function UserReviews({
               </Typography>
               <Stack direction='row' alignItems='baseline' spacing={1}>
                 <Typography variant='h3' fontWeight='500'>
-                  3.5
+                  {calculateAverageRating(sellerReviewsData.data)}
                 </Typography>
                 <Typography variant='h4' color='text.secondary'>
                   /5
@@ -113,52 +92,17 @@ export default function UserReviews({
               </Stack>
               <Stack spacing={1} alignItems='center'>
                 <Rating
-                  value={3.5}
+                  value={calculateAverageRating(sellerReviewsData.data)}
                   readOnly
-                  precision={0.5}
-                  name='half-rating-read'
-                  sx={{
-                    '& .MuiRating-icon': {
-                      color: '#FFB800',
-                    },
-                  }}
                 />
                 <Typography variant='body2' color='text.secondary'>
-                  (11.84K Reviews)
+                  {`(${sellerReviewsData.data.length} ${sellerReviewsData.data.length > 1 ? 'Reviews' : 'Review'})`}
                 </Typography>
               </Stack>
             </Stack>
 
             {/* Middle Section - Rating Distribution */}
-            <Stack spacing={1.5} sx={{ px: 4 }}>
-              {[5, 4, 3, 2, 1].map((star) => (
-                <Stack key={star} direction='row' spacing={2} alignItems='center'>
-                  <Typography variant='body2' color='text.secondary' sx={{ minWidth: 45 }}>
-                    {star}
-                    {' '}
-                    Star
-                  </Typography>
-                  <LinearProgress
-                    variant='determinate'
-                    value={(ratingDistribution[star] || 0) / sellerReviewsDatas.data.length * 100}
-                    sx={{
-                      flex: 1,
-                      height: 8,
-                      borderRadius: 4,
-                      bgcolor: '#eee',
-                      '& .MuiLinearProgress-bar': {
-                        bgcolor: '#000',
-                        borderRadius: 4,
-                      },
-                    }}
-                  />
-                  <Typography variant='body2' color='text.secondary' sx={{ minWidth: 25 }}>
-                    {ratingDistribution[star] || 0}
-                  </Typography>
-                </Stack>
-              ))}
-            </Stack>
-
+            <RatingLines reviews={sellerReviewsData.data} />
             {/* Right Section - Leave Review Button */}
             <Box
               sx={{
@@ -202,41 +146,120 @@ export default function UserReviews({
         </Box>
 
         {/* Reviews List Section */}
-        <Stack spacing={3}>
-          {sellerReviewsDatas.data.map((review) => (
-            <Stack key={review.id} direction='row' spacing={2}>
-              <Avatar
-                src={review.avatarUrl}
-                alt={review.userName}
-                sx={{ width: 48, height: 48 }}
-              />
-              <Stack spacing={1}>
-                <Stack spacing={0.5}>
-                  <Typography variant='subtitle1'>
-                    {review.userName}
-                  </Typography>
-                  <Typography variant='caption' color='text.secondary'>
-                    {review.date}
-                  </Typography>
-                </Stack>
-                <Rating
-                  value={review.rating}
-                  readOnly
-                  size='small'
-                  sx={{
-                    '& .MuiRating-icon': {
-                      color: '#FFB800',
-                    },
-                  }}
-                />
-                <Typography variant='body2'>
-                  {review.comment}
-                </Typography>
-              </Stack>
-            </Stack>
+        <Grid container spacing={3}>
+          {sellerReviewsData.data.map((review) => (
+            <Grid item xs={12} md={6} lg={4} xl={3} key={review.id}>
+              <Card
+                elevation={1}
+                sx={{
+                  height: '100%',
+                  transition: 'box-shadow 0.3s',
+                  '&:hover': {
+                    boxShadow: 3,
+                  },
+                }}
+              >
+                <CardContent>
+                  <Stack spacing={2}>
+                    {/* User Info Section */}
+                    <Stack direction='row' spacing={2} alignItems='center'>
+                      <Avatar
+                        src={review.buyer?.profile_image_url || userImage}
+                        alt={review.buyer_id}
+                        sx={{ width: 48, height: 48 }}
+                      />
+                      <Stack spacing={0.5} sx={{ flexGrow: 1 }}>
+                        <Typography
+                          variant='subtitle1'
+                          sx={{
+                            fontWeight: 500,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {`${review.buyer?.first_name} ${review.buyer?.last_name}`}
+                        </Typography>
+                        <Typography variant='caption' color='text.secondary'>
+                          { review.timestamp ? new Date(review.timestamp).toDateString() : 'No Date Provided'}
+                        </Typography>
+                      </Stack>
+                    </Stack>
+
+                    {/* Rating Section */}
+                    <Stack direction='row' spacing={1} alignItems='center'>
+                      <Rating
+                        value={review.rating}
+                        readOnly
+                        size='small'
+                      />
+                      <Typography
+                        variant='body2'
+                        color='text.secondary'
+                      >
+                        {`(${review.rating} / 5 stars)`}
+                      </Typography>
+                    </Stack>
+
+                    {/* Review Comment */}
+                    <Typography
+                      variant='body2'
+                      color='text.secondary'
+                      sx={{
+                        maxHeight: 80,
+                        overflowY: 'auto',
+                        '&::-webkit-scrollbar': {
+                          width: '8px',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                          background: '#f1f1f1',
+                          borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          background: '#888',
+                          borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb:hover': {
+                          background: '#555',
+                        },
+                      }}
+                    >
+                      {review.feedback_message}
+                    </Typography>
+
+                    {/* Interactive Elements */}
+                    <Box
+                      sx={{
+                        pt: 2,
+                        borderTop: 1,
+                        borderColor: 'divider',
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Button
+                        startIcon={<ThumbUp fontSize='small' />}
+                        size='small'
+                        color='primary'
+                      >
+                        Helpful
+                      </Button>
+                    </Box>
+                  </Stack>
+                </CardContent>
+              </Card>
+            </Grid>
           ))}
-        </Stack>
+        </Grid>
       </Stack>
+      {modalOpen && (
+        <CreateFeedbackModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          sellerId={sellerId}
+        />
+      )}
     </Grid>
   );
 }

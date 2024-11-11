@@ -101,9 +101,12 @@ export default function ListingModalBase({
   });
 
   useEffect(() => {
-    // Initialize listing only once when modal opens or when initialListing changes
     if (mode === 'create') {
-      setListing(defaultListing);
+      const newListing = {
+        ...defaultListing,
+        lister_id: retrieve(CacheKeys.userId, { parseJson: false }),
+      };
+      setListing(newListing);
     }
     else if (mode === 'update' && initialListing) {
       setListing(initialListing);

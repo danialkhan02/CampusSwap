@@ -9,6 +9,7 @@ import {
   useGenerateProductDescription,
 } from 'pages/HomePage/queries';
 import { ECategory, ECondition } from 'pages/HomePage/constants';
+import { sellerQueryKey } from 'pages/Authentication/queries';
 
 
 export default function ListingModal({
@@ -21,9 +22,13 @@ export default function ListingModal({
   const generateDescriptionHook = useGenerateProductDescription();
 
   const handleSubmit = async (listing: IProduct) => {
-    await createProductHook.mutateAsync(listing);
-    queryClient.invalidateQueries({
-      queryKey: listerProductListQueryKey(userId || '', userId || ''),
+    await createProductHook.mutateAsync(listing, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: listerProductListQueryKey(userId || '', userId || ''),
+        });
+        queryClient.invalidateQueries({ queryKey: sellerQueryKey(userId) });
+      },
     });
   };
 

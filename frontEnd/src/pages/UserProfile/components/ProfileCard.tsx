@@ -1,8 +1,10 @@
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
-import { IUser, useGetSellerProfile, userQueryKey } from 'pages/Authentication/queries';
+import { ISellerProfile, IUser } from 'pages/Authentication/queries';
 import Card from '@mui/material/Card';
-import { CardContent, CardHeader, LinearProgress } from '@mui/material';
+import {
+  CardContent, CardHeader, LinearProgress, Rating,
+} from '@mui/material';
 import Stack from '@mui/material/Stack';
 import MailIcon from '@mui/icons-material/Mail';
 import WorkIcon from '@mui/icons-material/Work';
@@ -10,33 +12,27 @@ import Button from '@mui/material/Button';
 import EditIcon from '@mui/icons-material/Edit';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
-import StarIcon from '@mui/icons-material/Star';
 import { useState } from 'react';
 import UpdateProfileModal from 'pages/UserProfile/components/UpdateProfileModal';
+import { TApiResponse } from 'utils/apiResponse.type';
 
 
 type TProps = {
   profile: IUser,
   sellerView?: boolean,
+  sellerData?: TApiResponse<ISellerProfile>,
 }
 
-export default function ProfileCard({ profile, sellerView }: TProps) {
+export default function ProfileCard({ profile, sellerView, sellerData }: TProps) {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const {
-    data: sellerData,
-    isLoading,
-  } = useGetSellerProfile(profile?.id || '', {
-    queryKey: userQueryKey(profile?.id || ''),
-    enabled: Boolean(profile.id),
-    retry: false,
-  });
 
   const handleClick = () => {
     setModalOpen(true);
   };
 
-  const sellerAccountExists = Boolean(sellerData?.data
-      && !isLoading && sellerData?.data.num_listings > 0);
+  const totalReviews = Object.values(
+    sellerData?.data.ratings_count || {},
+  ).reduce((acc, count) => acc + (count || 0), 0);
 
   return (
     <Grid item xs={12}>
@@ -68,43 +64,62 @@ export default function ProfileCard({ profile, sellerView }: TProps) {
           </CardContent>
         </Card>
       </Grid>
-      {sellerAccountExists && (
+      {sellerData && (
         <Grid item xs={12}>
           <Card sx={{ marginTop: 2 }}>
             <CardContent>
               <Stack direction='row' justifyContent='space-between' alignItems='center' spacing={2}>
-                <Box>
-                  <Typography variant='subtitle1'>Average rating:</Typography>
-                  <Typography variant='h4'>4/5</Typography>
-                  <Stack direction='row' alignItems='center' spacing={0.5}>
-                    {[...Array(4)].map((_, index) => (
-                      <StarIcon key='1' sx={{ color: '#FFD700' }} />
-                    ))}
-                    <StarIcon sx={{ color: '#C0C0C0' }} />
-                    {' '}
-                    {/* Gray star for 4/5 */}
+                <Stack spacing={1} alignItems='center'>
+                  <Typography variant='body2' color='text.secondary'>
+                    Average rating
+                  </Typography>
+                  <Stack direction='row' alignItems='baseline' spacing={1}>
+                    <Typography variant='h3' fontWeight='500'>
+                      {sellerData.data.average_rating}
+                    </Typography>
+                    <Typography variant='h4' color='text.secondary'>
+                      /5
+                    </Typography>
                   </Stack>
-                  <Typography variant='caption'>(54 Reviews)</Typography>
-                </Box>
+                  <Stack spacing={1} alignItems='center'>
+                    <Rating
+                      value={sellerData.data.average_rating}
+                      readOnly
+                    />
+                    <Typography variant='body2' color='text.secondary'>
+                      {`(${totalReviews} ${totalReviews > 1 ? 'Reviews' : 'Review'})`}
+                    </Typography>
+                  </Stack>
+                </Stack>
                 <Divider orientation='vertical' flexItem />
                 <Box width='60%'>
                   {[5, 4, 3, 2, 1].map((star) => (
-                    <Stack direction='row' alignItems='center' spacing={1} key={star}>
-                      <Typography variant='body2'>
+                    <Stack key={star} direction='row' spacing={2} alignItems='center'>
+                      <Typography variant='body2' color='text.secondary' sx={{ minWidth: 45 }}>
                         {star}
                         {' '}
                         Star
                       </Typography>
                       <LinearProgress
                         variant='determinate'
-                        value={(star * 10)} // Example percentage, replace with real data
+                        value={totalReviews > 0 ? ((sellerData.data.ratings_count[
+                            star as keyof typeof sellerData.data.ratings_count] || 0)
+                            / totalReviews) * 100 : 0}
                         sx={{
-                          flex: 1, marginX: 1, height: 8, borderRadius: 4,
+                          flex: 1,
+                          height: 8,
+                          borderRadius: 4,
+                          bgcolor: '#eee',
+                          '& .MuiLinearProgress-bar': {
+                            bgcolor: '#000',
+                            borderRadius: 4,
+                          },
                         }}
                       />
-                      <Typography variant='body2'>{star * 10}</Typography>
-                      {' '}
-                      {/* Example count */}
+                      <Typography variant='body2' color='text.secondary' sx={{ minWidth: 25 }}>
+                        {sellerData.data.ratings_count[
+                            star as keyof typeof sellerData.data.ratings_count] || 0}
+                      </Typography>
                     </Stack>
                   ))}
                 </Box>
