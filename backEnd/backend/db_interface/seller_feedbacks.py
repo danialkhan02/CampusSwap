@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from backend.db_models.connection import Session as DefaultSession
 from backend.db_models.seller_feedbacks import SellerFeedbackOrm
+from backend.db_models.seller_profiles import SellerProfileOrm
 from backend.models.seller_feedback import SellerFeedback
 from datetime import datetime
 
@@ -29,6 +30,10 @@ def create_seller_feedback(feedback: SellerFeedback, db: Session = None):
         session.add(new_feedback)
         session.commit()
         logger.info(f"Seller feedback created successfully: {new_feedback_id}")
+
+        # Update the average rating for the seller
+        update_seller_average_rating(feedback.seller_id, db)
+
         return {"feedback_id": str(new_feedback_id)}
     except SQLAlchemyError as e:
         session.rollback()
@@ -103,6 +108,10 @@ def update_seller_feedback(feedback_id: str, updated_feedback: SellerFeedback, d
                 setattr(feedback, key, value)
             session.commit()
             logger.info(f"Seller feedback updated successfully: {feedback_id}")
+
+            # Update the average rating for the seller
+            update_seller_average_rating(feedback.seller_id, db)
+
             return feedback
         else:
             logger.warning(f"Seller feedback not found for update: {feedback_id}")
@@ -118,6 +127,37 @@ def update_seller_feedback(feedback_id: str, updated_feedback: SellerFeedback, d
         if not db:
             session.close()
 
+def update_seller_average_rating(seller_id: str, db: Session) -> None:
+    """Update the seller's average rating based on all their active feedbacks."""
+    try:
+        # Get all active feedbacks for the seller
+        feedbacks = db.query(SellerFeedbackOrm).filter(
+            SellerFeedbackOrm.seller_id == seller_id,
+            SellerFeedbackOrm.deleted_at == None
+        ).all()
+        
+        # Calculate new average rating
+        if not feedbacks:
+            new_average = 0.0
+        else:
+            total_rating = sum(feedback.rating for feedback in feedbacks)
+            new_average = round(total_rating / len(feedbacks), 2)
+        
+        # Update seller profile
+        seller_profile = db.query(SellerProfileOrm).filter(
+            SellerProfileOrm.seller_id == seller_id,
+            SellerProfileOrm.deleted_at == None
+        ).first()
+        
+        if seller_profile:
+            seller_profile.average_rating = new_average
+            db.commit()
+            logger.info(f"Updated average rating for seller {seller_id} to {new_average}")
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Database error while updating seller average rating: {str(e)}")
+        raise
+
 def delete_seller_feedback(feedback_id: str, db: Session = None):
     if not feedback_id:
         logger.error("Invalid input: feedback_id is missing")
@@ -131,6 +171,10 @@ def delete_seller_feedback(feedback_id: str, db: Session = None):
             feedback.deleted_at = datetime.now()
             session.commit()
             logger.info(f"Seller feedback deleted successfully: {feedback_id}")
+
+            # Update the average rating for the seller
+            update_seller_average_rating(feedback.seller_id, db)
+
             return True
         else:
             logger.warning(f"Seller feedback not found for deletion: {feedback_id}")
