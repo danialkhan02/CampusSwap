@@ -8,16 +8,13 @@ import {
   useGetListerProductList,
 } from 'pages/HomePage/queries';
 import Spinner from 'components/Common/Spinner';
-import { retrieve } from 'utils/cacheUtils';
-import { CacheKeys } from 'utils/constants';
 import { useMemo, useState } from 'react';
 import { ESort } from 'pages/HomePage/constants';
 import { defaultFilters, useBreakpointLimit } from 'pages/HomePage/HomePage';
 import { Pagination } from '@mui/material';
 
 
-export default function UserListings() {
-  const listerId = retrieve(CacheKeys.userId, { parseJson: false });
+export default function UserListings({ listerId }: {listerId: string}) {
   const [activeFilters, setActiveFilters] = useState<IFilters>(defaultFilters);
   const [currentSort, setCurrentSort] = useState<ESort | null>(null);
   const [searchKeyword, setSearchKeyWord] = useState('');
