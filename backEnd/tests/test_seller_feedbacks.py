@@ -138,3 +138,51 @@ def test_list_seller_feedbacks_by_buyer_invalid_id(mock_db_session):
     from backend.db_interface.seller_feedbacks import list_seller_feedbacks_by_buyer
     with pytest.raises(ValueError, match="Invalid buyer ID format"):
         list_seller_feedbacks_by_buyer("invalid-uuid", mock_db_session)
+
+def test_get_number_of_ratings(mock_db_session):
+    seller_id = str(uuid_pkg.uuid4())
+    
+    # Create mock feedback objects with different ratings
+    mock_feedbacks = [
+        Mock(spec=SellerFeedbackOrm, rating=5),
+        Mock(spec=SellerFeedbackOrm, rating=5),
+        Mock(spec=SellerFeedbackOrm, rating=4),
+        Mock(spec=SellerFeedbackOrm, rating=3),
+        Mock(spec=SellerFeedbackOrm, rating=1)
+    ]
+    
+    mock_db_session.query.return_value.filter.return_value.all.return_value = mock_feedbacks
+    
+    from backend.db_interface.seller_feedbacks import get_number_of_ratings
+    result = get_number_of_ratings(seller_id, mock_db_session)
+    
+    expected_counts = {
+        5: 2,  # Two 5-star ratings
+        4: 1,  # One 4-star rating
+        3: 1,  # One 3-star rating
+        2: 0,  # No 2-star ratings
+        1: 1   # One 1-star rating
+    }
+    
+    assert result == expected_counts
+    mock_db_session.query.assert_called_once_with(SellerFeedbackOrm)
+
+def test_get_number_of_ratings_no_feedbacks(mock_db_session):
+    seller_id = str(uuid_pkg.uuid4())
+    
+    # Return empty list to simulate no feedbacks
+    mock_db_session.query.return_value.filter.return_value.all.return_value = []
+    
+    from backend.db_interface.seller_feedbacks import get_number_of_ratings
+    result = get_number_of_ratings(seller_id, mock_db_session)
+    
+    expected_counts = {
+        5: 0,
+        4: 0,
+        3: 0,
+        2: 0,
+        1: 0
+    }
+    
+    assert result == expected_counts
+    mock_db_session.query.assert_called_once_with(SellerFeedbackOrm)
