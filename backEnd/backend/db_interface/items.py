@@ -563,7 +563,8 @@ async def search_items(search_query: str, items: List[ItemsOrm], db: Session):
         [{"product_id": pe.product_id, **{
             f"{field}_embedding": getattr(pe, f"{field}_embedding")
             for field in ["name", "category", "address", "price", "description", "condition"]
-        }} for pe in product_embeddings]
+        }} for pe in product_embeddings],
+        db
     )
     
     # Get full product details for matches
@@ -572,4 +573,4 @@ async def search_items(search_query: str, items: List[ItemsOrm], db: Session):
         product = db.query(ItemsOrm).filter(ItemsOrm.id == result["product_id"]).first()
         results.append(product)
 
-    return results
+    return results, len(results)
