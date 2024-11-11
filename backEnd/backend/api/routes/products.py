@@ -38,43 +38,6 @@ def generate_cache_key(params: ProductListQueryParams) -> str:
     param_str = json.dumps(param_dict, sort_keys=True)
     return f"product_list:{hashlib.md5(param_str.encode()).hexdigest()}"
 
-@router.get("/search", summary="Search products with AI enhancement", response_model=ApiResponse)
-async def search_products(
-    query: str,
-    db: Session = Depends(get_db)
-):
-    try:
-        if not query:
-            return ApiResponse(data=list_items(db))
-
-        # Get all product embeddings from database
-        product_embeddings = db.query(ProductEmbeddingsOrm).all()
-        
-        # Search products using embeddings
-        search_results = await OpenAIClient.search_products(
-            query, 
-            [{"product_id": pe.product_id, **{
-                f"{field}_embedding": getattr(pe, f"{field}_embedding")
-                for field in ["name", "category", "address", "price", "description", "condition"]
-            }} for pe in product_embeddings]
-        )
-        
-        # Get full product details for matches
-        results = []
-        for result in search_results:
-            product = db.query(ItemsOrm).filter(ItemsOrm.id == result["product_id"]).first()
-            if product:
-                product_details = get_product_details(product, db)
-                results.append(product_details)
-                
-        return ApiResponse(data=results)
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
 @router.get("/list/{user_id}", summary="List filtered products", response_model=ApiResponse)
 async def get_product_list(
     user_id: str,
@@ -112,7 +75,7 @@ async def get_product_list(
 
         # Search for items with the search query
         if params.search_query:
-            items = await search_items(params.search_query, items, db)
+            items, total = await search_items(params.search_query, items, db)
 
         # Transform items efficiently
         product_list = [
@@ -228,7 +191,7 @@ async def get_products_by_lister(
 
         # Search for items with the search query
         if params.search_query:
-            items = await search_items(params.search_query, items, db)
+            items, total = await search_items(params.search_query, items, db)
         
         # Transform items
         product_list = [
@@ -499,7 +462,7 @@ async def get_interested_products(
 
         # Search for items with the search query
         if params.search_query:
-            items = await search_items(params.search_query, items, db)
+            items, total = await search_items(params.search_query, items, db)
 
         # Transform items
         product_list = [
