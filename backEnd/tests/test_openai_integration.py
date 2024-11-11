@@ -107,7 +107,8 @@ async def test_search_products_success(mock_openai_client):
     mock_openai_client.embeddings.create.return_value = mock_response
     
     client = OpenAIClientWrapper()
-    results = await client.search_products(query, product_embeddings)
+    mock_db = MagicMock()
+    results = await client.search_products(query, product_embeddings, mock_db)
     
     assert isinstance(results, list)
     assert all("product_id" in result for result in results)
@@ -144,7 +145,8 @@ async def test_search_products_empty_results(mock_openai_client):
     mock_openai_client.embeddings.create.return_value = mock_response
     
     client = OpenAIClientWrapper()
-    results = await client.search_products(query, product_embeddings)
+    mock_db = MagicMock()
+    results = await client.search_products(query, product_embeddings, mock_db)
     
     assert isinstance(results, list)
     assert len(results) == 0

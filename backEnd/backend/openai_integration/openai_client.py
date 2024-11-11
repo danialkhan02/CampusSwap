@@ -3,6 +3,8 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from typing import List, Dict
 import numpy as np
+from backend.db_models.items import ItemsOrm
+from sqlalchemy.orm import Session
 
 load_dotenv()
 
@@ -41,7 +43,7 @@ class OpenAIClientWrapper:
             return response.choices[0].message.content
         except Exception as e:
             raise Exception(f"Error generating product description: {str(e)}")
-        
+
     async def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for a single text string"""
         response = self.client.embeddings.create(
@@ -75,7 +77,7 @@ class OpenAIClientWrapper:
             
         return embeddings
 
-    async def search_products(self, query: str, product_embeddings: List[Dict]) -> List[Dict]:
+    async def search_products(self, query: str, product_embeddings: List[Dict], db: Session) -> List[Dict]:
         """Search products using embeddings"""
         query_embedding = await self.generate_embedding(query)
         
@@ -87,12 +89,13 @@ class OpenAIClientWrapper:
                 if field.endswith('_embedding')
             )
             
-            if max_similarity > 0.4:
+            product_name = db.query(ItemsOrm).filter(ItemsOrm.id == product["product_id"]).first().name
+            if max_similarity >= 0.4 or query.lower() in product_name.lower():
                 results.append({
                     "product_id": product["product_id"],
                     "similarity": max_similarity
                 })
-                
+
         return sorted(results, key=lambda x: x["similarity"], reverse=True)
 
     def _calculate_similarity(self, embedding1: List[float], embedding2: List[float]) -> float:
