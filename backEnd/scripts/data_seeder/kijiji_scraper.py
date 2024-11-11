@@ -166,13 +166,17 @@ class KijijiScraper:
                         description = description_elem.text.strip() if description_elem else f"Listed on Kijiji - {name}"
                         
                         # Get location
-                        location_elem = item.select_one('[data-testid="listing-location"]')
-                        location_text = location_elem.text.strip() if location_elem else "Toronto"
-                        logger.info(f"Location text: {location_text}")
+                        # location_elem = item.select_one('[data-testid="listing-location"]')
+                        # location_text = location_elem.text.strip() if location_elem else "Toronto"
+                        # logger.info(f"Location text: {location_text}")
                         
                         # Get location data with coordinates
-                        location_data = self.get_location_data(location_text)
-                        logger.info(f"Geocoded location: {location_data}")
+                        # location_data = self.get_location_data(location_text)
+                        location_data = {
+                            'address': 'Toronto, ON, Canada',
+                            'latitude': 43.6532,
+                            'longitude': -79.3832
+                        }
 
                         # Create listing object
                         listing = {
