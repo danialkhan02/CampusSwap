@@ -13,34 +13,39 @@ import {
 } from '@mui/material';
 import Spinner from 'components/Common/Spinner';
 import {
-  IUser, sellerQueryKey, useGetSellerProfile, useGetUser, userQueryKey,
+  ISellerProfile,
+  IUser,
+  sellerQueryKey,
+  useGetSellerProfile,
+  useGetUser,
+  userQueryKey,
 } from 'pages/Authentication/queries';
 import { useNavigate } from 'react-router-dom';
+import { TApiResponse } from 'utils/apiResponse.type';
 
 
 type TProps = {
     seller: IUser;
 }
 
-function RatingBars() {
+function RatingBars({ totalReviews, sellerData }: {
+  totalReviews: number, sellerData: TApiResponse<ISellerProfile>}) {
   return (
     <Stack spacing={1.5} sx={{ minWidth: 300 }}>
-      {[5, 4, 3, 2, 1].map((rating) => (
-        <Stack key={rating} direction='row' spacing={2} alignItems='center'>
-          <Typography
-            variant='body2'
-            color='text.secondary'
-            sx={{ minWidth: 60 }}
-          >
-            {rating}
+      {[5, 4, 3, 2, 1].map((star) => (
+        <Stack key={star} direction='row' spacing={2} alignItems='center'>
+          <Typography variant='body2' color='text.secondary' sx={{ minWidth: 45 }}>
+            {star}
             {' '}
             Star
           </Typography>
           <LinearProgress
             variant='determinate'
-            value={rating * 10}
+            value={totalReviews > 0 ? ((sellerData.data.ratings_count[
+                        star as keyof typeof sellerData.data.ratings_count] || 0)
+                    / totalReviews) * 100 : 0}
             sx={{
-              width: '100%',
+              flex: 1,
               height: 8,
               borderRadius: 4,
               bgcolor: '#e0f2e8',
@@ -50,12 +55,9 @@ function RatingBars() {
               },
             }}
           />
-          <Typography
-            variant='body2'
-            color='text.secondary'
-            sx={{ minWidth: 30 }}
-          >
-            {rating * 10}
+          <Typography variant='body2' color='text.secondary' sx={{ minWidth: 25 }}>
+            {sellerData.data.ratings_count[
+                  star as keyof typeof sellerData.data.ratings_count] || 0}
           </Typography>
         </Stack>
       ))}
@@ -80,6 +82,10 @@ export default function SellerSummaryCard({ seller }: TProps) {
     queryKey: userQueryKey(seller?.id || ''),
     enabled: Boolean(seller?.id || ''),
   });
+
+  const totalReviews = Object.values(sellerData?.data.ratings_count
+      || {}).reduce((acc, count) => acc + (count || 0), 0);
+
   const widthBreakpoint = () => {
     if (isXlUp) {
       return '60%';
@@ -176,7 +182,7 @@ export default function SellerSummaryCard({ seller }: TProps) {
                     sx={{ fontSize: '1rem' }}
                   >
                     (
-                    {sellerData?.data.total_reviews || 0}
+                    {totalReviews}
                     )
                   </Typography>
                 </Stack>
@@ -220,7 +226,7 @@ export default function SellerSummaryCard({ seller }: TProps) {
             {/* Rating Bars - Only show on lg and up */}
             {isLgUp && (
             <Box width={widthBreakpoint()} sx={{ pl: 4, borderLeft: 1, borderColor: 'divider' }}>
-              <RatingBars />
+              <RatingBars sellerData={sellerData} totalReviews={totalReviews} />
             </Box>
             )}
           </Stack>

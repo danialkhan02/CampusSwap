@@ -8,11 +8,12 @@ import { useState } from 'react';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import UserListings from 'pages/UserProfile/components/UserListings';
 import ListingModal from 'pages/UserProfile/components/ListingModal';
-import { useGetUser, userQueryKey } from 'pages/Authentication/queries';
+import { useGetSellerProfile, useGetUser, userQueryKey } from 'pages/Authentication/queries';
 import Spinner from 'components/Common/Spinner';
 import ProfileCard from 'pages/UserProfile/components/ProfileCard';
 import ProfileBanner from 'pages/UserProfile/components/ProfileBanner';
 import { useParams } from 'react-router-dom';
+import UserReviews from 'pages/SellerProfile/components/UserReviews';
 
 
 export default function SellerProfile() {
@@ -27,7 +28,17 @@ export default function SellerProfile() {
     enabled: Boolean(sellerId),
   });
 
-  if (!userData || isLoading || !userData.data) {
+  const {
+    data: sellerData,
+    isLoading: sellerDataLoading,
+  } = useGetSellerProfile(sellerId || '', {
+    queryKey: userQueryKey(sellerId || ''),
+    enabled: Boolean(sellerId || ''),
+    retry: false,
+  });
+
+  if (!userData || isLoading || !userData.data
+      || sellerDataLoading || !sellerData || !sellerData.data) {
     return <Spinner />;
   }
 
@@ -75,7 +86,10 @@ export default function SellerProfile() {
         </Card>
       </Grid>
       {selectedTab === 0 && (
-        <ProfileCard profile={userData.data} sellerView />
+        <ProfileCard profile={userData.data} sellerView sellerData={sellerData} />
+      )}
+      {selectedTab === 1 && (
+      <UserReviews sellerId={sellerId || ''} />
       )}
       {selectedTab === 2 && (
         <UserListings listerId={sellerId || ''} />
