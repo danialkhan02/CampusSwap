@@ -46,6 +46,7 @@ export default function CreateFeedbackModal({ isOpen, onClose, sellerId }: TProp
     verified_purchase: false,
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleReviewChange = (field: keyof IReview, value: any) => {
     setReview((prevReview) => ({
       ...prevReview,
