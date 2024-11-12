@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import traceback
 from fastapi import FastAPI, status, Response, HTTPException
@@ -10,13 +11,13 @@ from dotenv import load_dotenv
 from backend.db_models.connection import init_db
 from backend.middleware.logging import logger
 from backend.environments import logging_env
-from backend.api.main import api_router  
+from backend.api.main import api_app  
 from backend.middleware.api_auth import stytch_authentication
 from backend.api_responses import ApiResponse, ErrMessage
 
 
 # Configure the main FastAPI application
-api_app = FastAPI(
+app = FastAPI(
     title="Swap Squad API",
     description="""
     API for swap squad. 
@@ -28,34 +29,17 @@ api_app = FastAPI(
     openapi_url="/openapi.json"
 )
 
-# Include the API router
-api_app.include_router(api_router)
-
-@api_app.middleware("http")
-async def auth_middleware(request: Request, call_next):
-    try:
-        return await stytch_authentication(request, call_next)
-    except Exception as e:
-        error_message = ErrMessage(message=str(e))
-        if isinstance(e, HTTPException):
-            response_status = e.status_code
-        else:
-            response_status = status.HTTP_500_INTERNAL_SERVER_ERROR
-        api_response = ApiResponse(error=error_message)
-        return JSONResponse(
-            status_code=response_status,
-            content=api_response.dict()
-        )
-
-@api_app.middleware("http")
+@app.middleware("http")
 async def logging_middleware(request: Request, call_next):
     response = await logger(request, call_next)
     return response
 
 # Add your status endpoint
-@api_app.get("/status", status_code=status.HTTP_200_OK)
+@app.get("/status", status_code=status.HTTP_200_OK)
 def read_root():
     return {"message": "OK"}
+
+app.mount("/api/v1", api_app)
 
 # Add CORS middleware
 origin = os.getenv("FRONTEND_URL")
@@ -68,7 +52,7 @@ if origin is None:
 if server_port is None:
     raise ValueError("SERVER_PORT environment variable not set")
 
-api_app.add_middleware(
+app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin],
     allow_credentials=True,
@@ -77,6 +61,12 @@ api_app.add_middleware(
     expose_headers=["*"],
 )
 
+workers = (multiprocessing.cpu_count() * 2) + 1
+
+@app.get("/status", status_code=status.HTTP_200_OK)
+def read_root():
+    return {"message": "OK"}
+
 def start():
     """Initialize and start the server"""
     init_db()
@@ -84,19 +74,25 @@ def start():
     if os.getenv("BACKEND_TLS_ENABLED"):
         print("Server running with tls enabled")
         uvicorn.run(
-            "backend.main:api_app",
+            "backend.main:app",
             host=server_url,
             port=int(server_port),
-            reload=True,
+            workers=workers,
+            limit_concurrency=200,
+            backlog=1024,
+            timeout_keep_alive=30,
             ssl_certfile=os.getenv("BACKEND_TLS_CERT_FILE"),
             ssl_keyfile=os.getenv("BACKEND_TLS_KEY_FILE"),
         )
     else:
         uvicorn.run(
-            "backend.main:api_app",
+            "backend.main:app",
             host=server_url, 
-            port=int(server_port), 
-            reload=True
+            port=int(server_port),
+            workers=workers,
+            limit_concurrency=200,
+            backlog=1024,
+            timeout_keep_alive=30,
         )
 
 if __name__ == "__main__":

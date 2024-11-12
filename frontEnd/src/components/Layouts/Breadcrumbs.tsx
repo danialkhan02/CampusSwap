@@ -9,6 +9,7 @@ import {
   NavigateNext as NavigateNextIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material';
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { Link as RouterLink, useLocation } from 'react-router-dom';
 
 
@@ -53,6 +54,16 @@ function Breadcrumbs() {
           label: 'Messages',
           href: path,
           icon: Message,
+        },
+      ];
+    }
+    else if (path.includes('/seller')) {
+      return [
+        baseCrumb,
+        {
+          label: 'Seller Profile',
+          href: path,
+          icon: AssignmentIndIcon,
         },
       ];
     }

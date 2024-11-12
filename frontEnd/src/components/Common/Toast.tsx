@@ -31,7 +31,7 @@ export default function Toast({ message, type = 'success' }: Props) {
       onClose={() => toggleOpen(false)}
       open={isOpen}
     >
-      <Alert onClose={() => toggleOpen(false)} severity={type}>
+      <Alert variant='filled' onClose={() => toggleOpen(false)} severity={type}>
         {message}
       </Alert>
     </Snackbar>

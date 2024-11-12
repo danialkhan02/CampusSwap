@@ -10,12 +10,13 @@ import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import UserListings from 'pages/UserProfile/components/UserListings';
 import ListingModal from 'pages/UserProfile/components/ListingModal';
 import UserWishlist from 'pages/UserProfile/components/UserWishlist';
-import { useGetUser } from 'pages/Authentication/queries';
+import { sellerQueryKey, useGetSellerProfile, useGetUser } from 'pages/Authentication/queries';
 import { retrieve } from 'utils/cacheUtils';
 import { CacheKeys } from 'utils/constants';
 import Spinner from 'components/Common/Spinner';
 import ProfileCard from 'pages/UserProfile/components/ProfileCard';
 import ProfileBanner from 'pages/UserProfile/components/ProfileBanner';
+import UserReviews from 'pages/SellerProfile/components/UserReviews';
 
 
 export default function UserProfile() {
@@ -26,6 +27,17 @@ export default function UserProfile() {
     data: userData,
     isLoading,
   } = useGetUser(userId);
+
+  const {
+    data: sellerData,
+  } = useGetSellerProfile(userId, {
+    queryKey: sellerQueryKey(userId),
+    enabled: Boolean(userId),
+    retry: false,
+  });
+
+  const sellerAccountExists = Boolean(sellerData?.data
+      && !isLoading && sellerData?.data.num_listings > 0);
 
   if (!userData || isLoading || !userData.data) {
     return <Spinner />;
@@ -67,8 +79,8 @@ export default function UserProfile() {
                 >
                   <Tab icon={<AccountBoxIcon />} label='Profile' />
                   <Tab icon={<FavoriteIcon />} label='Wishlist' />
-                  <Tab icon={<ReviewsIcon />} label='Reviews' />
-                  <Tab icon={<CollectionsIcon />} label='Listings' />
+                  {sellerAccountExists && <Tab icon={<ReviewsIcon />} label='Reviews' />}
+                  {sellerAccountExists && <Tab icon={<CollectionsIcon />} label='Listings' />}
                 </Tabs>
               </Box>
             </Grid>
@@ -76,13 +88,16 @@ export default function UserProfile() {
         </Card>
       </Grid>
       {selectedTab === 0 && (
-        <ProfileCard profile={userData.data} />
+        <ProfileCard profile={userData.data} sellerData={sellerData} />
       )}
       {selectedTab === 1 && (
         <UserWishlist />
       )}
+      {selectedTab === 2 && (
+      <UserReviews sellerId={sellerData?.data.seller_id || ''} />
+      )}
       {selectedTab === 3 && (
-      <UserListings />
+      <UserListings listerId={userId} />
       )}
       {modalOpen && (
       <LoadGoogleMaps>

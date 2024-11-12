@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  frontend:
+    image: "ghcr.io/uoft-ece444-fall2024/swapsquad-frontend:latest"
+    ports:
+      - "7041:7041"
+    environment:
+      - PORT=7041
+      - REACT_APP_SERVER_URL=http://localhost:6050
+      - REACT_APP_WS_URL=ws://localhost:6050/api/v1/chat
+      - REACT_APP_ENV=development
+    env_file:
+      - ./frontEnd.env
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+  backend:
+    image: "ghcr.io/uoft-ece444-fall2024/swapsquad-backend:latest"
+    ports:
+      - "6050:6050"
+    environment:
+      - DB_HOST=postgres
+      - REDIS_HOST=redis
+    env_file:
+      - ./backEnd.env
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./postgres.env
+    volumes:
+      - ./sql/config/create_databases.sql:/docker-entrypoint-initdb.d/create_databases.sql
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

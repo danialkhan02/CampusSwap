@@ -12,6 +12,10 @@ export const product = {
   details: '/product/:productId',
 };
 
+export const seller = {
+  profile: '/seller/:sellerId',
+};
+
 export const user = {
   profile: '/user/profile',
 };
