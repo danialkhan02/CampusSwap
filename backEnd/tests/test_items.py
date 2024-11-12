@@ -4,13 +4,21 @@ from unittest.mock import Mock, patch
 from backend.models.item import Item, Location, ProductListQueryParams
 from backend.enums import ItemCategory, ItemStatus, ItemCondition
 from backend.db_models.items import ItemsOrm, ProductEmbeddingsOrm
+from backend.db_models.users import UsersOrm
 from backend.db_models.item_images import ItemImagesOrm
 from backend.db_interface.items import add_first_image_to_items, apply_product_filters_with_cache, search_items
 from backend.models.item import ProductListQueryParams
+from botocore.exceptions import ClientError
+from datetime import datetime
+from unittest.mock import AsyncMock
 
 @pytest.fixture
 def mock_db_session():
     session = Mock()
+    session.add = Mock()
+    session.commit = Mock()
+    session.close = Mock()
+    session.rollback = Mock()
     return session
 
 @patch('backend.db_interface.items.upload_to_s3', return_value="https://mocked_s3_url.com/image.jpg")
@@ -198,3 +206,180 @@ def test_apply_product_filters_with_cache(mock_db_session):
     mock_query.filter.assert_called()
     mock_query.offset.assert_called_once_with(0)
     mock_query.limit.assert_called_once_with(10)
+
+def test_create_item_with_invalid_image(mock_db_session):
+    user_id = uuid_pkg.uuid4()
+    item = Item(
+        name="Test Product",
+        description="Test Description",
+        images=["invalid_base64_string"],
+        lister_id=user_id,
+        price=10.99,
+        category=ItemCategory.TEXTBOOKS,
+        status=ItemStatus.STATUS_NEW,
+        condition=ItemCondition.CONDITION_NEW
+    )
+
+    with pytest.raises(ValueError):
+        from backend.db_interface.items import create_item
+        create_item(item, mock_db_session)
+
+def test_get_item_not_found(mock_db_session):
+    item_id = str(uuid_pkg.uuid4())
+    mock_db_session.query.return_value.filter.return_value.first.return_value = None
+    
+    from backend.db_interface.items import get_item
+    result = get_item(item_id, mock_db_session)
+    
+    assert result is None
+    mock_db_session.query.assert_called_once_with(ItemsOrm)
+
+def test_get_item_invalid_id(mock_db_session):
+    from backend.db_interface.items import get_item
+    with pytest.raises(ValueError, match="Invalid item ID format"):
+        get_item("invalid-uuid", mock_db_session)
+
+@patch('backend.db_interface.items.s3_client')
+def test_upload_to_s3_failure(mock_s3_client, mock_db_session):
+    mock_s3_client.upload_fileobj.side_effect = ClientError(
+        {'Error': {'Code': '500', 'Message': 'S3 Error'}},
+        'operation'
+    )
+    
+    image_data = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwAB/8h9CEYAAAAASUVORK5CYII="
+    test_uuid = uuid_pkg.uuid4()
+    
+    with pytest.raises(ValueError, match="Failed to process image"):
+        from backend.db_interface.items import upload_to_s3
+        upload_to_s3(image_data, test_uuid, 0)
+
+@pytest.mark.asyncio
+async def test_search_items(mock_db_session):
+    search_query = ProductListQueryParams(search_query="test")
+    mock_items = [
+        Mock(
+            spec=ItemsOrm,
+            id=str(uuid_pkg.uuid4()),  # Add id field
+            name="Test Product 1",
+            price=10.99,
+            name_embedding=None,
+            category_embedding=None,
+            address_embedding=None,
+            price_embedding=None,
+            description_embedding=None,
+            condition_embedding=None,
+            product_id=str(uuid_pkg.uuid4()),
+            description="Test description 1",
+            category="TEXTBOOKS",
+            condition="CONDITION_NEW",
+            status="STATUS_NEW",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        ),
+        Mock(
+            spec=ItemsOrm,
+            id=str(uuid_pkg.uuid4()),  # Add id field
+            name="Test Product 2",
+            price=20.99,
+            name_embedding=None,
+            category_embedding=None,
+            address_embedding=None,
+            price_embedding=None,
+            description_embedding=None,
+            condition_embedding=None,
+            product_id=str(uuid_pkg.uuid4()),
+            description="Test description 2",
+            category="ELECTRONICS",
+            condition="CONDITION_USED",
+            status="STATUS_NEW",
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+    ]
+    mock_db_session.query.return_value.filter.return_value.all.return_value = mock_items
+
+    # Mock OpenAI client with proper return structure
+    mock_openai = Mock()
+    mock_openai.search_products = AsyncMock(return_value=[
+        {"product_id": mock_items[0].id, "similarity": 0.8},
+        {"product_id": mock_items[1].id, "similarity": 0.6}
+    ])
+
+    with patch('backend.db_interface.items.OpenAIClient', mock_openai):
+        from backend.db_interface.items import search_items
+        result = await search_items(search_query, mock_items, mock_db_session)
+        
+        assert len(result) == 2
+        mock_db_session.query.assert_called_with(ItemsOrm)
+
+@pytest.mark.asyncio
+async def test_add_interested_buyer(mock_db_session):
+    item_id = str(uuid_pkg.uuid4())
+    user_id = str(uuid_pkg.uuid4())
+    
+    # Mock item and user
+    mock_item = Mock(spec=ItemsOrm)
+    mock_user = Mock(spec=UsersOrm)
+    
+    # Set up the query chain for item and user queries
+    mock_db_session.query.return_value.filter.return_value.first.side_effect = [
+        mock_item,  # First call returns mock_item
+        mock_user,  # Second call returns mock_user
+        None        # Third call returns None (for interested_buyer query)
+    ]
+    
+    # Mock the append method for interested_buyers
+    mock_item.interested_buyers = Mock()
+    mock_item.interested_buyers.append = Mock()
+    
+    from backend.db_interface.items import add_interested_buyer
+    result = add_interested_buyer(item_id, user_id, mock_db_session)
+    
+    assert result is True
+    mock_item.interested_buyers.append.assert_called_once_with(mock_user)
+    mock_db_session.commit.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_add_interested_buyer_already_exists(mock_db_session):
+    item_id = str(uuid_pkg.uuid4())
+    user_id = str(uuid_pkg.uuid4())
+    
+    # Mock item, user, and existing interested_buyer
+    mock_item = Mock(spec=ItemsOrm)
+    mock_user = Mock(spec=UsersOrm)
+    mock_interested_buyer = Mock(deleted_at=None)
+    
+    mock_db_session.query.return_value.filter.return_value.first.side_effect = [
+        mock_item,
+        mock_user,
+        mock_interested_buyer
+    ]
+    
+    from backend.db_interface.items import add_interested_buyer
+    result = add_interested_buyer(item_id, user_id, mock_db_session)
+    
+    assert result is False
+    mock_db_session.commit.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_add_interested_buyer_invalid_ids(mock_db_session):
+    from backend.db_interface.items import add_interested_buyer
+    
+    with pytest.raises(ValueError, match="Item ID and User ID are required"):
+        add_interested_buyer("", "", mock_db_session)
+    
+    with pytest.raises(ValueError, match="Invalid ID format"):
+        add_interested_buyer("invalid-uuid", "invalid-uuid", mock_db_session)
+
+@pytest.mark.asyncio
+async def test_add_interested_buyer_not_found(mock_db_session):
+    item_id = str(uuid_pkg.uuid4())
+    user_id = str(uuid_pkg.uuid4())
+    
+    # Mock item and user not found
+    mock_db_session.query.return_value.filter.return_value.first.return_value = None
+    
+    from backend.db_interface.items import add_interested_buyer
+    result = add_interested_buyer(item_id, user_id, mock_db_session)
+    
+    assert result is False
