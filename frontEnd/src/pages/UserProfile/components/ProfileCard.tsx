@@ -1,8 +1,6 @@
 import Grid from '@mui/material/Grid';
 import Typography from '@mui/material/Typography';
-import {
-  IUser, useGetSellerProfile, userQueryKey,
-} from 'pages/Authentication/queries';
+import { IUser, useGetSellerProfile, userQueryKey } from 'pages/Authentication/queries';
 import Card from '@mui/material/Card';
 import { CardContent, CardHeader, LinearProgress } from '@mui/material';
 import Stack from '@mui/material/Stack';
@@ -18,10 +16,11 @@ import UpdateProfileModal from 'pages/UserProfile/components/UpdateProfileModal'
 
 
 type TProps = {
-    profile: IUser,
+  profile: IUser,
+  sellerView?: boolean,
 }
 
-export default function ProfileCard({ profile }: TProps) {
+export default function ProfileCard({ profile, sellerView }: TProps) {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const {
     data: sellerData,
@@ -46,7 +45,8 @@ export default function ProfileCard({ profile }: TProps) {
           <CardHeader
             title={<Typography variant='h6'>About</Typography>}
             action={(
-              <Button variant='contained' startIcon={<EditIcon />} onClick={handleClick}>Edit Profile</Button>
+                !sellerView
+              && <Button variant='contained' startIcon={<EditIcon />} onClick={handleClick}>Edit Profile</Button>
               )}
           />
           <CardContent>

@@ -1,7 +1,6 @@
 import { Card, Tab, Tabs } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import AccountBoxIcon from '@mui/icons-material/AccountBox';
-import FavoriteIcon from '@mui/icons-material/Favorite';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import ReviewsIcon from '@mui/icons-material/Reviews';
 import Box from '@mui/material/Box';
@@ -9,23 +8,24 @@ import { useState } from 'react';
 import LoadGoogleMaps from 'pages/UserProfile/components/LoadGoogleMaps';
 import UserListings from 'pages/UserProfile/components/UserListings';
 import ListingModal from 'pages/UserProfile/components/ListingModal';
-import UserWishlist from 'pages/UserProfile/components/UserWishlist';
-import { useGetUser } from 'pages/Authentication/queries';
-import { retrieve } from 'utils/cacheUtils';
-import { CacheKeys } from 'utils/constants';
+import { useGetUser, userQueryKey } from 'pages/Authentication/queries';
 import Spinner from 'components/Common/Spinner';
 import ProfileCard from 'pages/UserProfile/components/ProfileCard';
 import ProfileBanner from 'pages/UserProfile/components/ProfileBanner';
+import { useParams } from 'react-router-dom';
 
 
-export default function UserProfile() {
-  const userId = retrieve(CacheKeys.userId, { parseJson: false });
+export default function SellerProfile() {
+  const { sellerId } = useParams<{ sellerId: string }>();
   const [selectedTab, setSelectedTab] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const {
     data: userData,
     isLoading,
-  } = useGetUser(userId);
+  } = useGetUser(sellerId || '', {
+    queryKey: userQueryKey(sellerId || ''),
+    enabled: Boolean(sellerId),
+  });
 
   if (!userData || isLoading || !userData.data) {
     return <Spinner />;
@@ -47,7 +47,7 @@ export default function UserProfile() {
         }}
         >
           <Grid container>
-            <ProfileBanner handleOnClick={handleOnClick} user={userData.data} />
+            <ProfileBanner handleOnClick={handleOnClick} user={userData.data} sellerView />
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', pr: 2 }}>
                 <Tabs
@@ -66,7 +66,6 @@ export default function UserProfile() {
                   }}
                 >
                   <Tab icon={<AccountBoxIcon />} label='Profile' />
-                  <Tab icon={<FavoriteIcon />} label='Wishlist' />
                   <Tab icon={<ReviewsIcon />} label='Reviews' />
                   <Tab icon={<CollectionsIcon />} label='Listings' />
                 </Tabs>
@@ -76,18 +75,15 @@ export default function UserProfile() {
         </Card>
       </Grid>
       {selectedTab === 0 && (
-        <ProfileCard profile={userData.data} />
+        <ProfileCard profile={userData.data} sellerView />
       )}
-      {selectedTab === 1 && (
-        <UserWishlist />
-      )}
-      {selectedTab === 3 && (
-      <UserListings listerId={userId} />
+      {selectedTab === 2 && (
+        <UserListings listerId={sellerId || ''} />
       )}
       {modalOpen && (
-      <LoadGoogleMaps>
-        <ListingModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
-      </LoadGoogleMaps>
+        <LoadGoogleMaps>
+          <ListingModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
+        </LoadGoogleMaps>
       )}
     </Grid>
   );

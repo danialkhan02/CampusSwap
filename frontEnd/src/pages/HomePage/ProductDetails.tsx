@@ -10,6 +10,7 @@ import { CacheKeys } from 'utils/constants';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import ChatDrawer from 'pages/Chats/ChatDrawer';
+import SellerSummaryCard from 'pages/HomePage/components/SellerSummaryCard';
 
 
 export default function ProductDetails() {
@@ -52,6 +53,11 @@ export default function ProductDetails() {
           />
         </LoadGoogleMaps>
       </Grid>
+      {productData.data.seller && (
+      <Grid item xs={12}>
+        <SellerSummaryCard seller={productData.data.seller} />
+      </Grid>
+      )}
       {messageButtonClick && (
       <ChatDrawer
         open={messageButtonClick}

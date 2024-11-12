@@ -3,6 +3,8 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from typing import List, Dict
 import numpy as np
+from backend.db_models.items import ItemsOrm
+from sqlalchemy.orm import Session
 
 load_dotenv()
 
@@ -11,13 +13,12 @@ class OpenAIClientWrapper:
         self.client = OpenAI(api_key=os.getenv(api_key_env))
 
     async def generate_product_description(self, name: str, images: list[str], category: str, condition: str) -> str:
-        image_content = [{"type": "image_url", "image_url": {"url": img}} for img in images]
+        image_content = [{"type": "image_url", "image_url": {"url": img_url}} for img_url in images]
         
         prompt = f"""Generate a detailed product description for the following item:
         Name: {name}
         Category: {category}
         Condition: {condition}
-        Images: {image_content}
         
         Please analyze the provided images and create a compelling, detailed description with a maximum of 50 words that 
         highlights the key features and benefits of the product. Keep the tone professional and informative.
@@ -28,6 +29,7 @@ class OpenAIClientWrapper:
                 "role": "user",
                 "content": [
                     {"type": "text", "text": prompt},
+                    *image_content
                 ]
             }
         ]
@@ -41,7 +43,7 @@ class OpenAIClientWrapper:
             return response.choices[0].message.content
         except Exception as e:
             raise Exception(f"Error generating product description: {str(e)}")
-        
+
     async def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding for a single text string"""
         response = self.client.embeddings.create(
@@ -75,7 +77,7 @@ class OpenAIClientWrapper:
             
         return embeddings
 
-    async def search_products(self, query: str, product_embeddings: List[Dict]) -> List[Dict]:
+    async def search_products(self, query: str, product_embeddings: List[Dict], db: Session) -> List[Dict]:
         """Search products using embeddings"""
         query_embedding = await self.generate_embedding(query)
         
@@ -87,12 +89,13 @@ class OpenAIClientWrapper:
                 if field.endswith('_embedding')
             )
             
-            if max_similarity > 0.4:
+            product_name = db.query(ItemsOrm).filter(ItemsOrm.id == product["product_id"]).first().name
+            if max_similarity >= 0.4 or query.lower() in product_name.lower():
                 results.append({
                     "product_id": product["product_id"],
                     "similarity": max_similarity
                 })
-                
+
         return sorted(results, key=lambda x: x["similarity"], reverse=True)
 
     def _calculate_similarity(self, embedding1: List[float], embedding2: List[float]) -> float:

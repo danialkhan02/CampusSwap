@@ -12,9 +12,10 @@ import { IUser } from 'pages/Authentication/queries';
 type TProps = {
     handleOnClick?: () => void;
     user: IUser;
+    sellerView?: boolean;
 }
 
-export default function ProfileBanner({ handleOnClick, user }: TProps) {
+export default function ProfileBanner({ handleOnClick, user, sellerView }: TProps) {
   return (
     <Grid
       item
@@ -27,24 +28,26 @@ export default function ProfileBanner({ handleOnClick, user }: TProps) {
         backgroundPosition: 'center',
       }}
     >
-      <Button
-        startIcon={<AddCircleIcon />}
-        onClick={handleOnClick}
-        sx={{
-          position: 'absolute',
-          top: 16,
-          right: 16,
-          backgroundColor: 'white',
-          color: 'black',
-          '&:hover': {
-            backgroundColor: '#f0f0f0',
-          },
-        }}
-        aria-label='create'
-        variant='contained'
-      >
-        Create Listing
-      </Button>
+      {!sellerView && (
+        <Button
+          startIcon={<AddCircleIcon />}
+          onClick={handleOnClick}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            backgroundColor: 'white',
+            color: 'black',
+            '&:hover': {
+              backgroundColor: '#f0f0f0',
+            },
+          }}
+          aria-label='create'
+          variant='contained'
+        >
+          Create Listing
+        </Button>
+      )}
       <Stack direction='row' alignItems='center' spacing={2}>
         <Avatar
           src={user?.profile_image_url || ProfilePic}

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 import uuid as uuid_pkg
 from typing import Optional
+from backend.models.user import UserSummary
 
 class SellerFeedback(BaseModel):
     seller_id: uuid_pkg.UUID
