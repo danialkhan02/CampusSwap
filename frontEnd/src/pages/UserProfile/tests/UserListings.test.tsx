@@ -63,19 +63,19 @@ describe('UserListings', () => {
         isError: false,
       });
 
-      render(<UserListings />);
+      render(<UserListings listerId='test-user' />);
       expect(screen.getByTestId('spinner')).toBeInTheDocument();
     });
   });
 
   describe('Data Display', () => {
     it('displays product list when data is loaded', () => {
-      render(<UserListings />);
+      render(<UserListings listerId='test-user' />);
       expect(screen.getByTestId('product-list')).toBeInTheDocument();
     });
 
     it('displays correct number of items', () => {
-      render(<UserListings />);
+      render(<UserListings listerId='test-user' />);
       const totalItems = screen.getByTestId('total-items');
       expect(totalItems).toHaveTextContent('Total Items:2');
     });
@@ -87,13 +87,13 @@ describe('UserListings', () => {
         isError: false,
       });
 
-      render(<UserListings />);
+      render(<UserListings listerId='test-user' />);
       const totalItems = screen.getByTestId('total-items');
       expect(totalItems).toHaveTextContent('Total Items:0');
     });
 
     it('renders all product items correctly', () => {
-      render(<UserListings />);
+      render(<UserListings listerId='test-user' />);
       const items = screen.getAllByTestId('product-item');
       expect(items).toHaveLength(2);
       expect(items[0]).toHaveTextContent('Item 1');
