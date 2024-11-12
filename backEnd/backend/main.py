@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import traceback
 from fastapi import FastAPI, status, Response, HTTPException
@@ -77,6 +78,8 @@ api_app.add_middleware(
     expose_headers=["*"],
 )
 
+workers = (multiprocessing.cpu_count() * 2) + 1
+
 def start():
     """Initialize and start the server"""
     init_db()
@@ -87,7 +90,10 @@ def start():
             "backend.main:api_app",
             host=server_url,
             port=int(server_port),
-            reload=True,
+            workers=workers,
+            limit_concurrency=200,
+            backlog=1024,
+            timeout_keep_alive=30,
             ssl_certfile=os.getenv("BACKEND_TLS_CERT_FILE"),
             ssl_keyfile=os.getenv("BACKEND_TLS_KEY_FILE"),
         )
@@ -95,8 +101,11 @@ def start():
         uvicorn.run(
             "backend.main:api_app",
             host=server_url, 
-            port=int(server_port), 
-            reload=True
+            port=int(server_port),
+            workers=workers,
+            limit_concurrency=200,
+            backlog=1024,
+            timeout_keep_alive=30,
         )
 
 if __name__ == "__main__":
