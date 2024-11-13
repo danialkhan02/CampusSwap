@@ -5,14 +5,17 @@ from backend.db_models.users import UsersOrm
 from backend.models.chat import ChatMessage
 from backend.models.user import UserSummary, User
 from sqlalchemy import or_, and_
-from typing import List
+from typing import List, Optional
 import uuid
 from backend.enums import ChatMessageType
 from backend.models.item import ItemSummary
 from backend.models.provider import Provider
 
-async def save_message(message: ChatMessage) -> ChatMessage:
+async def save_message(message: ChatMessage) -> Optional[ChatMessage]:
     """Save a chat message to the database"""
+    if message.type in ["PING", "PONG", "SYSTEM"]:
+        return None
+
     with Session() as session:
         db_message = ChatMessagesOrm(
             id=uuid.uuid4(),

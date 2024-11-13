@@ -7,7 +7,10 @@ import { chat } from 'utils/apiUrls';
 
 export enum EMessageType {
   TEXT = 'TEXT',
-  PRODUCT_INQUIRY = 'PRODUCT_INQUIRY'
+  PRODUCT_INQUIRY = 'PRODUCT_INQUIRY',
+  SYSTEM = 'SYSTEM',
+  PING = 'PING',
+  PONG = 'PONG'
 }
 
 export interface IProductSummary {

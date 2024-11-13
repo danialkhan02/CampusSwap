@@ -1,9 +1,14 @@
+import json
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from typing import List
 from backend.websocket.connection_manager import manager
 from backend.db_interface.chats import save_message, get_chat_history, get_user_active_chats
 from backend.models.chat import ChatMessage
 from backend.api_responses import ApiResponse
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     tags=["chat"],
@@ -11,31 +16,51 @@ router = APIRouter(
 )
 
 
-@router.websocket("/ws/{user_id}")
-async def websocket_endpoint(
-        websocket: WebSocket,
-        user_id: str
-):
-    """
-    WebSocket endpoint for real-time chat
 
-    Parameters:
-    - **user_id**: The ID of the user connecting to the chat
-    """
-    await manager.connect(websocket, user_id)
+@router.websocket("/ws/{user_id}")
+async def websocket_endpoint(websocket: WebSocket, user_id: str):
+    """WebSocket endpoint for chat"""
+    logger.info(f"New WebSocket connection request from user {user_id}")
+
     try:
+        await manager.connect(websocket, user_id)
+
         while True:
-            data = await websocket.receive_json()
-            message = ChatMessage(**data)
-            saved_message = await save_message(message)
-            message_dict = saved_message.dict()
-            await manager.send_personal_message(
-                message_dict,
-                str(message.receiver_id)
-            )
-    except WebSocketDisconnect:
-        await manager.disconnect(websocket, user_id)
+            try:
+                data = await websocket.receive_json()
+                message = ChatMessage(**data)
+
+                # Save message and get response with complete data
+                saved_message = await save_message(message)
+
+                if saved_message:  # Only send if it's not a system message
+                    # Send to receiver
+                    await manager.send_personal_message(
+                        saved_message.dict(),
+                        str(saved_message.receiver_id)
+                    )
+
+                    # Send confirmation back to sender
+                    await manager.send_personal_message(
+                        saved_message.dict(),
+                        str(saved_message.sender_id)
+                    )
+
+            except WebSocketDisconnect:
+                logger.info(f"WebSocket disconnected for user {user_id}")
+                break
+            except Exception as e:
+                logger.error(f"Error processing message: {str(e)}")
+                try:
+                    await websocket.send_json({
+                        "error": str(e),
+                    })
+                except:
+                    break
+
     except Exception as e:
+        logger.error(f"Error in websocket connection: {str(e)}")
+    finally:
         await manager.disconnect(websocket, user_id)
 
 
