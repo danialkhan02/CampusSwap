@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "backend"
-version = "1.19"
+version = "1.19.1"
 
 description = "API Gateway"
 authors = ["Swap Squad"]
@@ -60,3 +60,37 @@ start = "backend.main:start"
 [tool.pytest.ini_options]
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+omit = [
+    "alembic/*",
+    "scripts/*",
+    "backend/api/*",
+    "backend/cache/*",
+    "backend/errors/*",
+    "backend/middleware/*",
+    "backend/models/*",
+    "backend/utils/*",
+    "backend/websocket/*",
+    "backend/db_models/helpers.py",
+    "backend/__init__.py",
+    "backend/api_responses.py",
+    "backend/base_api_model.py",
+    "backend/config.py",
+    "backend/constants.py",
+    "backend/enums.py",
+    "backend/environments.py",
+    "backend/main.py",
+    "backend/stytch_client.py"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "pass",
+    "raise ImportError",
+]
