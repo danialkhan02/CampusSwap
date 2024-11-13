@@ -38,6 +38,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const userId = retrieve(CacheKeys.userId, { parseJson: false });
   const wsRef = useRef<WebSocket | null>(null);
   const isUnmountingRef = useRef(false);
+  const messageCache = useRef(new Set<string>());
 
   const {
     data: activeChatsResponse,
@@ -57,12 +58,35 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     enabled: !!userId && !!selectedUserId,
   });
 
-  // Update messages when chat history changes
+  const addMessage = (chatId: string, message: IChatMessage) => {
+    const messageKey = `${message.id}-${message.timestamp}-${message.sender_id}`;
+    if (messageCache.current.has(messageKey)) {
+      return false;
+    }
+    messageCache.current.add(messageKey);
+
+    setMessages((prev) => {
+      const existingMessages = prev[chatId] || [];
+      return {
+        ...prev,
+        [chatId]: [...existingMessages, message].sort(
+          (a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime(),
+        ),
+      };
+    });
+    return true;
+  };
+
   useEffect(() => {
     if (chatHistoryResponse?.data && selectedUserId) {
+      messageCache.current.clear();
       setMessages((prev) => ({
         ...prev,
-        [selectedUserId]: [...chatHistoryResponse.data].sort(
+        [selectedUserId]: chatHistoryResponse.data.map((msg) => {
+          const messageKey = `${msg.id}-${msg.timestamp}-${msg.sender_id}`;
+          messageCache.current.add(messageKey);
+          return msg;
+        }).sort(
           (a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime(),
         ),
       }));
@@ -93,19 +117,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           const message = JSON.parse(event.data) as IChatMessage;
           const chatId = message.sender_id === userId ? message.receiver_id : message.sender_id;
 
-          setMessages((prev) => {
-            const existingMessages = [...(prev[chatId] || [])];
-            if (existingMessages.some((msg) => msg.id === message.id)) return prev;
-
-            return {
-              ...prev,
-              [chatId]: [...existingMessages, message].sort(
-                (a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime(),
-              ),
-            };
-          });
-
-          queryClient.invalidateQueries({ queryKey: activeChatQueryKey(userId) });
+          // Only add message and update queries if it's new
+          if (addMessage(chatId, message)) {
+            queryClient.invalidateQueries({ queryKey: activeChatQueryKey(userId) });
+          }
         }
         catch (err) {
           Logger.error('Error handling message:', err);
@@ -116,7 +131,6 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         if (!isUnmountingRef.current) {
           setConnectionStatus('disconnected');
           wsRef.current = null;
-          // Simple reconnect after 2 seconds
           setTimeout(connectWebSocket, 2000);
         }
       };
@@ -148,31 +162,30 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         delete wsMessage.product_inquiry;
       }
 
+      // Send message first
       ws.send(JSON.stringify(wsMessage));
 
-      // Optimistic update
-      setMessages((prev) => {
-        const existingMessages = [...(prev[msgToSend.receiver_id] || [])];
-        return {
-          ...prev,
-          [msgToSend.receiver_id]: [...existingMessages, msgToSend].sort(
-            (a, b) => new Date(a.timestamp || '').getTime() - new Date(b.timestamp || '').getTime(),
-          ),
-        };
-      });
+      // Then do optimistic update
+      const chatId = msgToSend.receiver_id;
+      const messageKey = `${msgToSend.id}-${msgToSend.timestamp}-${msgToSend.sender_id}`;
+
+      if (!messageCache.current.has(messageKey)) {
+        addMessage(chatId, msgToSend);
+      }
     }
     catch (err) {
       Logger.error('Error sending message:', err);
     }
   };
 
-  // Initialize WebSocket connection
   useEffect(() => {
     isUnmountingRef.current = false;
+    messageCache.current.clear();
     if (userId) connectWebSocket();
 
     return () => {
       isUnmountingRef.current = true;
+      messageCache.current.clear();
       if (wsRef.current) {
         wsRef.current.close();
         wsRef.current = null;

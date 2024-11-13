@@ -40,12 +40,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
                         str(saved_message.receiver_id)
                     )
 
-                    # Send confirmation back to sender
-                    await manager.send_personal_message(
-                        saved_message.dict(),
-                        str(saved_message.sender_id)
-                    )
-
             except WebSocketDisconnect:
                 logger.info(f"WebSocket disconnected for user {user_id}")
                 break
