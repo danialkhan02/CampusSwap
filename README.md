@@ -1,4 +1,4 @@
-### ECE 444 Group 1 Web Application - SwapSquad
+### SwapSquad
 For this project we went with a monolithic repository structure with separate microservices.
 These microservices talk with each other using CRUD APIs. 
 
