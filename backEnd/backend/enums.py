@@ -23,3 +23,7 @@ class ItemCondition(str, Enum):
 class ChatMessageType(str, Enum):
     TEXT = "TEXT"
     PRODUCT_INQUIRY = "PRODUCT_INQUIRY"
+    PING = "PING"
+    PONG = "PONG"
+    SYSTEM = "SYSTEM"
+    ERROR = "ERROR"
